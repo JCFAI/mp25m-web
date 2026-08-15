@@ -1,0 +1,24 @@
+{
+  "name": "mp25m-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "profile-link": "node scripts/create-profile-link.mjs"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "postgres": "3.4.7",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

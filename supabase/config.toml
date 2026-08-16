@@ -1,0 +1,2 @@
+[functions.mp25m-profile-submit]
+verify_jwt = false

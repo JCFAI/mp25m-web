@@ -1,5 +1,6 @@
 ﻿import { redirect } from 'next/navigation'
 
+import { PasswordInput } from '../../components/password-input'
 import { createClient } from '../../lib/supabase/server'
 import { changePassword } from './actions'
 
@@ -65,14 +66,12 @@ export default async function CambiarClavePage({
                 Nueva contraseña
               </label>
 
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 minLength={12}
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-slate-500"
               />
             </div>
 
@@ -84,14 +83,12 @@ export default async function CambiarClavePage({
                 Repetir contraseña
               </label>
 
-              <input
+              <PasswordInput
                 id="password_confirmation"
                 name="password_confirmation"
-                type="password"
                 autoComplete="new-password"
                 minLength={12}
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-slate-500"
               />
             </div>
 

@@ -1,4 +1,5 @@
-﻿import { login } from './actions'
+﻿import { PasswordInput } from '../../components/password-input'
+import { login } from './actions'
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -81,13 +82,11 @@ export default async function LoginPage({
                 Contraseña
               </label>
 
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 autoComplete="current-password"
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-slate-500"
               />
             </div>
 

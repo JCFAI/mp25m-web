@@ -37,11 +37,9 @@ export type Opportunity = {
   node_names: string[]
 }
 
-export type OpportunityNodeOption = {
+export type OpportunityNodeSearchResult = {
   id: string
-  node_number: number | null
-  name: string
-  status: string
+  display_name: string
 }
 
 export type CreateOpportunityInput = {
@@ -86,6 +84,48 @@ function getActorInternalUserId(
   return internalUserIds[0]
 }
 
+function normalizeNodeSearchTerm(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export async function searchOpportunityNodes(
+  query: string
+): Promise<OpportunityNodeSearchResult[]> {
+  const term = normalizeNodeSearchTerm(query)
+
+  if (term.length < 2) {
+    return []
+  }
+
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase
+    .from('opportunity_node_options')
+    .select(`
+      id,
+      display_name
+    `)
+    .ilike('search_name', `%${term}%`)
+    .order('display_name', {
+      ascending: true,
+    })
+    .limit(10)
+
+  if (error) {
+    throw new Error(
+      `Unable to search opportunity nodes: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as OpportunityNodeSearchResult[]
+}
+
 export async function listOpportunities(): Promise<Opportunity[]> {
   const supabase = createAdminClient()
 
@@ -119,35 +159,6 @@ export async function listOpportunities(): Promise<Opportunity[]> {
   }
 
   return (data ?? []) as Opportunity[]
-}
-
-export async function listOpportunityNodeOptions():
-Promise<OpportunityNodeOption[]> {
-  const supabase = createAdminClient()
-
-  const { data, error } = await supabase
-    .from('opportunity_node_options')
-    .select(`
-      id,
-      node_number,
-      name,
-      status
-    `)
-    .order('node_number', {
-      ascending: true,
-      nullsFirst: false,
-    })
-    .order('name', {
-      ascending: true,
-    })
-
-  if (error) {
-    throw new Error(
-      `Unable to list opportunity node options: ${error.message}`
-    )
-  }
-
-  return (data ?? []) as OpportunityNodeOption[]
 }
 
 export async function createOpportunity(

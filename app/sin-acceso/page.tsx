@@ -1,6 +1,6 @@
-﻿export default function SinAccesoPage() {
+export default function SinAccesoPage() {
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
+    <main className="min-h-screen bg-[#F4F6F9] px-6 py-16">
       <div className="mx-auto max-w-lg">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-sm font-medium text-slate-500">
@@ -19,7 +19,7 @@
           <form action="/auth/signout" method="post" className="mt-8">
             <button
               type="submit"
-              className="rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+              className="rounded-lg bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white hover:bg-[#14263D]"
             >
               Cerrar sesión
             </button>

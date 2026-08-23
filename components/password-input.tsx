@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 
@@ -28,7 +28,7 @@ export function PasswordInput({
         autoComplete={autoComplete}
         minLength={minLength}
         required={required}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-24 text-slate-900 outline-none focus:border-slate-500"
+        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-24 text-slate-900 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
       />
 
       <button

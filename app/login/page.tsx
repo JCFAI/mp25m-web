@@ -1,4 +1,4 @@
-﻿import { PasswordInput } from '../../components/password-input'
+import { PasswordInput } from '../../components/password-input'
 import { login } from './actions'
 
 type LoginPageProps = {
@@ -26,9 +26,9 @@ export default async function LoginPage({
   const passwordChanged = params.reset === 'ok'
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
+    <main className="min-h-screen bg-[#F4F6F9] px-6 py-16">
       <div className="mx-auto max-w-md">
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 border-t-4 border-t-[#1E3A5F] bg-white p-8 shadow-[0_18px_50px_rgba(30,58,95,0.10)]">
           <div className="mb-8">
             <p className="text-sm font-medium text-slate-500">
               Movimiento Productivo 25 de Mayo
@@ -70,7 +70,7 @@ export default async function LoginPage({
                 type="email"
                 autoComplete="email"
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-slate-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
               />
             </div>
 
@@ -92,7 +92,7 @@ export default async function LoginPage({
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+              className="w-full rounded-lg bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white hover:bg-[#14263D]"
             >
               Ingresar
             </button>
@@ -101,7 +101,7 @@ export default async function LoginPage({
           <div className="mt-6 text-center">
             <a
               href="/recuperar-clave"
-              className="text-sm font-medium text-slate-700 underline"
+              className="text-sm font-medium text-[#2F5D8C] underline underline-offset-4 hover:text-[#1E3A5F]"
             >
               ¿Olvidaste tu contraseña?
             </a>

@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 
 import { PasswordInput } from '../../components/password-input'
 import { createClient } from '../../lib/supabase/server'
@@ -36,7 +36,7 @@ export default async function CambiarClavePage({
     : null
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
+    <main className="min-h-screen bg-[#F4F6F9] px-6 py-16">
       <div className="mx-auto max-w-md">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-sm font-medium text-slate-500">
@@ -94,7 +94,7 @@ export default async function CambiarClavePage({
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+              className="w-full rounded-lg bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white hover:bg-[#14263D]"
             >
               Guardar nueva contraseña
             </button>

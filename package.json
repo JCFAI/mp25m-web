@@ -18,10 +18,13 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "postcss": "^8.5.26",
     "supabase": "2.115.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "5.9.3"
   }
 }

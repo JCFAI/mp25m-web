@@ -3,6 +3,7 @@
 type LoginPageProps = {
   searchParams: Promise<{
     error?: string
+    reset?: string
   }>
 }
 
@@ -16,9 +17,12 @@ export default async function LoginPage({
   searchParams,
 }: LoginPageProps) {
   const params = await searchParams
+
   const errorMessage = params.error
     ? errorMessages[params.error]
     : null
+
+  const passwordChanged = params.reset === 'ok'
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-16">
@@ -37,6 +41,12 @@ export default async function LoginPage({
               Ingresá con la cuenta habilitada para el backoffice de MP25M.
             </p>
           </div>
+
+          {passwordChanged ? (
+            <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              La contraseña fue actualizada. Ya podés ingresar con la nueva.
+            </div>
+          ) : null}
 
           {errorMessage ? (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -88,6 +98,15 @@ export default async function LoginPage({
               Ingresar
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <a
+              href="/recuperar-clave"
+              className="text-sm font-medium text-slate-700 underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
 
           <p className="mt-6 text-center text-xs leading-5 text-slate-500">
             El acceso es únicamente para usuarios habilitados.

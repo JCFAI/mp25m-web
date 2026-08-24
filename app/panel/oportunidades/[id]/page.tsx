@@ -15,6 +15,9 @@ type OpportunityDetailPageProps = {
   params: Promise<{
     id: string
   }>
+  searchParams: Promise<{
+    updated?: string
+  }>
 }
 
 const kindLabels = {
@@ -45,6 +48,8 @@ const actionLabels: Record<string, string> = {
     'Actor provisorio registrado',
   'opportunity.status_change':
     'Estado actualizado',
+  'opportunity.update':
+    'Oportunidad actualizada',
 }
 
 function formatDate(value: string | null) {
@@ -129,8 +134,10 @@ function HistoryDescription({
 
 export default async function OpportunityDetailPage({
   params,
+  searchParams,
 }: OpportunityDetailPageProps) {
   const { id } = await params
+  const query = await searchParams
 
   const [
     supabase,
@@ -174,6 +181,12 @@ export default async function OpportunityDetailPage({
         </Link>
       </div>
 
+      {query.updated === '1' ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+          Los cambios de la oportunidad fueron guardados correctamente.
+        </div>
+      ) : null}
+
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-3xl">
@@ -190,17 +203,28 @@ export default async function OpportunityDetailPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
-              {statusLabels[opportunity.status]}
-            </span>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
+                {statusLabels[opportunity.status]}
+              </span>
 
-            <span className="rounded-full border border-white/20 px-3 py-1.5 text-xs">
-              Prioridad{' '}
-              {priorityLabels[
-                opportunity.priority
-              ]}
-            </span>
+              <span className="rounded-full border border-white/20 px-3 py-1.5 text-xs">
+                Prioridad{' '}
+                {priorityLabels[
+                  opportunity.priority
+                ]}
+              </span>
+            </div>
+
+            {canManage ? (
+              <Link
+                href={`/panel/oportunidades/${opportunity.id}/editar`}
+                className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] shadow-sm transition hover:bg-slate-50"
+              >
+                Editar oportunidad
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>

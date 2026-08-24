@@ -229,10 +229,15 @@ function actorMetadata(actor: ActorResult) {
 
 export function OpportunityRelations({
   organizationTypes,
+  initialNodes = [],
+  initialActors = [],
 }: {
   organizationTypes: OrganizationTypeOption[]
+  initialNodes?: NodeResult[]
+  initialActors?: ActorResult[]
 }) {
-  const [nodes, setNodes] = useState<NodeResult[]>([])
+  const [nodes, setNodes] =
+    useState<NodeResult[]>(() => initialNodes)
 
   const [actorQuery, setActorQuery] = useState('')
   const [actorResults, setActorResults] =
@@ -241,7 +246,7 @@ export function OpportunityRelations({
     useState(false)
 
   const [selectedActors, setSelectedActors] =
-    useState<ActorResult[]>([])
+    useState<ActorResult[]>(() => initialActors)
 
   const [provisionalActors, setProvisionalActors] =
     useState<ProvisionalActor[]>([])

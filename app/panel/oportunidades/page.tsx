@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   canCreateOpportunity,
   listOpportunities,
@@ -82,7 +83,12 @@ function OpportunityCard({
       </div>
 
       <h3 className="mt-4 text-lg font-semibold text-slate-950">
-        {opportunity.title}
+        <Link
+          href={`/panel/oportunidades/${opportunity.id}`}
+          className="transition hover:text-[#2F5D8C]"
+        >
+          {opportunity.title}
+        </Link>
       </h3>
 
       <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
@@ -105,6 +111,15 @@ function OpportunityCard({
           Sin nodo territorial asociado
         </p>
       )}
+
+      <div className="mt-4">
+        <Link
+          href={`/panel/oportunidades/${opportunity.id}`}
+          className="text-xs font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
+        >
+          Ver detalle →
+        </Link>
+      </div>
 
       {opportunity.source_text ? (
         <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">

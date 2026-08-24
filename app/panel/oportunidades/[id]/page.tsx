@@ -6,8 +6,10 @@ import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
   canManageOpportunity,
   getOpportunityDetail,
+  listOpportunityAssigneeOptions,
 } from '../../../../lib/opportunities/detail'
 import { createClient } from '../../../../lib/supabase/server'
+import { OpportunityAssigneeForm } from './assignee-form'
 import { OpportunityFollowupForm } from './followup-form'
 import { OpportunityStatusForm } from './status-form'
 
@@ -54,6 +56,8 @@ const actionLabels: Record<string, string> = {
     'Oportunidad actualizada',
   'opportunity.followup.create':
     'Novedad registrada',
+  'opportunity.assignee_change':
+    'Responsable actualizado',
 }
 
 function formatDate(value: string | null) {
@@ -369,6 +373,44 @@ function HistoryDescription({
 
   if (
     event.action ===
+      'opportunity.assignee_change' &&
+    event.old_data &&
+    event.new_data
+  ) {
+    const previous =
+      historyTextValue(
+        event.old_data
+          .assigned_to_display_name
+      )
+
+    const current =
+      historyTextValue(
+        event.new_data
+          .assigned_to_display_name
+      )
+
+    return (
+      <>
+        <p className="mt-1 text-sm text-slate-600">
+          {previous === 'Sin dato'
+            ? 'Sin responsable'
+            : previous}
+          {' → '}
+          {current === 'Sin dato'
+            ? 'Sin responsable'
+            : current}
+        </p>
+
+        {event.reason ? (
+          <p className="mt-2 text-sm italic text-slate-500">
+            “{event.reason}”
+          </p>
+        ) : null}
+      </>
+    )
+  }
+  if (
+    event.action ===
       'opportunity.followup.create' &&
     event.new_data
   ) {
@@ -654,9 +696,11 @@ export default async function OpportunityDetailPage({
   const [
     supabase,
     detail,
+    assigneeOptions,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
+    listOpportunityAssigneeOptions(),
   ])
 
   if (!detail) {
@@ -906,6 +950,14 @@ export default async function OpportunityDetailPage({
                     ? 'open'
                     : opportunity.status
                 }
+              />
+
+              <OpportunityAssigneeForm
+                opportunityId={opportunity.id}
+                currentAssigneeId={
+                  opportunity.assigned_to_internal_user_id
+                }
+                options={assigneeOptions}
               />
 
               <OpportunityFollowupForm

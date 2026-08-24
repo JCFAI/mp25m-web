@@ -363,6 +363,81 @@ export async function createOpportunityFollowup(
   return data as string
 }
 
+export type OpportunityAssigneeOption = {
+  id: string
+  display_name: string
+  role_names: string[]
+  scope_names: string[]
+}
+
+export async function listOpportunityAssigneeOptions():
+Promise<OpportunityAssigneeOption[]> {
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase
+    .from('opportunity_assignee_options')
+    .select(`
+      id,
+      display_name,
+      role_names,
+      scope_names
+    `)
+    .order('display_name', {
+      ascending: true,
+    })
+
+  if (error) {
+    throw new Error(
+      `Unable to load opportunity assignees: ${error.message}`
+    )
+  }
+
+  return (data ?? []).map((item) => ({
+    id: item.id,
+    display_name: item.display_name,
+    role_names: item.role_names ?? [],
+    scope_names: item.scope_names ?? [],
+  }))
+}
+
+export async function updateOpportunityAssignee(
+  access: InternalAccess[],
+  opportunityId: string,
+  assigneeId: string | null,
+  reason?: string | null
+) {
+  if (!canManageOpportunity(access)) {
+    throw new Error(
+      'The current internal user cannot manage opportunities'
+    )
+  }
+
+  const actorInternalUserId =
+    getActorInternalUserId(access)
+
+  const supabase = createAdminClient()
+
+  const { error } = await supabase.rpc(
+    'update_opportunity_assignee',
+    {
+      p_actor_internal_user_id:
+        actorInternalUserId,
+      p_opportunity_id:
+        opportunityId,
+      p_assigned_to_internal_user_id:
+        assigneeId || null,
+      p_reason:
+        reason?.trim() || null,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to update opportunity assignee: ${error.message}`
+    )
+  }
+}
+
 export async function updateOpportunityStatus(
   access: InternalAccess[],
   opportunityId: string,

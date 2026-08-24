@@ -8,8 +8,7 @@ import {
 } from '../../../lib/opportunities/actors'
 import { getInternalAccess } from '../../../lib/auth/internal-access'
 import { createClient } from '../../../lib/supabase/server'
-import { createOpportunityAction } from './actions'
-import { OpportunityRelations } from './opportunity-relations'
+import { OpportunityForm } from './opportunity-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -180,12 +179,6 @@ export default async function OpportunitiesPage({
         </div>
       ) : null}
 
-      {params.error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">
-          No se pudo registrar la oportunidad. Revisá los datos e intentá nuevamente.
-        </div>
-      ) : null}
-
       <section className="grid gap-4 sm:grid-cols-3">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-slate-500">
@@ -232,108 +225,9 @@ export default async function OpportunitiesPage({
             </p>
           </div>
 
-          <form
-            action={createOpportunityAction}
-            className="mt-6 grid gap-5 lg:grid-cols-2"
-          >
-            <label className="block lg:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">
-                Título
-              </span>
-              <input
-                name="title"
-                required
-                minLength={3}
-                maxLength={200}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-                placeholder="Ej.: Empresa busca proveedor nacional de..."
-              />
-            </label>
-
-            <label className="block lg:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">
-                Descripción
-              </span>
-              <textarea
-                name="description"
-                required
-                minLength={10}
-                maxLength={10000}
-                rows={5}
-                className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-                placeholder="Describí la oportunidad, la necesidad identificada y cualquier información relevante."
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">
-                Tipo
-              </span>
-              <select
-                name="kind"
-                defaultValue="opportunity"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
-              >
-                <option value="opportunity">
-                  Oportunidad
-                </option>
-                <option value="need">
-                  Necesidad
-                </option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">
-                Prioridad
-              </span>
-              <select
-                name="priority"
-                defaultValue="normal"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
-              >
-                <option value="low">Baja</option>
-                <option value="normal">Normal</option>
-                <option value="high">Alta</option>
-                <option value="urgent">Urgente</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">
-                Fecha límite
-              </span>
-              <input
-                type="date"
-                name="due_date"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">
-                Nota sobre el origen
-              </span>
-              <input
-                name="source_text"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
-                placeholder="Ej.: surge de la reunión del 21/8..."
-              />
-            </label>
-
-            <OpportunityRelations
-              organizationTypes={organizationTypes}
-            />
-
-            <div className="flex justify-end lg:col-span-2">
-              <button
-                type="submit"
-                className="rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D]"
-              >
-                Registrar
-              </button>
-            </div>
-          </form>
+          <OpportunityForm
+            organizationTypes={organizationTypes}
+          />
         </section>
       ) : null}
 

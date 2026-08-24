@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../lib/auth/internal-access'
+import { getInternalUserProfile } from '../../lib/auth/internal-profile'
 import { createClient } from '../../lib/supabase/server'
 import { PanelNavigation } from './panel-navigation'
 
@@ -31,6 +33,9 @@ export default async function PanelLayout({
     redirect('/sin-acceso')
   }
 
+  const profile =
+    await getInternalUserProfile(access)
+
   const primaryAccess = access[0]
 
   const roleName = primaryAccess.access_role_name
@@ -40,6 +45,9 @@ export default async function PanelLayout({
     (primaryAccess.scope_type === 'global'
       ? 'Global'
       : primaryAccess.scope_type)
+
+  const displayName =
+    profile.display_name ?? roleName
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -93,15 +101,19 @@ export default async function PanelLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-800">
-                  {roleName}
+              <Link
+                href="/panel/perfil"
+                className="group hidden rounded-xl px-3 py-2 text-right transition hover:bg-slate-50 sm:block"
+                title="Editar mi perfil"
+              >
+                <p className="text-sm font-semibold text-slate-800 transition group-hover:text-[#2F5D8C]">
+                  {displayName}
                 </p>
 
-                <p className="text-xs text-slate-500">
-                  Ámbito {scopeName}
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {roleName} · Ámbito {scopeName}
                 </p>
-              </div>
+              </Link>
 
               <form action="/auth/signout" method="post">
                 <button

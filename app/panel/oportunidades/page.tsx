@@ -21,7 +21,7 @@ type OpportunitiesPageProps = {
 }
 
 const kindLabels = {
-  opportunity: 'Oportunidad',
+  opportunity: 'Oportunidad / oferta',
   need: 'Necesidad',
 }
 
@@ -171,18 +171,15 @@ export default async function OpportunitiesPage({
 
   return (
     <div className="space-y-7">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-5 text-white shadow-sm sm:p-6">
         <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-100/70">
-            Incremento 2
-          </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Oportunidades
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Articulaciones
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-50/80 sm:text-base">
-            Registro y seguimiento de oportunidades y necesidades productivas
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-50/80">
+            Registro y seguimiento de articulaciones productivas, oportunidades y necesidades
             identificadas por el Movimiento Productivo 25 de Mayo.
           </p>
         </div>
@@ -190,7 +187,7 @@ export default async function OpportunitiesPage({
 
       {params.created === '1' ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
-          La oportunidad fue registrada correctamente.
+          La articulación fue registrada correctamente.
         </div>
       ) : null}
 
@@ -231,12 +228,12 @@ export default async function OpportunitiesPage({
             </p>
 
             <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-              Registrar oportunidad o necesidad
+              Registrar articulación
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
               Podés relacionarla con nodos territoriales y con las personas,
-              empresas o instituciones que dieron origen a la oportunidad.
+              empresas o instituciones que dieron origen a la articulación.
             </p>
           </div>
 
@@ -253,14 +250,14 @@ export default async function OpportunitiesPage({
           </p>
 
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Oportunidades registradas
+            Articulaciones registradas
           </h2>
         </div>
 
         {opportunities.length === 0 ? (
           <div className="py-14 text-center">
             <p className="text-base font-semibold text-slate-700">
-              Todavía no hay oportunidades registradas.
+              Todavía no hay articulaciones registradas.
             </p>
             <p className="mt-2 text-sm text-slate-500">
               La primera carga aparecerá acá y quedará registrada en la auditoría del sistema.

@@ -473,7 +473,7 @@ export function OpportunityRelations({
           </span>
 
           <p className="mt-1 text-xs leading-5 text-slate-400">
-            Personas, empresas o instituciones que dieron origen a la oportunidad.
+            Personas, empresas o instituciones que dieron origen a la articulación.
             Los actores relacionados con los nodos elegidos aparecen primero.
           </p>
         </div>
@@ -634,7 +634,7 @@ export function OpportunityRelations({
               </p>
 
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Se registrará recién cuando guardes la oportunidad y quedará pendiente de validación.
+                Se registrará recién cuando guardes la articulación y quedará pendiente de validación.
               </p>
             </div>
 
@@ -735,7 +735,7 @@ export function OpportunityRelations({
                   selected={newActorNodes}
                   onChange={setNewActorNodes}
                   placeholder="Buscar nodo para este actor..."
-                  helperText="Podés mantener los nodos de la oportunidad, quitarlos o agregar otros."
+                  helperText="Podés mantener los nodos de la articulación, quitarlos o agregar otros."
                 />
               </div>
             </div>
@@ -762,7 +762,7 @@ export function OpportunityRelations({
                 }
                 className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Incorporar a esta oportunidad
+                Incorporar a esta articulación
               </button>
             </div>
           </div>

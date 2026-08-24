@@ -207,7 +207,7 @@ export function OpportunityEditForm({
           )}
         >
           <option value="opportunity">
-            Oportunidad
+            Oportunidad / oferta
           </option>
 
           <option value="need">

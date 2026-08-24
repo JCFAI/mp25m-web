@@ -25,7 +25,7 @@ type OpportunityDetailPageProps = {
 }
 
 const kindLabels = {
-  opportunity: 'Oportunidad',
+  opportunity: 'Oportunidad / oferta',
   need: 'Necesidad',
 }
 
@@ -47,13 +47,13 @@ const priorityLabels = {
 
 const actionLabels: Record<string, string> = {
   'opportunity.create':
-    'Oportunidad registrada',
+    'Articulación registrada',
   'actor_candidate.create':
     'Actor provisorio registrado',
   'opportunity.status_change':
     'Estado actualizado',
   'opportunity.update':
-    'Oportunidad actualizada',
+    'Articulación actualizada',
   'opportunity.followup.create':
     'Novedad registrada',
   'opportunity.assignee_change':
@@ -671,7 +671,7 @@ function HistoryDescription({
     if (changes.length === 0) {
       return (
         <p className="mt-2 text-sm text-slate-500">
-          No hubo cambios en los datos de la oportunidad.
+          No hubo cambios en los datos de la articulación.
         </p>
       )
     }
@@ -733,13 +733,13 @@ export default async function OpportunityDetailPage({
           href="/panel/oportunidades"
           className="text-sm font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
         >
-          ← Volver a oportunidades
+          ← Volver a articulaciones
         </Link>
       </div>
 
       {query.updated === '1' ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
-          Los cambios de la oportunidad fueron guardados correctamente.
+          Los cambios de la articulación fueron guardados correctamente.
         </div>
       ) : null}
 
@@ -778,7 +778,7 @@ export default async function OpportunityDetailPage({
                 href={`/panel/oportunidades/${opportunity.id}/editar`}
                 className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] shadow-sm transition hover:bg-slate-50"
               >
-                Editar oportunidad
+                Editar articulación
               </Link>
             ) : null}
           </div>
@@ -970,7 +970,7 @@ export default async function OpportunityDetailPage({
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
-              Tu perfil puede consultar esta oportunidad,
+              Tu perfil puede consultar esta articulación,
               pero no modificar su estado.
             </div>
           )}

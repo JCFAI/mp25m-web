@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation'
 const futureModules = [
   'Organizaciones',
   'Nodos',
-  'Capacidades',
-  'Articulaciones',
+  'Habilidades',
   'Proyectos',
   'Informes',
 ]
@@ -53,7 +52,7 @@ export function PanelNavigation() {
           }
           className={activeClass(opportunitiesActive)}
         >
-          <span>Oportunidades</span>
+          <span>Articulaciones</span>
 
           {opportunitiesActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />

@@ -168,7 +168,7 @@ export default async function ActorCandidateReviewPage({
 
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Oportunidad relacionada
+                Articulación relacionada
               </dt>
 
               <dd className="mt-2 space-y-2">

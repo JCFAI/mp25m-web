@@ -65,7 +65,7 @@ export function OpportunityFollowupForm({
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
         Registrá contactos, reuniones, compromisos,
-        entregas u otros avances de esta oportunidad.
+        entregas u otros avances de esta articulación.
       </p>
 
       {state.message ? (

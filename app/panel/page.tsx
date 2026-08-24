@@ -1,8 +1,8 @@
 const modules = [
   {
-    name: 'Oportunidades',
+    name: 'Articulaciones',
     description:
-      'Registro, an\u00e1lisis y seguimiento de oportunidades y necesidades productivas.',
+      'Registro, an\u00e1lisis y seguimiento de articulaciones productivas, sus oportunidades y necesidades.',
     next: true,
   },
   {
@@ -16,14 +16,9 @@ const modules = [
       'Composici\u00f3n territorial, participantes y actividad de cada nodo.',
   },
   {
-    name: 'Capacidades',
+    name: 'Habilidades',
     description:
-      'Mapa de habilidades, profesiones, rubros y capacidades disponibles.',
-  },
-  {
-    name: 'Articulaciones',
-    description:
-      'Seguimiento de v\u00ednculos y acciones entre actores y nodos.',
+      'Mapa de habilidades, profesiones y rubros relevados en el movimiento.',
   },
   {
     name: 'Proyectos',
@@ -35,23 +30,15 @@ const modules = [
 export default function PanelPage() {
   return (
     <div className="space-y-7">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-5 text-white shadow-sm sm:p-6">
         <div className="max-w-3xl">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-50">
-            <span className="h-2 w-2 rounded-full bg-sky-300" />
-            Incremento 1 operativo
-          </div>
 
-          <p className="text-sm font-medium text-slate-100/75">
-            Movimiento Productivo 25 de Mayo
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Backoffice MP25M
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-50/80 sm:text-base">
-            {'Espacio interno para administrar progresivamente la informaci\u00f3n, las capacidades y las articulaciones del movimiento.'}
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-50/80">
+            {'Espacio interno para administrar progresivamente la informaci\u00f3n, las habilidades y las articulaciones del movimiento.'}
           </p>
         </div>
       </section>
@@ -109,7 +96,7 @@ export default function PanelPage() {
           </div>
 
           <h2 className="mt-5 text-lg font-semibold text-[#1E3A5F]">
-            Oportunidades
+            Articulaciones
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">

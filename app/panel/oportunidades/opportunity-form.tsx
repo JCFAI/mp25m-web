@@ -76,7 +76,7 @@ export function OpportunityForm({
           className="lg:col-span-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4"
         >
           <p className="text-sm font-semibold text-red-800">
-            No se pudo registrar la oportunidad
+            No se pudo registrar la articulación
           </p>
 
           <p className="mt-1 text-sm leading-6 text-red-700">
@@ -138,7 +138,7 @@ export function OpportunityForm({
               state.fieldErrors.description
             )
           )} resize-y leading-6`}
-          placeholder="Describí la oportunidad, la necesidad identificada y cualquier información relevante."
+          placeholder="Describí la articulación, la oportunidad u oferta, la necesidad identificada y cualquier información relevante."
         />
 
         <FieldError
@@ -167,7 +167,7 @@ export function OpportunityForm({
           )}
         >
           <option value="opportunity">
-            Oportunidad
+            Oportunidad / oferta
           </option>
 
           <option value="need">

@@ -78,7 +78,7 @@ export function InternalProfileForm({
         <p className="mt-2 text-xs leading-5 text-slate-500">
           Este nombre identifica tu usuario dentro del
           panel y podrá mostrarse como responsable de
-          oportunidades. No modifica los datos de
+          articulaciones. No modifica los datos de
           participantes del MP25M.
         </p>
       </label>

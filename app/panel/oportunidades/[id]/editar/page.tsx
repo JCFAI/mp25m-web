@@ -98,11 +98,11 @@ export default async function EditOpportunityPage({
 
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-100/70">
-          Oportunidades
+          Articulaciones
         </p>
 
         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-          Editar oportunidad
+          Editar articulación
         </h1>
 
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-50/80">

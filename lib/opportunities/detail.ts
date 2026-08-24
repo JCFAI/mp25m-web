@@ -189,6 +189,121 @@ export async function getOpportunityDetail(
   }
 }
 
+export type UpdateOpportunityDetailsInput = {
+  title: string
+  description: string
+  kind: 'opportunity' | 'need'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  sourceText: string
+  dueDate: string | null
+  nodeIds: string[]
+  originActors: {
+    actorType: 'person' | 'organization' | 'candidate'
+    actorId: string
+  }[]
+  newActorCandidates: {
+    actorKind: 'person' | 'organization'
+    displayName: string
+    organizationTypeCode?: string | null
+    contextText?: string | null
+    nodeIds: string[]
+  }[]
+}
+
+export async function updateOpportunityDetails(
+  access: InternalAccess[],
+  opportunityId: string,
+  input: UpdateOpportunityDetailsInput
+) {
+  if (!canManageOpportunity(access)) {
+    throw new Error(
+      'The current internal user cannot manage opportunities'
+    )
+  }
+
+  const actorInternalUserId =
+    getActorInternalUserId(access)
+
+  const title = input.title.trim()
+  const description = input.description.trim()
+
+  if (title.length < 3 || title.length > 200) {
+    throw new Error('Invalid opportunity title')
+  }
+
+  if (
+    description.length < 10 ||
+    description.length > 10000
+  ) {
+    throw new Error('Invalid opportunity description')
+  }
+
+  const nodeIds = [
+    ...new Set(input.nodeIds),
+  ]
+
+  const originActors = input.originActors.map(
+    (actor) => ({
+      actor_type: actor.actorType,
+      actor_id: actor.actorId,
+    })
+  )
+
+  const newActorCandidates =
+    input.newActorCandidates.map(
+      (candidate) => ({
+        actor_kind: candidate.actorKind,
+        display_name:
+          candidate.displayName.trim(),
+        organization_type_code:
+          candidate.actorKind === 'organization'
+            ? candidate.organizationTypeCode ?? null
+            : null,
+        context_text:
+          candidate.contextText?.trim() || null,
+        node_ids: [
+          ...new Set(candidate.nodeIds),
+        ],
+      })
+    )
+
+  const supabase = createAdminClient()
+
+  const { error } = await supabase.rpc(
+    'update_opportunity_details',
+    {
+      p_actor_internal_user_id:
+        actorInternalUserId,
+      p_opportunity_id:
+        opportunityId,
+      p_title:
+        title,
+      p_description:
+        description,
+      p_kind:
+        input.kind,
+      p_priority:
+        input.priority,
+      p_source_text:
+        input.sourceText.trim(),
+      p_due_date:
+        input.dueDate || null,
+      p_node_ids:
+        nodeIds,
+      p_origin_actors:
+        originActors,
+      p_new_actor_candidates:
+        newActorCandidates,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to update opportunity details: ${error.message}`
+    )
+  }
+}
+
 export async function updateOpportunityStatus(
   access: InternalAccess[],
   opportunityId: string,

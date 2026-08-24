@@ -19,6 +19,19 @@ export type OpportunityPriority =
   | 'high'
   | 'urgent'
 
+export type OpportunityOriginActorInput = {
+  actorType: 'person' | 'organization' | 'candidate'
+  actorId: string
+}
+
+export type NewActorCandidateInput = {
+  actorKind: 'person' | 'organization'
+  displayName: string
+  organizationTypeCode?: string | null
+  contextText?: string | null
+  nodeIds?: string[]
+}
+
 export type Opportunity = {
   id: string
   title: string
@@ -52,6 +65,8 @@ export type CreateOpportunityInput = {
   dueDate?: string | null
   assignedToInternalUserId?: string | null
   nodeIds?: string[]
+  originActors?: OpportunityOriginActorInput[]
+  newActorCandidates?: NewActorCandidateInput[]
 }
 
 const OPPORTUNITY_CREATOR_ROLES = new Set([
@@ -92,6 +107,10 @@ function normalizeNodeSearchTerm(value: string) {
     .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function toNodeDisplayName(value: string) {
+  return value.replace(/^Nodo\s+/i, '')
 }
 
 export async function searchOpportunityNodes(
@@ -158,7 +177,15 @@ export async function listOpportunities(): Promise<Opportunity[]> {
     )
   }
 
-  return (data ?? []) as Opportunity[]
+  return ((data ?? []) as Opportunity[]).map(
+    (opportunity) => ({
+      ...opportunity,
+      node_ids: opportunity.node_ids ?? [],
+      node_names: (opportunity.node_names ?? []).map(
+        toNodeDisplayName
+      ),
+    })
+  )
 }
 
 export async function createOpportunity(
@@ -194,6 +221,33 @@ export async function createOpportunity(
     )
   }
 
+  const originActors = input.originActors ?? []
+
+  const newActorCandidates =
+    input.newActorCandidates ?? []
+
+  for (const candidate of newActorCandidates) {
+    const displayName = candidate.displayName.trim()
+
+    if (
+      displayName.length < 2 ||
+      displayName.length > 300
+    ) {
+      throw new Error(
+        'Provisional actor name must contain between 2 and 300 characters'
+      )
+    }
+
+    if (
+      candidate.actorKind === 'organization' &&
+      !candidate.organizationTypeCode
+    ) {
+      throw new Error(
+        'Organization type is required'
+      )
+    }
+  }
+
   const supabase = createAdminClient()
 
   const { data, error } = await supabase.rpc(
@@ -211,6 +265,31 @@ export async function createOpportunity(
       p_assigned_to_internal_user_id:
         input.assignedToInternalUserId || null,
       p_node_ids: nodeIds,
+
+      p_origin_actors: originActors.map(
+        (actor) => ({
+          actor_type: actor.actorType,
+          actor_id: actor.actorId,
+        })
+      ),
+
+      p_new_actor_candidates:
+        newActorCandidates.map(
+          (candidate) => ({
+            actor_kind: candidate.actorKind,
+            display_name:
+              candidate.displayName.trim(),
+            organization_type_code:
+              candidate.actorKind === 'organization'
+                ? candidate.organizationTypeCode
+                : null,
+            context_text:
+              candidate.contextText?.trim() || null,
+            node_ids: [
+              ...new Set(candidate.nodeIds ?? []),
+            ],
+          })
+        ),
     }
   )
 

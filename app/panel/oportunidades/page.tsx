@@ -3,10 +3,13 @@ import {
   listOpportunities,
   type Opportunity,
 } from '../../../lib/opportunities/server'
+import {
+  listOpportunityOrganizationTypes,
+} from '../../../lib/opportunities/actors'
 import { getInternalAccess } from '../../../lib/auth/internal-access'
 import { createClient } from '../../../lib/supabase/server'
 import { createOpportunityAction } from './actions'
-import { NodeAutocomplete } from './node-autocomplete'
+import { OpportunityRelations } from './opportunity-relations'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,7 +110,7 @@ function OpportunityCard({
       {opportunity.source_text ? (
         <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
           <span className="font-semibold text-slate-600">
-            Origen:
+            Nota sobre el origen:
           </span>{' '}
           {opportunity.source_text}
         </p>
@@ -134,7 +137,13 @@ export default async function OpportunitiesPage({
 
   const canCreate = canCreateOpportunity(access)
 
-  const opportunities = await listOpportunities()
+  const [
+    opportunities,
+    organizationTypes,
+  ] = await Promise.all([
+    listOpportunities(),
+    listOpportunityOrganizationTypes(),
+  ])
 
   const openCount = opportunities.filter(
     (item) =>
@@ -218,7 +227,8 @@ export default async function OpportunitiesPage({
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Podés asociarla a ninguno, uno o varios nodos territoriales.
+              Podés relacionarla con nodos territoriales y con las personas,
+              empresas o instituciones que dieron origen a la oportunidad.
             </p>
           </div>
 
@@ -302,22 +312,18 @@ export default async function OpportunitiesPage({
 
             <label className="block">
               <span className="text-sm font-semibold text-slate-700">
-                Origen
+                Nota sobre el origen
               </span>
               <input
                 name="source_text"
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
-                placeholder="Ej.: reunión, empresa, nodo, contacto..."
+                placeholder="Ej.: surge de la reunión del 21/8..."
               />
             </label>
 
-            <div className="lg:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">
-                Nodos relacionados
-              </span>
-
-              <NodeAutocomplete />
-            </div>
+            <OpportunityRelations
+              organizationTypes={organizationTypes}
+            />
 
             <div className="flex justify-end lg:col-span-2">
               <button

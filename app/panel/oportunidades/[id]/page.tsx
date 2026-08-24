@@ -8,6 +8,7 @@ import {
   getOpportunityDetail,
 } from '../../../../lib/opportunities/detail'
 import { createClient } from '../../../../lib/supabase/server'
+import { OpportunityFollowupForm } from './followup-form'
 import { OpportunityStatusForm } from './status-form'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,8 @@ const actionLabels: Record<string, string> = {
     'Estado actualizado',
   'opportunity.update':
     'Oportunidad actualizada',
+  'opportunity.followup.create':
+    'Novedad registrada',
 }
 
 function formatDate(value: string | null) {
@@ -364,6 +367,45 @@ function HistoryDescription({
     )
   }
 
+  if (
+    event.action ===
+      'opportunity.followup.create' &&
+    event.new_data
+  ) {
+    const kind =
+      String(
+        event.new_data.kind ?? 'note'
+      )
+
+    const body =
+      String(
+        event.new_data.body ?? ''
+      )
+
+    const followupLabels: Record<
+      string,
+      string
+    > = {
+      note: 'Novedad general',
+      contact: 'Contacto',
+      meeting: 'Reunión',
+      commitment: 'Compromiso',
+      delivery: 'Entrega',
+      other: 'Otro',
+    }
+
+    return (
+      <div className="mt-2">
+        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          {followupLabels[kind] ?? kind}
+        </span>
+
+        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
+          {body}
+        </p>
+      </div>
+    )
+  }
   if (
     event.action ===
       'opportunity.update' &&
@@ -856,14 +898,20 @@ export default async function OpportunityDetailPage({
 
         <aside>
           {canManage ? (
-            <OpportunityStatusForm
-              opportunityId={opportunity.id}
-              currentStatus={
-                opportunity.status === 'draft'
-                  ? 'open'
-                  : opportunity.status
-              }
-            />
+            <div>
+              <OpportunityStatusForm
+                opportunityId={opportunity.id}
+                currentStatus={
+                  opportunity.status === 'draft'
+                    ? 'open'
+                    : opportunity.status
+                }
+              />
+
+              <OpportunityFollowupForm
+                opportunityId={opportunity.id}
+              />
+            </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
               Tu perfil puede consultar esta oportunidad,

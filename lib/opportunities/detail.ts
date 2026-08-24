@@ -304,6 +304,65 @@ export async function updateOpportunityDetails(
   }
 }
 
+export type OpportunityFollowupKind =
+  | 'note'
+  | 'contact'
+  | 'meeting'
+  | 'commitment'
+  | 'delivery'
+  | 'other'
+
+export async function createOpportunityFollowup(
+  access: InternalAccess[],
+  opportunityId: string,
+  kind: OpportunityFollowupKind,
+  body: string
+) {
+  if (!canManageOpportunity(access)) {
+    throw new Error(
+      'The current internal user cannot manage opportunities'
+    )
+  }
+
+  const actorInternalUserId =
+    getActorInternalUserId(access)
+
+  const normalizedBody = body.trim()
+
+  if (
+    normalizedBody.length < 3 ||
+    normalizedBody.length > 5000
+  ) {
+    throw new Error(
+      'Invalid opportunity follow-up body'
+    )
+  }
+
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase.rpc(
+    'create_opportunity_followup',
+    {
+      p_actor_internal_user_id:
+        actorInternalUserId,
+      p_opportunity_id:
+        opportunityId,
+      p_kind:
+        kind,
+      p_body:
+        normalizedBody,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to create opportunity follow-up: ${error.message}`
+    )
+  }
+
+  return data as string
+}
+
 export async function updateOpportunityStatus(
   access: InternalAccess[],
   opportunityId: string,

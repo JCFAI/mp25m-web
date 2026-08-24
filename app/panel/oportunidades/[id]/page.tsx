@@ -126,6 +126,197 @@ function arrayLength(
     : 0
 }
 
+type HistoryRelationItem = {
+  key: string
+  label: string
+}
+
+function historyStringArray(
+  value: unknown
+): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(
+    (item): item is string =>
+      typeof item === 'string' &&
+      item.length > 0
+  )
+}
+
+function historyNodeItems(
+  snapshot: Record<string, unknown>
+): HistoryRelationItem[] {
+  const ids =
+    historyStringArray(snapshot.node_ids)
+
+  const names =
+    historyStringArray(snapshot.node_names)
+
+  return names.map((name, index) => ({
+    key:
+      ids[index] ??
+      `node-name:${name}:${index}`,
+    label: name,
+  }))
+}
+
+function historyActorItems(
+  value: unknown
+): HistoryRelationItem[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap(
+    (item, index): HistoryRelationItem[] => {
+      if (
+        !item ||
+        typeof item !== 'object'
+      ) {
+        return []
+      }
+
+      const record =
+        item as Record<string, unknown>
+
+      const displayName =
+        typeof record.display_name === 'string'
+          ? record.display_name
+          : ''
+
+      if (!displayName) {
+        return []
+      }
+
+      const actorType =
+        typeof record.actor_type === 'string'
+          ? record.actor_type
+          : ''
+
+      const actorId =
+        typeof record.actor_id === 'string'
+          ? record.actor_id
+          : ''
+
+      const typeLabel =
+        typeof record.type_label === 'string'
+          ? record.type_label
+          : ''
+
+      const provisional =
+        record.is_provisional === true
+
+      const label = [
+        displayName,
+        typeLabel,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+
+      return [
+        {
+          key:
+            actorType && actorId
+              ? `${actorType}:${actorId}`
+              : `actor:${displayName}:${index}`,
+          label:
+            provisional
+              ? `${label} (pendiente de validación)`
+              : label,
+        },
+      ]
+    }
+  )
+}
+
+function relationDifference(
+  previous: HistoryRelationItem[],
+  current: HistoryRelationItem[]
+) {
+  const previousKeys =
+    new Set(
+      previous.map((item) => item.key)
+    )
+
+  const currentKeys =
+    new Set(
+      current.map((item) => item.key)
+    )
+
+  return {
+    added: current.filter(
+      (item) =>
+        !previousKeys.has(item.key)
+    ),
+
+    removed: previous.filter(
+      (item) =>
+        !currentKeys.has(item.key)
+    ),
+  }
+}
+
+function RelationshipChanges({
+  label,
+  previous,
+  current,
+  previousCount,
+  currentCount,
+}: {
+  label: string
+  previous: HistoryRelationItem[]
+  current: HistoryRelationItem[]
+  previousCount: number
+  currentCount: number
+}) {
+  const { added, removed } =
+    relationDifference(
+      previous,
+      current
+    )
+
+  const hasReadableDifference =
+    added.length > 0 ||
+    removed.length > 0
+
+  return (
+    <li>
+      <span className="font-semibold">
+        {label}:
+      </span>
+
+      {added.map((item) => (
+        <div
+          key={`added:${item.key}`}
+          className="mt-1 pl-3 text-emerald-700"
+        >
+          + {item.label}
+        </div>
+      ))}
+
+      {removed.map((item) => (
+        <div
+          key={`removed:${item.key}`}
+          className="mt-1 pl-3 text-red-700"
+        >
+          − {item.label}
+        </div>
+      ))}
+
+      {!hasReadableDifference ? (
+        <div className="mt-1 pl-3 text-slate-500">
+          Se modificó la relación
+          {previousCount !== currentCount
+            ? ` · ${previousCount} antes → ${currentCount} después`
+            : '.'}
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
 function HistoryDescription({
   event,
 }: {
@@ -335,27 +526,29 @@ function HistoryDescription({
         event.new_data.node_ids
       )
     ) {
-      const oldCount =
-        arrayLength(
-          event.old_data.node_ids
+      const previousNodes =
+        historyNodeItems(
+          event.old_data
         )
 
-      const newCount =
-        arrayLength(
-          event.new_data.node_ids
+      const currentNodes =
+        historyNodeItems(
+          event.new_data
         )
 
       changes.push(
-        <li key="nodes">
-          <span className="font-semibold">
-            Nodos relacionados:
-          </span>{' '}
-          modificados
-          {' · '}
-          {oldCount} antes
-          {' → '}
-          {newCount} después
-        </li>
+        <RelationshipChanges
+          key="nodes"
+          label="Nodos relacionados"
+          previous={previousNodes}
+          current={currentNodes}
+          previousCount={arrayLength(
+            event.old_data.node_ids
+          )}
+          currentCount={arrayLength(
+            event.new_data.node_ids
+          )}
+        />
       )
     }
 
@@ -365,27 +558,29 @@ function HistoryDescription({
         event.new_data.origin_actors
       )
     ) {
-      const oldCount =
-        arrayLength(
+      const previousActors =
+        historyActorItems(
           event.old_data.origin_actors
         )
 
-      const newCount =
-        arrayLength(
+      const currentActors =
+        historyActorItems(
           event.new_data.origin_actors
         )
 
       changes.push(
-        <li key="origins">
-          <span className="font-semibold">
-            Actores de origen:
-          </span>{' '}
-          modificados
-          {' · '}
-          {oldCount} antes
-          {' → '}
-          {newCount} después
-        </li>
+        <RelationshipChanges
+          key="origins"
+          label="Actores de origen"
+          previous={previousActors}
+          current={currentActors}
+          previousCount={arrayLength(
+            event.old_data.origin_actors
+          )}
+          currentCount={arrayLength(
+            event.new_data.origin_actors
+          )}
+        />
       )
     }
 

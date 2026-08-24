@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
@@ -82,6 +83,49 @@ function formatDateTime(value: string) {
   ).format(new Date(value))
 }
 
+function historyValuesEqual(
+  left: unknown,
+  right: unknown
+) {
+  return JSON.stringify(left ?? null) ===
+    JSON.stringify(right ?? null)
+}
+
+function historyTextValue(
+  value: unknown
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+    return 'Sin dato'
+  }
+
+  return String(value)
+}
+
+function historyDateValue(
+  value: unknown
+) {
+  if (!value) {
+    return 'Sin fecha'
+  }
+
+  return (
+    formatDate(String(value)) ??
+    String(value)
+  )
+}
+
+function arrayLength(
+  value: unknown
+) {
+  return Array.isArray(value)
+    ? value.length
+    : 0
+}
+
 function HistoryDescription({
   event,
 }: {
@@ -126,6 +170,237 @@ function HistoryDescription({
           </p>
         ) : null}
       </>
+    )
+  }
+
+  if (
+    event.action ===
+      'opportunity.update' &&
+    event.old_data &&
+    event.new_data
+  ) {
+    const changes: ReactNode[] = []
+
+    if (
+      !historyValuesEqual(
+        event.old_data.title,
+        event.new_data.title
+      )
+    ) {
+      changes.push(
+        <li key="title">
+          <span className="font-semibold">
+            Título:
+          </span>{' '}
+          “{historyTextValue(
+            event.old_data.title
+          )}”
+          {' → '}
+          “{historyTextValue(
+            event.new_data.title
+          )}”
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.description,
+        event.new_data.description
+      )
+    ) {
+      changes.push(
+        <li key="description">
+          <span className="font-semibold">
+            Descripción:
+          </span>{' '}
+          “{historyTextValue(
+            event.old_data.description
+          )}”
+          {' → '}
+          “{historyTextValue(
+            event.new_data.description
+          )}”
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.kind,
+        event.new_data.kind
+      )
+    ) {
+      const oldKind =
+        String(event.old_data.kind ?? '')
+
+      const newKind =
+        String(event.new_data.kind ?? '')
+
+      changes.push(
+        <li key="kind">
+          <span className="font-semibold">
+            Tipo:
+          </span>{' '}
+          {kindLabels[
+            oldKind as keyof typeof kindLabels
+          ] ?? oldKind}
+          {' → '}
+          {kindLabels[
+            newKind as keyof typeof kindLabels
+          ] ?? newKind}
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.priority,
+        event.new_data.priority
+      )
+    ) {
+      const oldPriority =
+        String(
+          event.old_data.priority ?? ''
+        )
+
+      const newPriority =
+        String(
+          event.new_data.priority ?? ''
+        )
+
+      changes.push(
+        <li key="priority">
+          <span className="font-semibold">
+            Prioridad:
+          </span>{' '}
+          {priorityLabels[
+            oldPriority as keyof typeof priorityLabels
+          ] ?? oldPriority}
+          {' → '}
+          {priorityLabels[
+            newPriority as keyof typeof priorityLabels
+          ] ?? newPriority}
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.due_date,
+        event.new_data.due_date
+      )
+    ) {
+      changes.push(
+        <li key="due-date">
+          <span className="font-semibold">
+            Fecha límite:
+          </span>{' '}
+          {historyDateValue(
+            event.old_data.due_date
+          )}
+          {' → '}
+          {historyDateValue(
+            event.new_data.due_date
+          )}
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.source_text,
+        event.new_data.source_text
+      )
+    ) {
+      changes.push(
+        <li key="source-text">
+          <span className="font-semibold">
+            Nota sobre el origen:
+          </span>{' '}
+          “{historyTextValue(
+            event.old_data.source_text
+          )}”
+          {' → '}
+          “{historyTextValue(
+            event.new_data.source_text
+          )}”
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.node_ids,
+        event.new_data.node_ids
+      )
+    ) {
+      const oldCount =
+        arrayLength(
+          event.old_data.node_ids
+        )
+
+      const newCount =
+        arrayLength(
+          event.new_data.node_ids
+        )
+
+      changes.push(
+        <li key="nodes">
+          <span className="font-semibold">
+            Nodos relacionados:
+          </span>{' '}
+          modificados
+          {' · '}
+          {oldCount} antes
+          {' → '}
+          {newCount} después
+        </li>
+      )
+    }
+
+    if (
+      !historyValuesEqual(
+        event.old_data.origin_actors,
+        event.new_data.origin_actors
+      )
+    ) {
+      const oldCount =
+        arrayLength(
+          event.old_data.origin_actors
+        )
+
+      const newCount =
+        arrayLength(
+          event.new_data.origin_actors
+        )
+
+      changes.push(
+        <li key="origins">
+          <span className="font-semibold">
+            Actores de origen:
+          </span>{' '}
+          modificados
+          {' · '}
+          {oldCount} antes
+          {' → '}
+          {newCount} después
+        </li>
+      )
+    }
+
+    if (changes.length === 0) {
+      return (
+        <p className="mt-2 text-sm text-slate-500">
+          No hubo cambios en los datos de la oportunidad.
+        </p>
+      )
+    }
+
+    return (
+      <ul className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
+        {changes}
+      </ul>
     )
   }
 

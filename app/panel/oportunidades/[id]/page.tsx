@@ -884,9 +884,13 @@ export default async function OpportunityDetailPage({
                       </p>
 
                       {origin.is_provisional ? (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        <Link
+                          href={`/panel/actores-pendientes/${origin.actor_id}`}
+                          className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 transition hover:bg-amber-200"
+                          title="Revisar actor pendiente"
+                        >
                           Pendiente de validación
-                        </span>
+                        </Link>
                       ) : null}
                     </div>
 

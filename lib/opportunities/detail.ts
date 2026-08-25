@@ -20,6 +20,7 @@ export type OpportunityOrigin = {
   context_text: string | null
   node_names: string[]
   role_names: string[]
+  review_candidate_id: string | null
 }
 
 export type OpportunityHistoryEvent = {
@@ -172,6 +173,63 @@ export async function getOpportunityDetail(
   const opportunity =
     opportunityData as Opportunity
 
+  const history =
+    (historyResult.data ?? []) as OpportunityHistoryEvent[]
+
+  const candidateReviewByActorId =
+    new Map<string, string>()
+
+  for (const event of history) {
+    if (
+      event.action !==
+      'opportunity.origin_resolved'
+    ) {
+      continue
+    }
+
+    const actorId =
+      typeof event.new_data?.actor_id ===
+      'string'
+        ? event.new_data.actor_id
+        : null
+
+    const candidateId =
+      typeof event.metadata
+        ?.actor_candidate_id === 'string'
+        ? event.metadata.actor_candidate_id
+        : null
+
+    if (
+      actorId &&
+      candidateId &&
+      !candidateReviewByActorId.has(actorId)
+    ) {
+      candidateReviewByActorId.set(
+        actorId,
+        candidateId
+      )
+    }
+  }
+
+  const origins =
+    (
+      (originsResult.data ?? []) as Omit<
+        OpportunityOrigin,
+        'review_candidate_id'
+      >[]
+    ).map((origin) => ({
+      ...origin,
+
+      review_candidate_id:
+        origin.actor_type === 'candidate'
+          ? origin.actor_id
+          : origin.actor_type === 'person'
+            ? candidateReviewByActorId.get(
+                origin.actor_id
+              ) ?? null
+            : null,
+    }))
+
   return {
     opportunity: {
       ...opportunity,
@@ -181,11 +239,9 @@ export async function getOpportunityDetail(
       ).map(toNodeDisplayName),
     },
 
-    origins:
-      (originsResult.data ?? []) as OpportunityOrigin[],
+    origins,
 
-    history:
-      (historyResult.data ?? []) as OpportunityHistoryEvent[],
+    history,
   }
 }
 

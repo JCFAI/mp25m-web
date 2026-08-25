@@ -46,6 +46,7 @@ const priorityLabels = {
 }
 
 const actionLabels: Record<string, string> = {
+  'opportunity.origin_resolved': 'Identidad de actor resuelta',
   'opportunity.create':
     'Articulación registrada',
   'actor_candidate.create':
@@ -879,13 +880,23 @@ export default async function OpportunityDetailPage({
                     }
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-800">
-                        {origin.display_name}
-                      </p>
+                      {origin.review_candidate_id ? (
+                        <Link
+                          href={`/panel/actores-pendientes/${origin.review_candidate_id}?opportunity=${opportunity.id}`}
+                          className="font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+                          title="Ver revisión de identidad"
+                        >
+                          {origin.display_name}
+                        </Link>
+                      ) : (
+                        <p className="font-semibold text-slate-800">
+                          {origin.display_name}
+                        </p>
+                      )}
 
                       {origin.is_provisional ? (
                         <Link
-                          href={`/panel/actores-pendientes/${origin.actor_id}`}
+                          href={`/panel/actores-pendientes/${origin.review_candidate_id ?? origin.actor_id}?opportunity=${opportunity.id}`}
                           className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 transition hover:bg-amber-200"
                           title="Revisar actor pendiente"
                         >

@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import {
+  addPersonNodeParticipationRoles,
   approveActorCandidateNewPerson,
+  confirmActorCandidatePersonNodeParticipation,
   rejectActorCandidate,
   resolveActorCandidateExistingPerson,
 } from '../../../../lib/actors/review'
@@ -249,5 +251,240 @@ export async function resolveActorCandidateAction(
         : decision === 'new'
           ? 'Se creó una nueva persona a partir del candidato.'
           : 'El candidato fue rechazado.',
+  }
+}
+export type TerritorialActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+}
+
+function getTerritorialResolver(
+  access: Awaited<
+    ReturnType<typeof getInternalAccess>
+  >
+) {
+  return access.find(
+    (item) =>
+      item.scope_type === 'global' &&
+      (
+        item.access_role_code ===
+          'administrator' ||
+        item.access_role_code ===
+          'validator'
+      )
+  )
+}
+
+export async function confirmTerritorialParticipationAction(
+  candidateId: string,
+  nodeId: string,
+  _previousState: TerritorialActionState,
+  formData: FormData
+): Promise<TerritorialActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims()
+
+  const authUserId =
+    claimsData?.claims?.sub
+
+  if (claimsError || !authUserId) {
+    redirect('/login')
+  }
+
+  const access =
+    await getInternalAccess(authUserId)
+
+  if (access.length === 0) {
+    redirect('/sin-acceso')
+  }
+
+  const resolver =
+    getTerritorialResolver(access)
+
+  if (!resolver) {
+    return {
+      status: 'error',
+      message:
+        'Tu usuario no tiene permisos para confirmar participaciones territoriales.',
+    }
+  }
+
+  const reason = String(
+    formData.get('reason') ?? ''
+  ).trim()
+
+  if (reason.length < 3) {
+    return {
+      status: 'error',
+      message:
+        'Indicá brevemente por qué confirmás esta participación territorial.',
+    }
+  }
+
+  if (reason.length > 2000) {
+    return {
+      status: 'error',
+      message:
+        'La justificación no puede superar los 2000 caracteres.',
+    }
+  }
+
+  try {
+    await confirmActorCandidatePersonNodeParticipation(
+      resolver.internal_user_id,
+      candidateId,
+      nodeId,
+      reason
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Territorial participation confirmation failed:',
+      error
+    )
+
+    const detail =
+      error instanceof Error
+        ? error.message
+        : ''
+
+    if (
+      detail.includes(
+        'already confirmed'
+      )
+    ) {
+      return {
+        status: 'error',
+        message:
+          'Esta participación territorial ya está confirmada.',
+      }
+    }
+
+    return {
+      status: 'error',
+      message:
+        'No se pudo confirmar la participación. No se modificó ningún dato.',
+    }
+  }
+
+  revalidatePath(
+    `/panel/actores-pendientes/${candidateId}`
+  )
+
+  return {
+    status: 'success',
+    message:
+      'La participación territorial fue confirmada correctamente.',
+  }
+}
+
+export async function addTerritorialRolesAction(
+  candidateId: string,
+  participationId: string,
+  _previousState: TerritorialActionState,
+  formData: FormData
+): Promise<TerritorialActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims()
+
+  const authUserId =
+    claimsData?.claims?.sub
+
+  if (claimsError || !authUserId) {
+    redirect('/login')
+  }
+
+  const access =
+    await getInternalAccess(authUserId)
+
+  if (access.length === 0) {
+    redirect('/sin-acceso')
+  }
+
+  const resolver =
+    getTerritorialResolver(access)
+
+  if (!resolver) {
+    return {
+      status: 'error',
+      message:
+        'Tu usuario no tiene permisos para administrar roles territoriales.',
+    }
+  }
+
+  const roleCodes = [
+    ...new Set(
+      formData
+        .getAll('role_codes')
+        .map((value) =>
+          String(value).trim()
+        )
+        .filter(Boolean)
+    ),
+  ]
+
+  const reason = String(
+    formData.get('reason') ?? ''
+  ).trim()
+
+  if (roleCodes.length === 0) {
+    return {
+      status: 'error',
+      message:
+        'Seleccioná al menos un rol territorial.',
+    }
+  }
+
+  if (reason.length < 3) {
+    return {
+      status: 'error',
+      message:
+        'Indicá brevemente por qué asignás estos roles.',
+    }
+  }
+
+  if (reason.length > 2000) {
+    return {
+      status: 'error',
+      message:
+        'La justificación no puede superar los 2000 caracteres.',
+    }
+  }
+
+  try {
+    await addPersonNodeParticipationRoles(
+      resolver.internal_user_id,
+      participationId,
+      roleCodes,
+      reason
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Territorial role assignment failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message:
+        'No se pudieron asignar los roles territoriales. No se modificó ningún dato.',
+    }
+  }
+
+  revalidatePath(
+    `/panel/actores-pendientes/${candidateId}`
+  )
+
+  return {
+    status: 'success',
+    message:
+      'Los roles territoriales fueron registrados correctamente.',
   }
 }

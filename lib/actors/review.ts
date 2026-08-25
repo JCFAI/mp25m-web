@@ -274,3 +274,99 @@ export async function rejectActorCandidate(
     throw new Error(error.message)
   }
 }
+export type TerritorialRoleOption = {
+  code: string
+  name: string
+  description: string | null
+  is_internal: boolean
+}
+
+export async function listTerritorialRoleOptions():
+Promise<TerritorialRoleOption[]> {
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase
+    .from('territorial_role_options')
+    .select(`
+      code,
+      name,
+      description,
+      is_internal
+    `)
+    .order('name', {
+      ascending: true,
+    })
+
+  if (error) {
+    throw new Error(
+      `Unable to load territorial role options: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as TerritorialRoleOption[]
+}
+
+export async function confirmActorCandidatePersonNodeParticipation(
+  actorInternalUserId: string,
+  candidateId: string,
+  nodeId: string,
+  reason: string
+): Promise<string> {
+  const supabase = createAdminClient()
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    'confirm_actor_candidate_person_node_participation',
+    {
+      p_actor_internal_user_id:
+        actorInternalUserId,
+      p_candidate_id:
+        candidateId,
+      p_node_id:
+        nodeId,
+      p_reason:
+        reason,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  if (!data) {
+    throw new Error(
+      'The territorial participation was confirmed without returning an id'
+    )
+  }
+
+  return String(data)
+}
+
+export async function addPersonNodeParticipationRoles(
+  actorInternalUserId: string,
+  participationId: string,
+  roleCodes: string[],
+  reason: string
+) {
+  const supabase = createAdminClient()
+
+  const { error } = await supabase.rpc(
+    'add_person_node_participation_roles',
+    {
+      p_actor_internal_user_id:
+        actorInternalUserId,
+      p_participation_id:
+        participationId,
+      p_role_codes:
+        roleCodes,
+      p_reason:
+        reason,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}

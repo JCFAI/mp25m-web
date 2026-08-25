@@ -1,10 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
-import { getActorCandidateReview } from '../../../../lib/actors/review'
+import {
+  getActorCandidateReview,
+  listTerritorialRoleOptions,
+} from '../../../../lib/actors/review'
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import { createClient } from '../../../../lib/supabase/server'
 import { ResolutionControls } from './resolution-controls'
+import { TerritorialControls } from './territorial-controls'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,18 +125,8 @@ export default async function ActorCandidateReviewPage({
     territorialContext,
   } = review
 
-  const canonicalTerritories =
-    territorialContext.filter(
-      (item) =>
-        item.has_canonical_participation
-    )
-
-  const reportedTerritories =
-    territorialContext.filter(
-      (item) =>
-        item.reported_by_candidate &&
-        !item.has_canonical_participation
-    )
+  const roleOptions =
+    await listTerritorialRoleOptions()
 
   const status =
     candidateStatusPresentation(
@@ -296,144 +290,13 @@ export default async function ActorCandidateReviewPage({
         />
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">
-            Participaciones territoriales
-          </h2>
-
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-            La identidad y la participación territorial se validan por separado.
-            Una misma persona puede participar en varios nodos y cumplir
-            distintos roles en cada uno.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Participaciones registradas
-            </h3>
-
-            <div className="mt-3 space-y-3">
-              {canonicalTerritories.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  No hay participaciones territoriales registradas para esta persona.
-                </div>
-              ) : (
-                canonicalTerritories.map(
-                  (territory) => (
-                    <article
-                      key={territory.node_id}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <h4 className="font-semibold text-slate-950">
-                          {territory.node_name}
-                        </h4>
-
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                          {territory.participation_verification_status ===
-                          'confirmed'
-                            ? 'Participación confirmada'
-                            : 'Participación pendiente'}
-                        </span>
-                      </div>
-
-                      {territory.role_names.length > 0 ? (
-                        <div className="mt-3 space-y-1">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Roles territoriales
-                          </p>
-
-                          {territory.role_names.map(
-                            (roleName, index) => (
-                              <p
-                                key={`${territory.node_id}-${territory.role_codes[index] ?? roleName}`}
-                                className="text-sm text-slate-700"
-                              >
-                                {roleName}
-                                {' · '}
-                                {territory.role_verification_statuses[
-                                  index
-                                ] === 'confirmed'
-                                  ? 'confirmado'
-                                  : 'pendiente'}
-                              </p>
-                            )
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-sm text-slate-500">
-                          Sin rol territorial registrado.
-                        </p>
-                      )}
-
-                      {territory.reported_by_candidate ? (
-                        <p className="mt-3 text-xs text-[#2F5D8C]">
-                          Este nodo también fue informado en el registro provisorio.
-                        </p>
-                      ) : null}
-                    </article>
-                  )
-                )
-              )}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Contexto territorial pendiente de validar
-            </h3>
-
-            <div className="mt-3 space-y-3">
-              {reportedTerritories.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  No hay otros nodos informados pendientes de validación.
-                </div>
-              ) : (
-                reportedTerritories.map(
-                  (territory) => (
-                    <article
-                      key={territory.node_id}
-                      className="rounded-xl border border-amber-200 bg-amber-50 p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <h4 className="font-semibold text-slate-950">
-                          {territory.node_name}
-                        </h4>
-
-                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                          Pendiente de validar
-                        </span>
-                      </div>
-
-                      <p className="mt-3 text-sm leading-6 text-slate-700">
-                        Este nodo fue informado como contexto del candidato,
-                        pero todavía no constituye una participación territorial
-                        confirmada de la persona.
-                      </p>
-
-                      {candidate.opportunity_titles.length > 0 ? (
-                        <p className="mt-2 text-xs text-slate-500">
-                          Origen del dato:{' '}
-                          {candidate.opportunity_titles.join(', ')}
-                        </p>
-                      ) : null}
-                    </article>
-                  )
-                )
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-900">
-          Confirmar una participación territorial no asignará automáticamente
-          un rol. Fundador, Referente, Participante u otro rol se registrarán
-          explícitamente para cada nodo.
-        </div>
-      </section>
+      <TerritorialControls
+        candidateId={candidate.id}
+        canManage={canResolve}
+        territories={territorialContext}
+        roleOptions={roleOptions}
+        opportunityTitles={candidate.opportunity_titles}
+      />
     </div>
   )
 }

@@ -202,13 +202,22 @@ export function ResolutionControls({
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold text-slate-950">
-          Posibles coincidencias
+          {candidateStatus === 'pending'
+            ? 'Posibles coincidencias'
+            : 'Resolución de identidad'}
         </h2>
 
-        <p className="mt-1 text-sm leading-6 text-slate-500">
-          Estas sugerencias se basan en similitud de nombre.
-          No implican que se trate de la misma persona.
-        </p>
+        {candidateStatus === 'pending' ? (
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Estas sugerencias se basan en similitud de nombre.
+            No implican que se trate de la misma persona.
+          </p>
+        ) : (
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Resultado definitivo de la revisión de identidad,
+            conservado para consulta y trazabilidad.
+          </p>
+        )}
       </div>
 
       {candidateStatus !== 'pending' ? (
@@ -240,8 +249,9 @@ export function ResolutionControls({
         </div>
       ) : null}
 
-      <div className="mt-5 space-y-4">
-        {matches.length === 0 ? (
+      {candidateStatus === 'pending' ? (
+        <div className="mt-5 space-y-4">
+          {matches.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             No se encontraron personas similares.
           </div>
@@ -341,8 +351,9 @@ export function ResolutionControls({
               )
             }
           )
-        )}
-      </div>
+          )}
+        </div>
+      ) : null}
 
       {candidateStatus === 'pending' &&
       canResolve ? (

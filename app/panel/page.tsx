@@ -1,9 +1,23 @@
-const modules = [
+import Link from 'next/link'
+
+type PanelModule = {
+  name: string
+  description: string
+  href?: string
+}
+
+const modules: PanelModule[] = [
   {
     name: 'Articulaciones',
     description:
       'Registro, an\u00e1lisis y seguimiento de articulaciones productivas, sus oportunidades y necesidades.',
-    next: true,
+    href: '/panel/oportunidades',
+  },
+  {
+    name: 'Personas',
+    description:
+      'Directorio de personas, sus participaciones territoriales, habilidades y articulaciones.',
+    href: '/panel/personas',
   },
   {
     name: 'Organizaciones',
@@ -135,12 +149,12 @@ export default function PanelPage() {
 
                 <span
                   className={
-                    module.next
+                    module.href
                       ? 'rounded-full bg-[#DDE8F3] px-2.5 py-1 text-[11px] font-semibold text-[#2F5D8C]'
                       : 'rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500'
                   }
                 >
-                  {module.next ? 'Pr\u00f3ximo' : 'Planificado'}
+                  {module.href ? 'Pr\u00f3ximo' : 'Planificado'}
                 </span>
               </div>
 
@@ -151,6 +165,15 @@ export default function PanelPage() {
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 {module.description}
               </p>
+
+              {module.href ? (
+                <Link
+                  href={module.href}
+                  className="mt-4 inline-flex text-xs font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
+                >
+                  Ingresar →
+                </Link>
+              ) : null}
             </article>
           ))}
         </div>

@@ -26,6 +26,10 @@ export function PanelNavigation() {
     pathname === '/panel/oportunidades' ||
     pathname.startsWith('/panel/oportunidades/')
 
+  const peopleActive =
+    pathname === '/panel/personas' ||
+    pathname.startsWith('/panel/personas/')
+
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -55,6 +59,20 @@ export function PanelNavigation() {
           <span>Articulaciones</span>
 
           {opportunitiesActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
+        <Link
+          href="/panel/personas"
+          aria-current={
+            peopleActive ? 'page' : undefined
+          }
+          className={activeClass(peopleActive)}
+        >
+          <span>Personas</span>
+
+          {peopleActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>

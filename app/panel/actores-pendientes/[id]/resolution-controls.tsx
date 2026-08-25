@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import {
   useActionState,
   useState,
@@ -235,12 +237,23 @@ export function ResolutionControls({
           </p>
 
           {resolvedMatch ? (
-            <p className="mt-1">
-              Persona resultante:{' '}
-              <strong>
-                {resolvedMatch.display_name}
-              </strong>
-            </p>
+            <div className="mt-1">
+              <p>
+                Persona resultante:{' '}
+                <strong>
+                  {resolvedMatch.display_name}
+                </strong>
+              </p>
+
+              {resolvedPersonId ? (
+                <Link
+                  href={`/panel/personas/${resolvedPersonId}`}
+                  className="mt-3 inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-50"
+                >
+                  Ver ficha de {resolvedMatch.display_name}
+                </Link>
+              ) : null}
+            </div>
           ) : null}
 
           <p className="mt-2 leading-6">

@@ -880,11 +880,19 @@ export default async function OpportunityDetailPage({
                     }
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      {origin.review_candidate_id ? (
+                      {origin.actor_type === 'person' ? (
+                        <Link
+                          href={`/panel/personas/${origin.actor_id}`}
+                          className="font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+                          title="Ver ficha de la persona"
+                        >
+                          {origin.display_name}
+                        </Link>
+                      ) : origin.review_candidate_id ? (
                         <Link
                           href={`/panel/actores-pendientes/${origin.review_candidate_id}?opportunity=${opportunity.id}`}
                           className="font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
-                          title="Ver revisión de identidad"
+                          title="Revisar actor pendiente"
                         >
                           {origin.display_name}
                         </Link>

@@ -191,6 +191,11 @@ function RoleAssignmentForm({
   const [reason, setReason] =
     useState('')
 
+  const [
+    selectedRoleCodes,
+    setSelectedRoleCodes,
+  ] = useState<string[]>([])
+
   const availableRoles =
     roleOptions.filter(
       (role) =>
@@ -224,7 +229,13 @@ function RoleAssignmentForm({
         Roles para este nodo
       </p>
 
-      <p className="mt-1 text-xs leading-5 text-slate-500">
+      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+        Esta acción realizará una modificación real:
+        registrará los roles seleccionados para esta persona
+        únicamente en este nodo.
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-slate-500">
         Podés seleccionar uno o varios.
         Los roles corresponden únicamente a esta participación territorial.
       </p>
@@ -240,6 +251,24 @@ function RoleAssignmentForm({
                 type="checkbox"
                 name="role_codes"
                 value={role.code}
+                checked={selectedRoleCodes.includes(
+                  role.code
+                )}
+                onChange={(event) => {
+                  setSelectedRoleCodes(
+                    (current) =>
+                      event.target.checked
+                        ? [
+                            ...current,
+                            role.code,
+                          ]
+                        : current.filter(
+                            (code) =>
+                              code !==
+                              role.code
+                          )
+                  )
+                }}
                 className="mt-1 h-4 w-4"
               />
 
@@ -308,6 +337,7 @@ function RoleAssignmentForm({
           type="submit"
           disabled={
             pending ||
+            selectedRoleCodes.length === 0 ||
             reason.trim().length < 3
           }
           className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-50"

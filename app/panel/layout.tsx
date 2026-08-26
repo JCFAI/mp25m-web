@@ -1,24 +1,17 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../lib/auth/internal-access'
+import { getInternalUserProfile } from '../../lib/auth/internal-profile'
 import { createClient } from '../../lib/supabase/server'
+import { PanelNavigation } from './panel-navigation'
 
 export const dynamic = 'force-dynamic'
 
 type PanelLayoutProps = {
   children: ReactNode
 }
-
-const futureModules = [
-  'Oportunidades',
-  'Organizaciones',
-  'Nodos',
-  'Capacidades',
-  'Articulaciones',
-  'Proyectos',
-  'Informes',
-]
 
 export default async function PanelLayout({
   children,
@@ -40,6 +33,9 @@ export default async function PanelLayout({
     redirect('/sin-acceso')
   }
 
+  const profile =
+    await getInternalUserProfile(access)
+
   const primaryAccess = access[0]
 
   const roleName = primaryAccess.access_role_name
@@ -50,7 +46,8 @@ export default async function PanelLayout({
       ? 'Global'
       : primaryAccess.scope_type)
 
-  const nextLabel = 'Pr\u00f3ximo'
+  const displayName =
+    profile.display_name ?? roleName
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -72,37 +69,7 @@ export default async function PanelLayout({
             </div>
           </div>
 
-          <nav className="px-3 py-5">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
-              {'Navegaci\u00f3n'}
-            </p>
-
-            <a
-              href="/panel"
-              aria-current="page"
-              className="flex items-center justify-between rounded-xl bg-white/12 px-3 py-3 text-sm font-semibold text-white shadow-sm"
-            >
-              <span>Inicio</span>
-
-              <span className="h-2 w-2 rounded-full bg-sky-300" />
-            </a>
-
-            <div className="mt-2 space-y-1">
-              {futureModules.map((module) => (
-                <div
-                  key={module}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-slate-50/65"
-                  aria-disabled="true"
-                >
-                  <span>{module}</span>
-
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-100/50">
-                    {nextLabel}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </nav>
+          <PanelNavigation />
 
           <div className="border-t border-white/10 px-5 py-5 md:mt-auto">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -134,22 +101,26 @@ export default async function PanelLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-800">
-                  {roleName}
+              <Link
+                href="/panel/perfil"
+                className="group hidden rounded-xl px-3 py-2 text-right transition hover:bg-slate-50 sm:block"
+                title="Editar mi perfil"
+              >
+                <p className="text-sm font-semibold text-slate-800 transition group-hover:text-[#2F5D8C]">
+                  {displayName}
                 </p>
 
-                <p className="text-xs text-slate-500">
-                  {'\u00c1mbito '}{scopeName}
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {roleName} · Ámbito {scopeName}
                 </p>
-              </div>
+              </Link>
 
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                 >
-                  {'Cerrar sesi\u00f3n'}
+                  Cerrar sesión
                 </button>
               </form>
             </div>

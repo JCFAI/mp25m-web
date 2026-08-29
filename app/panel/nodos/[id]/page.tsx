@@ -361,9 +361,18 @@ export default async function NodeProfilePage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Capacidades y habilidades
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-slate-950">
+              Capacidades y habilidades
+            </h2>
+
+            <Link
+              href={`/panel/nodos/${id}/capacidades`}
+              className="text-sm font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+            >
+              Ver mapa completo →
+            </Link>
+          </div>
 
           <p className="mt-1 text-sm leading-6 text-slate-500">
             Resumen de habilidades de las personas con participación confirmada en el nodo.

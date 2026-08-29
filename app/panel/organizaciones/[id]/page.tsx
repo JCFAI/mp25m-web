@@ -5,8 +5,18 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
-import { getCanonicalOrganizationProfile } from '../../../../lib/organizations/profile'
+import {
+  canManageOrganizations,
+  canValidateOrganizationNodeLinks,
+} from '../../../../lib/organizations/manage'
+import {
+  getCanonicalOrganizationProfile,
+  type OrganizationNode,
+} from '../../../../lib/organizations/profile'
 import { createClient } from '../../../../lib/supabase/server'
+import { OrganizationNodeConfirmationForm } from './organization-node-confirmation-form'
+import { OrganizationNodeLinkForm } from './organization-node-link-form'
+import { OrganizationNodeLinkDetailsForm } from './organization-node-link-details-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +39,127 @@ function verificationLabel(value: string) {
   }
 
   return labels[value] ?? value
+}
+
+function verificationBadgeClass(value: string) {
+  const classes: Record<string, string> = {
+    pending:
+      'bg-amber-100 text-amber-800 ring-1 ring-amber-200',
+    confirmed:
+      'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200',
+    rejected:
+      'bg-red-100 text-red-700 ring-1 ring-red-200',
+    self_reported:
+      'bg-sky-100 text-sky-800 ring-1 ring-sky-200',
+    candidate:
+      'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200',
+  }
+
+  return [
+    'rounded-full px-2.5 py-1 text-xs font-semibold',
+    classes[value] ??
+      'bg-white text-slate-700 ring-1 ring-slate-200',
+  ].join(' ')
+}
+
+function OrganizationNodeCard({
+  organizationId,
+  node,
+  canEditDetails,
+  canConfirm,
+}: {
+  organizationId: string
+  node: OrganizationNode
+  canEditDetails: boolean
+  canConfirm: boolean
+}) {
+  const isPending =
+    node.verification_status === 'pending'
+
+  return (
+    <article
+      className={
+        isPending
+          ? 'rounded-xl border border-amber-200 bg-amber-50/60 p-4'
+          : 'rounded-xl border border-slate-200 bg-slate-50 p-4'
+      }
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link
+            href={`/panel/nodos/${node.node_id}`}
+            className="font-semibold text-[#2F5D8C] hover:underline"
+          >
+            {node.node_name}
+          </Link>
+
+          {node.node_number !== null ? (
+            <p className="mt-1 text-xs text-slate-500">
+              Nodo {node.node_number}
+            </p>
+          ) : null}
+        </div>
+
+        <span
+          className={verificationBadgeClass(
+            node.verification_status
+          )}
+        >
+          {verificationLabel(
+            node.verification_status
+          )}
+        </span>
+      </div>
+
+      <dl className="mt-4 grid gap-3">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Evidencia o justificación
+          </dt>
+          <dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {node.evidence_text?.trim()
+              ? node.evidence_text
+              : 'Sin evidencia registrada.'}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Fecha de inicio
+          </dt>
+          <dd className="mt-1 text-sm text-slate-700">
+            {node.started_on
+              ? node.started_on
+              : 'Fecha de inicio no informada.'}
+          </dd>
+        </div>
+      </dl>
+
+      {node.source_name ? (
+        <p className="mt-2 text-xs text-slate-500">
+          Fuente: {node.source_name}
+        </p>
+      ) : null}
+
+      {isPending && canEditDetails ? (
+        <OrganizationNodeLinkDetailsForm
+          organizationId={organizationId}
+          nodeId={node.node_id}
+          initialEvidenceText={
+            node.evidence_text
+          }
+          initialStartedOn={node.started_on}
+        />
+      ) : null}
+
+      {isPending && canConfirm ? (
+        <OrganizationNodeConfirmationForm
+          organizationId={organizationId}
+          nodeId={node.node_id}
+        />
+      ) : null}
+    </article>
+  )
 }
 
 function articulationKindLabel(
@@ -82,6 +213,28 @@ export default async function OrganizationProfilePage({
     capabilities,
     articulations,
   } = profile
+
+  const canManage =
+    canManageOrganizations(access)
+
+  const canConfirmLinks =
+    canValidateOrganizationNodeLinks(access)
+
+  const pendingNodes = nodes.filter(
+    (node) =>
+      node.verification_status === 'pending'
+  )
+
+  const confirmedNodes = nodes.filter(
+    (node) =>
+      node.verification_status === 'confirmed'
+  )
+
+  const otherNodes = nodes.filter(
+    (node) =>
+      node.verification_status !== 'pending' &&
+      node.verification_status !== 'confirmed'
+  )
 
   return (
     <div className="space-y-7">
@@ -200,55 +353,103 @@ export default async function OrganizationProfilePage({
           estado de validación.
         </p>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {nodes.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              No hay vínculos territoriales vigentes
-              registrados.
+        {canManage ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
+            <h3 className="text-base font-semibold text-slate-950">
+              Vincular con un nodo
+            </h3>
+
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              El vínculo nuevo queda pendiente hasta una
+              confirmación explícita.
+            </p>
+
+            <OrganizationNodeLinkForm
+              organizationId={organization.id}
+            />
+          </div>
+        ) : null}
+
+        <div className="mt-6 space-y-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold text-slate-950">
+                Vínculos pendientes
+              </h3>
+
+              <span className={verificationBadgeClass('pending')}>
+                Pendiente
+              </span>
             </div>
-          ) : (
-            nodes.map((node) => (
-              <article
-                key={node.node_id}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <Link
-                      href={`/panel/nodos/${node.node_id}`}
-                      className="font-semibold text-[#2F5D8C] hover:underline"
-                    >
-                      {node.node_name}
-                    </Link>
 
-                    {node.node_number !== null ? (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Nodo {node.node_number}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
-                    {verificationLabel(
-                      node.verification_status
-                    )}
-                  </span>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {pendingNodes.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  No hay vínculos territoriales pendientes.
                 </div>
+              ) : (
+                pendingNodes.map((node) => (
+                  <OrganizationNodeCard
+                    key={node.node_id}
+                    organizationId={organization.id}
+                    node={node}
+                    canEditDetails={canConfirmLinks}
+                    canConfirm={canConfirmLinks}
+                  />
+                ))
+              )}
+            </div>
+          </div>
 
-                {node.evidence_text ? (
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    {node.evidence_text}
-                  </p>
-                ) : null}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold text-slate-950">
+                Vínculos confirmados
+              </h3>
 
-                {node.source_name ? (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Fuente: {node.source_name}
-                  </p>
-                ) : null}
-              </article>
-            ))
-          )}
+              <span className={verificationBadgeClass('confirmed')}>
+                Confirmada
+              </span>
+            </div>
+
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {confirmedNodes.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  No hay vínculos territoriales confirmados.
+                </div>
+              ) : (
+                confirmedNodes.map((node) => (
+                  <OrganizationNodeCard
+                    key={node.node_id}
+                    organizationId={organization.id}
+                    node={node}
+                    canEditDetails={false}
+                    canConfirm={false}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {otherNodes.length > 0 ? (
+            <div>
+              <h3 className="text-base font-semibold text-slate-950">
+                Otros estados
+              </h3>
+
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                {otherNodes.map((node) => (
+                  <OrganizationNodeCard
+                    key={node.node_id}
+                    organizationId={organization.id}
+                    node={node}
+                    canEditDetails={false}
+                    canConfirm={false}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 

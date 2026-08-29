@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { canManageOrganizations } from '../../../lib/organizations/manage'
 import { createClient } from '../../../lib/supabase/server'
 import { OrganizationSearch } from './organization-search'
 
@@ -28,23 +30,39 @@ export default async function OrganizationsPage() {
     redirect('/sin-acceso')
   }
 
+  const canCreate =
+    canManageOrganizations(access)
+
   return (
     <div className="space-y-7">
       <section className="rounded-3xl bg-gradient-to-br from-[#12648d] via-[#124f75] to-[#14263D] px-7 py-7 text-white shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
-          Organizaciones
-        </p>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+              Organizaciones
+            </p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Directorio de organizaciones
-        </h1>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">
+              Directorio de organizaciones
+            </h1>
 
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-50">
-          Accedé al registro canónico de empresas,
-          cooperativas, instituciones, sindicatos,
-          universidades y otras organizaciones vinculadas
-          con la red productiva y territorial del MP25M.
-        </p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-50">
+              Accedé al registro canónico de empresas,
+              cooperativas, instituciones, sindicatos,
+              universidades y otras organizaciones vinculadas
+              con la red productiva y territorial del MP25M.
+            </p>
+          </div>
+
+          {canCreate ? (
+            <Link
+              href="/panel/organizaciones/nueva"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-blue-50"
+            >
+              Nueva organización
+            </Link>
+          ) : null}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

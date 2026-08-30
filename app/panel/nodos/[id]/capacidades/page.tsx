@@ -187,39 +187,39 @@ export default async function NodeCapabilitiesPage({
     )
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5 sm:space-y-7">
       <Link
         href={`/panel/nodos/${id}`}
-        className="inline-flex text-sm font-medium text-[#2F5D8C] transition hover:text-[#1E3A5F]"
+        className="inline-flex min-h-11 items-center text-sm font-medium text-[#2F5D8C] transition hover:text-[#1E3A5F]"
       >
         ← Volver al nodo
       </Link>
 
-      <section className="rounded-3xl bg-gradient-to-br from-[#12648d] via-[#124f75] to-[#14263D] px-7 py-7 text-white shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+      <section className="rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#12648d] md:via-[#124f75] md:to-[#14263D] md:px-7 md:py-7 md:text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C] md:text-blue-100">
           Mapa de capacidades
         </p>
 
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3">
+          <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight sm:text-3xl">
             {node.display_name}
           </h1>
 
           {node.node_number !== null ? (
-            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-blue-50">
+            <span className="rounded-full bg-[#EAF0F7] px-3 py-1 text-xs font-semibold text-[#1E3A5F] md:bg-white/15 md:text-blue-50">
               Nodo {node.node_number}
             </span>
           ) : null}
         </div>
 
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-50">
+        <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-600 md:mt-3 md:text-blue-50">
           Vista integrada de vectores territoriales,
           capacidades de personas y capacidades de
           organizaciones vinculadas con el nodo.
         </p>
 
         {node.jurisdiction_name ? (
-          <p className="mt-4 text-sm font-medium text-blue-100">
+          <p className="mt-3 break-words text-sm font-medium text-[#2F5D8C] md:mt-4 md:text-blue-100">
             {node.jurisdiction_type_name
               ? `${node.jurisdiction_type_name}: `
               : ''}
@@ -228,47 +228,47 @@ export default async function NodeCapabilitiesPage({
         ) : null}
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-2xl font-bold text-slate-950">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
+          <p className="text-xl font-bold text-slate-950 sm:text-2xl">
             {vectors.length}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs leading-4 text-slate-500 sm:text-sm sm:leading-5">
             Vectores territoriales
           </p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-2xl font-bold text-slate-950">
+        <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
+          <p className="text-xl font-bold text-slate-950 sm:text-2xl">
             {personCapabilities.length}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs leading-4 text-slate-500 sm:text-sm sm:leading-5">
             Capacidades personales relevadas
           </p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-2xl font-bold text-slate-950">
+        <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
+          <p className="text-xl font-bold text-slate-950 sm:text-2xl">
             {peopleCount}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs leading-4 text-slate-500 sm:text-sm sm:leading-5">
             Personas con capacidades
           </p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-2xl font-bold text-slate-950">
+        <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
+          <p className="text-xl font-bold text-slate-950 sm:text-2xl">
             {organizationCount}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs leading-4 text-slate-500 sm:text-sm sm:leading-5">
             Organizaciones con capacidades
           </p>
         </article>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">
+          <h2 className="break-words text-lg font-semibold text-slate-950 sm:text-xl">
             Vectores territoriales
           </h2>
 
@@ -278,31 +278,31 @@ export default async function NodeCapabilitiesPage({
           </p>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 lg:grid-cols-2">
           {vectors.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
               No hay vectores territoriales registrados.
             </div>
           ) : (
             vectors.map((vector) => (
               <article
                 key={vector.vector_id}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-950">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold text-slate-950">
                       {vector.vector_name}
                     </p>
 
                     {vector.source_name ? (
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 break-words text-xs text-slate-500">
                         Fuente: {vector.source_name}
                       </p>
                     ) : null}
                   </div>
 
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
+                  <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
                     {verificationLabel(
                       vector.verification_status
                     )}
@@ -310,7 +310,7 @@ export default async function NodeCapabilitiesPage({
                 </div>
 
                 {vector.evidence_text ? (
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                  <p className="mt-3 break-words text-sm leading-6 text-slate-600">
                     {vector.evidence_text}
                   </p>
                 ) : (
@@ -324,9 +324,9 @@ export default async function NodeCapabilitiesPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">
+          <h2 className="break-words text-lg font-semibold text-slate-950 sm:text-xl">
             Capacidades de personas
           </h2>
 
@@ -337,19 +337,19 @@ export default async function NodeCapabilitiesPage({
           </p>
         </div>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {groupedPeople.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
               No hay capacidades personales relevadas.
             </div>
           ) : (
             groupedPeople.map((group) => (
               <article
                 key={group.skillId}
-                className="overflow-hidden rounded-xl border border-slate-200"
+                className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm sm:border-slate-200 sm:shadow-none"
               >
-                <div className="bg-slate-50 px-5 py-4">
-                  <p className="font-semibold text-slate-950">
+                <div className="bg-slate-50/70 px-3 py-3 sm:px-5 sm:py-4">
+                  <p className="break-words font-semibold text-slate-950">
                     {group.skillName}
                   </p>
 
@@ -364,13 +364,13 @@ export default async function NodeCapabilitiesPage({
                   {group.people.map((person) => (
                     <div
                       key={person.person_skill_id}
-                      className="px-5 py-4"
+                      className="px-3 py-3 sm:px-5 sm:py-4"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0">
                           <Link
                             href={`/panel/personas/${person.person_id}`}
-                            className="font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+                            className="break-words font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
                           >
                             {person.display_name}
                           </Link>
@@ -383,7 +383,7 @@ export default async function NodeCapabilitiesPage({
                           </p>
                         </div>
 
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                           {person.proficiency_level
                             ? `Nivel ${person.proficiency_level}/5`
                             : 'Nivel sin informar'}
@@ -398,13 +398,13 @@ export default async function NodeCapabilitiesPage({
                       </p>
 
                       {person.experience_notes ? (
-                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                        <p className="mt-2 break-words text-sm leading-6 text-slate-600">
                           {person.experience_notes}
                         </p>
                       ) : null}
 
                       {person.other_node_names.length > 0 ? (
-                        <p className="mt-3 text-xs text-slate-500">
+                        <p className="mt-3 break-words text-xs text-slate-500">
                           También participa en:{' '}
                           {person.other_node_names.join(', ')}
                         </p>
@@ -418,9 +418,9 @@ export default async function NodeCapabilitiesPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">
+          <h2 className="break-words text-lg font-semibold text-slate-950 sm:text-xl">
             Capacidades de organizaciones
           </h2>
 
@@ -431,9 +431,9 @@ export default async function NodeCapabilitiesPage({
           </p>
         </div>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {groupedOrganizations.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-4 sm:p-5">
               <p className="font-medium text-slate-700">
                 Todavía no hay capacidades organizacionales
                 registradas para este nodo.
@@ -449,10 +449,10 @@ export default async function NodeCapabilitiesPage({
             groupedOrganizations.map((group) => (
               <article
                 key={group.skillId}
-                className="overflow-hidden rounded-xl border border-slate-200"
+                className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm sm:border-slate-200 sm:shadow-none"
               >
-                <div className="bg-slate-50 px-5 py-4">
-                  <p className="font-semibold text-slate-950">
+                <div className="bg-slate-50/70 px-3 py-3 sm:px-5 sm:py-4">
+                  <p className="break-words font-semibold text-slate-950">
                     {group.capabilityName}
                   </p>
 
@@ -470,24 +470,24 @@ export default async function NodeCapabilitiesPage({
                         key={
                           organization.organization_capability_id
                         }
-                        className="px-5 py-4"
+                        className="px-3 py-3 sm:px-5 sm:py-4"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-slate-950">
+                          <div className="min-w-0">
+                            <p className="break-words font-semibold text-slate-950">
                               {
                                 organization.organization_name
                               }
                             </p>
 
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 break-words text-xs text-slate-500">
                               {
                                 organization.organization_type_name
                               }
                             </p>
                           </div>
 
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                             {verificationLabel(
                               organization.verification_status
                             )}
@@ -495,7 +495,7 @@ export default async function NodeCapabilitiesPage({
                         </div>
 
                         {organization.notes ? (
-                          <p className="mt-3 text-sm leading-6 text-slate-600">
+                          <p className="mt-3 break-words text-sm leading-6 text-slate-600">
                             {organization.notes}
                           </p>
                         ) : null}

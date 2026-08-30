@@ -90,6 +90,20 @@ export type NodeOrganization = {
   record_status: string
 }
 
+export type NodePendingOrganization = {
+  node_id: string
+  organization_id: string
+  organization_name: string
+  organization_type_code: string
+  organization_type_name: string
+  verification_status: string
+  evidence_text: string | null
+  started_on: string | null
+  ended_on: string | null
+  notes: string | null
+  record_status: string
+}
+
 export type CanonicalNodeProfile = {
   node: NodeProfile
   jurisdictions: NodeJurisdiction[]
@@ -97,6 +111,7 @@ export type CanonicalNodeProfile = {
   skills: NodeSkillSummary[]
   articulations: NodeArticulation[]
   organizations: NodeOrganization[]
+  pendingOrganizations: NodePendingOrganization[]
 }
 
 export async function getCanonicalNodeProfile(
@@ -111,6 +126,7 @@ export async function getCanonicalNodeProfile(
     skillsResult,
     articulationsResult,
     organizationsResult,
+    pendingOrganizationsResult,
   ] = await Promise.all([
     supabase
       .from('node_profile')
@@ -164,6 +180,14 @@ export async function getCanonicalNodeProfile(
       .order('organization_name', {
         ascending: true,
       }),
+
+    supabase
+      .from('node_pending_organization_list')
+      .select('*')
+      .eq('node_id', nodeId)
+      .order('organization_name', {
+        ascending: true,
+      }),
   ])
 
   if (nodeResult.error) {
@@ -206,6 +230,12 @@ export async function getCanonicalNodeProfile(
     )
   }
 
+  if (pendingOrganizationsResult.error) {
+    throw new Error(
+      `Unable to load node pending organizations: ${pendingOrganizationsResult.error.message}`
+    )
+  }
+
   return {
     node: nodeResult.data as NodeProfile,
     jurisdictions:
@@ -218,5 +248,9 @@ export async function getCanonicalNodeProfile(
       (articulationsResult.data ?? []) as NodeArticulation[],
     organizations:
       (organizationsResult.data ?? []) as NodeOrganization[],
+    pendingOrganizations:
+      (
+        pendingOrganizationsResult.data ?? []
+      ) as NodePendingOrganization[],
   }
 }

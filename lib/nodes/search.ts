@@ -11,7 +11,16 @@ export type NodeSearchResult = {
   jurisdiction_type_name: string | null
 }
 
+export type SearchNodesOptions = {
+  excludeOrganizationId?: string | null
+}
+
 const MINIMUM_QUERY_LENGTH = 2
+const NODE_SEARCH_LIMIT = 10
+const FILTERED_NODE_SEARCH_LIMIT = 50
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function normalizeNodeSearchTerm(value: string) {
   return value
@@ -24,7 +33,8 @@ function normalizeNodeSearchTerm(value: string) {
 }
 
 export async function searchNodes(
-  query: string
+  query: string,
+  options: SearchNodesOptions = {}
 ): Promise<NodeSearchResult[]> {
   const term = normalizeNodeSearchTerm(query)
 
@@ -33,6 +43,36 @@ export async function searchNodes(
   }
 
   const supabase = createAdminClient()
+
+  const excludedNodeIds = new Set<string>()
+  const excludeOrganizationId =
+    options.excludeOrganizationId?.trim() ||
+    null
+
+  if (
+    excludeOrganizationId &&
+    UUID_PATTERN.test(excludeOrganizationId)
+  ) {
+    const { data, error } = await supabase
+      .from('organization_node_list')
+      .select('node_id')
+      .eq(
+        'organization_id',
+        excludeOrganizationId
+      )
+
+    if (error) {
+      throw new Error(
+        `Unable to load organization linked nodes: ${error.message}`
+      )
+    }
+
+    for (const row of data ?? []) {
+      if (row.node_id) {
+        excludedNodeIds.add(row.node_id)
+      }
+    }
+  }
 
   const { data, error } = await supabase
     .from('node_directory')
@@ -48,7 +88,11 @@ export async function searchNodes(
     .order('display_name', {
       ascending: true,
     })
-    .limit(10)
+    .limit(
+      excludedNodeIds.size > 0
+        ? FILTERED_NODE_SEARCH_LIMIT
+        : NODE_SEARCH_LIMIT
+    )
 
   if (error) {
     throw new Error(
@@ -56,5 +100,16 @@ export async function searchNodes(
     )
   }
 
-  return (data ?? []) as NodeSearchResult[]
+  const rows =
+    (data ?? []) as NodeSearchResult[]
+
+  if (excludedNodeIds.size === 0) {
+    return rows
+  }
+
+  return rows
+    .filter(
+      (node) => !excludedNodeIds.has(node.id)
+    )
+    .slice(0, NODE_SEARCH_LIMIT)
 }

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const futureModules = [
-  'Organizaciones',
   'Habilidades',
   'Proyectos',
   'Informes',
@@ -33,6 +32,9 @@ export function PanelNavigation() {
     pathname === '/panel/nodos' ||
     pathname.startsWith('/panel/nodos/')
 
+  const organizationsActive =
+    pathname === '/panel/organizaciones' ||
+    pathname.startsWith('/panel/organizaciones/')
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -94,6 +96,23 @@ export function PanelNavigation() {
           ) : null}
         </Link>
 
+        <Link
+          href="/panel/organizaciones"
+          aria-current={
+            organizationsActive
+              ? 'page'
+              : undefined
+          }
+          className={activeClass(
+            organizationsActive
+          )}
+        >
+          <span>Organizaciones</span>
+
+          {organizationsActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
         {futureModules.map((module) => (
           <div
             key={module}

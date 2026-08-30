@@ -4,7 +4,7 @@ import {
 } from 'next/server'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
-import { searchNodes } from '../../../../lib/nodes/search'
+import { searchOrganizations } from '../../../../lib/organizations/search'
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -38,14 +38,15 @@ export async function GET(request: NextRequest) {
   const query =
     request.nextUrl.searchParams.get('q') ?? ''
 
-  const excludeOrganizationId =
-    request.nextUrl.searchParams.get(
-      'exclude_organization_id'
-    ) ?? null
+  const organizationTypeCode =
+    request.nextUrl.searchParams.get('type') ??
+    null
 
-  const results = await searchNodes(query, {
-    excludeOrganizationId,
-  })
+  const results =
+    await searchOrganizations({
+      query,
+      organizationTypeCode,
+    })
 
   return NextResponse.json(results, {
     headers: {

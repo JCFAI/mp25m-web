@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getInternalAccess } from '../../lib/auth/internal-access'
 import { getInternalUserProfile } from '../../lib/auth/internal-profile'
 import { createClient } from '../../lib/supabase/server'
+import { PanelMobileNavigation } from './panel-mobile-navigation'
 import { PanelNavigation } from './panel-navigation'
 
 export const dynamic = 'force-dynamic'
@@ -50,9 +51,15 @@ export default async function PanelLayout({
     profile.display_name ?? roleName
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
+    <main className="min-h-screen overflow-x-hidden bg-slate-100 text-slate-950">
+      <PanelMobileNavigation
+        displayName={displayName}
+        roleName={roleName}
+        scopeName={scopeName}
+      />
+
       <div className="mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[270px_1fr]">
-        <aside className="bg-[#1E3A5F] text-white md:min-h-screen">
+        <aside className="hidden bg-[#1E3A5F] text-white md:flex md:min-h-screen md:flex-col">
           <div className="flex items-center gap-3 border-b border-white/10 px-5 py-6">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black tracking-wide text-[#1E3A5F] shadow-sm">
               25M
@@ -89,7 +96,7 @@ export default async function PanelLayout({
         </aside>
 
         <section className="min-w-0">
-          <header className="flex min-h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-7 lg:px-10">
+          <header className="hidden min-h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-7 md:flex lg:px-10">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
                 MP25M
@@ -126,7 +133,7 @@ export default async function PanelLayout({
             </div>
           </header>
 
-          <div className="p-4 sm:p-6 lg:p-10">
+          <div className="px-5 py-4 sm:p-6 lg:p-10">
             {children}
           </div>
         </section>

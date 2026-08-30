@@ -27,8 +27,8 @@ const PROPOSE_NEW_TYPE_VALUE =
 
 function fieldClass(hasError: boolean) {
   return hasError
-    ? 'mt-2 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
-    : 'mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
+    ? 'mt-2 min-h-12 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
+    : 'mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
 }
 
 function FieldError({
@@ -68,7 +68,7 @@ export function NewOrganizationForm({
   return (
     <form
       action={formAction}
-      className="mt-6 grid gap-5"
+      className="mt-5 grid gap-4 sm:mt-6 sm:gap-5"
     >
       {state.status === 'error' &&
       state.message ? (
@@ -187,7 +187,7 @@ export function NewOrganizationForm({
             placeholder="Ej.: Centro tecnológico comunitario"
           />
 
-          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          <p className="mt-2 border-l-4 border-amber-300 bg-amber-50/70 px-3 py-2 text-sm font-medium text-amber-900 sm:rounded-xl sm:border sm:border-amber-200 sm:px-4 sm:py-3">
             El tipo quedará pendiente de validación.
           </p>
 
@@ -230,7 +230,7 @@ export function NewOrganizationForm({
             pending ||
             organizationTypes.length === 0
           }
-          className="rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           {pending
             ? 'Creando...'

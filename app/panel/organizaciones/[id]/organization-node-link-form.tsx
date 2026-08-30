@@ -53,8 +53,8 @@ function nodeMetadata(node: NodeSearchResult) {
 
 function fieldClass(hasError: boolean) {
   return hasError
-    ? 'mt-2 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
-    : 'mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
+    ? 'mt-2 min-h-12 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
+    : 'mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
 }
 
 function FieldError({
@@ -229,7 +229,7 @@ export function OrganizationNodeLinkForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mt-5 grid gap-5"
+      className="mt-4 grid gap-4 sm:mt-5 sm:gap-5"
     >
       {state.status !== 'idle' &&
       state.message ? (
@@ -276,7 +276,7 @@ export function OrganizationNodeLinkForm({
           {searchIsOpen ? (
             <div
               id={resultsId}
-              className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+              className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
             >
               {loading ? (
                 <p className="px-4 py-3 text-sm text-slate-500">
@@ -297,13 +297,13 @@ export function OrganizationNodeLinkForm({
                       setResults([])
                       setHasSearched(false)
                     }}
-                    className="block w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                    className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                   >
-                    <span className="block text-sm font-semibold text-slate-900">
+                    <span className="block break-words text-sm font-semibold text-slate-900">
                       {node.display_name}
                     </span>
 
-                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
                       {nodeMetadata(node)}
                     </span>
                   </button>
@@ -325,7 +325,7 @@ export function OrganizationNodeLinkForm({
 
         {selectedNode ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700">
+            <span className="inline-flex min-h-11 max-w-full items-center break-words rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
               {selectedNode.display_name}
             </span>
 
@@ -335,7 +335,7 @@ export function OrganizationNodeLinkForm({
                 setSelectedNode(null)
                 setQuery('')
               }}
-              className="text-xs font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
+              className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
             >
               Cambiar
             </button>
@@ -378,7 +378,7 @@ export function OrganizationNodeLinkForm({
         />
       </label>
 
-      <label className="block max-w-xs">
+      <label className="block sm:max-w-xs">
         <span className="text-sm font-semibold text-slate-700">
           Fecha de inicio
         </span>
@@ -407,7 +407,7 @@ export function OrganizationNodeLinkForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           {pending
             ? 'Guardando...'

@@ -141,7 +141,7 @@ export function NodeSearch() {
         Buscá por nombre o jurisdicción territorial.
       </p>
 
-      <div className="relative mt-4">
+      <div className="relative mt-3 sm:mt-4">
         <input
           id={inputId}
           value={query}
@@ -155,13 +155,13 @@ export function NodeSearch() {
           aria-expanded={searchIsOpen}
           aria-controls={resultsId}
           aria-busy={loading}
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+          className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
         />
 
         {searchIsOpen ? (
           <div
             id={resultsId}
-            className="absolute z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+            className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
           >
             {loading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
@@ -177,13 +177,13 @@ export function NodeSearch() {
                   key={node.id}
                   href={`/panel/nodos/${node.id}`}
                   prefetch={false}
-                  className="block border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="break-words text-sm font-semibold text-slate-900">
                     {node.display_name}
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 break-words text-xs leading-5 text-slate-500">
                     {nodeMetadata(node)}
                   </p>
                 </Link>

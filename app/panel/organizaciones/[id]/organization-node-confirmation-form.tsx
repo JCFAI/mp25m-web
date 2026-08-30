@@ -73,7 +73,7 @@ export function OrganizationNodeConfirmationForm({
           minLength={3}
           maxLength={2000}
           rows={3}
-          className="mt-2 w-full resize-y rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+          className="mt-2 min-h-12 w-full resize-y rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
           aria-invalid={Boolean(
             state.fieldErrors.reason
           )}
@@ -91,7 +91,7 @@ export function OrganizationNodeConfirmationForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 w-full rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           {pending
             ? 'Confirmando...'

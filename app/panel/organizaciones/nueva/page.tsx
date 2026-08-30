@@ -40,24 +40,24 @@ export default async function NewOrganizationPage() {
     await listOrganizationTypeOptions()
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5 sm:space-y-7">
       <Link
         href="/panel/organizaciones"
-        className="inline-flex text-sm font-medium text-[#2F5D8C] transition hover:text-[#1E3A5F]"
+        className="inline-flex min-h-11 items-center text-sm font-medium text-[#2F5D8C] transition hover:text-[#1E3A5F]"
       >
         ← Volver a Organizaciones
       </Link>
 
-      <section className="rounded-3xl bg-gradient-to-br from-[#12648d] via-[#124f75] to-[#14263D] px-7 py-7 text-white shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+      <section className="rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#12648d] md:via-[#124f75] md:to-[#14263D] md:px-7 md:py-7 md:text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C] md:text-blue-100">
           Nueva organización
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
+        <h1 className="mt-2 break-words text-2xl font-bold tracking-tight sm:text-3xl">
           Alta canónica
         </h1>
 
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-50">
+        <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-600 md:mt-3 md:text-blue-50">
           El alta crea únicamente la identidad canónica
           de la organización. La presencia territorial,
           las capacidades y las articulaciones se
@@ -66,7 +66,7 @@ export default async function NewOrganizationPage() {
       </section>
 
       {!canCreate ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 sm:px-5">
           <p className="text-sm font-semibold text-amber-900">
             No tenés permisos para crear
             organizaciones canónicas.
@@ -78,17 +78,17 @@ export default async function NewOrganizationPage() {
           </p>
         </section>
       ) : (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="border-b border-slate-100 pb-5">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-7">
+          <div className="border-b border-slate-100 pb-4 sm:pb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
               Identidad canónica
             </p>
 
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+            <h2 className="mt-2 break-words text-lg font-semibold text-slate-950 sm:text-2xl">
               Registrar organización
             </h2>
 
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+            <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-500">
               Antes de crearla, el sistema normaliza el
               nombre y bloquea coincidencias nominales
               fuertes para revisión manual.
@@ -96,7 +96,7 @@ export default async function NewOrganizationPage() {
           </div>
 
           {organizationTypes.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 sm:px-5">
               No hay tipos de organización disponibles.
               Revisá el catálogo antes de continuar.
             </div>

@@ -190,7 +190,7 @@ export function OrganizationSearch({
         incorporadas al registro canónico.
       </p>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
+      <div className="mt-3 grid gap-3 sm:mt-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:gap-4">
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Nombre
@@ -209,7 +209,7 @@ export function OrganizationSearch({
             aria-expanded={searchIsOpen}
             aria-controls={resultsId}
             aria-busy={loading}
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           />
         </label>
 
@@ -233,7 +233,7 @@ export function OrganizationSearch({
                 event.target.value
               )
             }}
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           >
             <option value="">
               Todos los tipos
@@ -255,7 +255,7 @@ export function OrganizationSearch({
         {searchIsOpen ? (
           <div
             id={resultsId}
-            className="absolute z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+            className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
           >
             {loading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
@@ -271,13 +271,13 @@ export function OrganizationSearch({
                   key={organization.id}
                   href={`/panel/organizaciones/${organization.id}`}
                   prefetch={false}
-                  className="block border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="break-words text-sm font-semibold text-slate-900">
                     {organization.display_name}
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 break-words text-xs leading-5 text-slate-500">
                     {organizationMetadata(
                       organization
                     )}
@@ -304,7 +304,7 @@ export function OrganizationSearch({
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#2F5D8C] transition hover:border-[#2F5D8C]/40 hover:bg-slate-50"
+            className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#2F5D8C] transition hover:border-[#2F5D8C]/40 hover:bg-slate-50 sm:w-auto"
           >
             Limpiar filtros
           </button>

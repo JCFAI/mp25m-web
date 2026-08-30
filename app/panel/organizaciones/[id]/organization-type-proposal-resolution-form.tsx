@@ -40,8 +40,8 @@ const initialState: OrganizationTypeProposalResolutionActionState = {
 
 function fieldClass(hasError: boolean) {
   return hasError
-    ? 'mt-2 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
-    : 'mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
+    ? 'mt-2 min-h-12 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
+    : 'mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
 }
 
 function FieldError({
@@ -184,7 +184,7 @@ export function OrganizationTypeProposalResolutionForm({
   return (
     <form
       action={formAction}
-      className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-5"
+      className="mt-4 border-t border-amber-200 pt-4 sm:mt-5 sm:rounded-2xl sm:border sm:border-amber-200 sm:bg-amber-50/60 sm:p-5"
     >
       <p className="text-sm font-semibold text-slate-950">
         Resolver propuesta de tipo
@@ -195,7 +195,7 @@ export function OrganizationTypeProposalResolutionForm({
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
             Tipo propuesto
           </p>
-          <p className="mt-1 font-semibold text-slate-950">
+          <p className="mt-1 break-words font-semibold text-slate-950">
             {proposal.proposed_name}
           </p>
         </div>
@@ -205,7 +205,7 @@ export function OrganizationTypeProposalResolutionForm({
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
               Posible tipo existente
             </p>
-            <p className="mt-1 font-semibold text-slate-950">
+            <p className="mt-1 break-words font-semibold text-slate-950">
               {suggestedTypeName}
             </p>
             {matchKind ? (
@@ -249,8 +249,8 @@ export function OrganizationTypeProposalResolutionForm({
             key={option.value}
             className={
               resolutionAction === option.value
-                ? 'flex cursor-pointer items-center gap-3 rounded-xl border border-[#2F5D8C] bg-white px-4 py-3 text-sm font-semibold text-[#1E3A5F]'
-                : 'flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#2F5D8C]/40'
+                ? 'flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-[#2F5D8C] bg-white px-4 py-3 text-sm font-semibold text-[#1E3A5F]'
+                : 'flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#2F5D8C]/40'
             }
           >
             <input
@@ -266,9 +266,11 @@ export function OrganizationTypeProposalResolutionForm({
                   option.value
                 )
               }
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0"
             />
-            {option.label}
+            <span className="min-w-0 break-words">
+              {option.label}
+            </span>
           </label>
         ))}
       </div>
@@ -280,7 +282,7 @@ export function OrganizationTypeProposalResolutionForm({
       />
 
       {resolutionAction === 'mapped' ? (
-        <label className="mt-4 block max-w-xl">
+        <label className="mt-4 block sm:max-w-xl">
           <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
             Tipo canónico existente
           </span>
@@ -383,7 +385,7 @@ export function OrganizationTypeProposalResolutionForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           {pending
             ? 'Resolviendo...'

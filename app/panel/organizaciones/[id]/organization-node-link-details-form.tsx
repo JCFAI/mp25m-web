@@ -20,8 +20,8 @@ const initialState: OrganizationNodeLinkActionState = {
 
 function fieldClass(hasError: boolean) {
   return hasError
-    ? 'mt-2 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
-    : 'mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
+    ? 'mt-2 min-h-12 w-full rounded-xl border border-red-300 bg-red-50/30 px-4 py-3 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100'
+    : 'mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10'
 }
 
 function FieldError({
@@ -87,7 +87,7 @@ export function OrganizationNodeLinkDetailsForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50"
+        className="mt-4 min-h-11 w-full rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 sm:w-auto"
       >
         Editar evidencia
       </button>
@@ -149,7 +149,7 @@ export function OrganizationNodeLinkDetailsForm({
 
       <label
         htmlFor={startedOnId}
-        className="mt-4 block max-w-xs"
+        className="mt-4 block sm:max-w-xs"
       >
         <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
           Fecha de inicio
@@ -176,7 +176,7 @@ export function OrganizationNodeLinkDetailsForm({
         />
       </label>
 
-      <div className="mt-4 flex flex-wrap justify-end gap-3">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           disabled={pending}
@@ -187,7 +187,7 @@ export function OrganizationNodeLinkDetailsForm({
             setStartedOn(initialStartedOn ?? '')
             setOpen(false)
           }}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+          className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -195,7 +195,7 @@ export function OrganizationNodeLinkDetailsForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60"
+          className="min-h-11 rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-wait disabled:opacity-60"
         >
           {pending
             ? 'Guardando...'

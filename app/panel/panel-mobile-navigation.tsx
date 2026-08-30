@@ -133,7 +133,7 @@ export function PanelMobileNavigation({
   }
 
   useEffect(() => {
-    if (!drawerMounted) {
+    if (!open) {
       return
     }
 
@@ -151,10 +151,10 @@ export function PanelMobileNavigation({
         onKeyDown
       )
     }
-  }, [drawerMounted])
+  }, [open])
 
   useEffect(() => {
-    if (!drawerMounted) {
+    if (!open) {
       return
     }
 
@@ -167,7 +167,42 @@ export function PanelMobileNavigation({
       document.body.style.overflow =
         previousOverflow
     }
-  }, [drawerMounted])
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const mediaQuery = window.matchMedia(
+      '(min-width: 768px)'
+    )
+
+    function onMediaQueryChange(
+      event: MediaQueryListEvent
+    ) {
+      if (event.matches) {
+        closeNavigation()
+      }
+    }
+
+    if (mediaQuery.matches) {
+      closeNavigation()
+      return
+    }
+
+    mediaQuery.addEventListener(
+      'change',
+      onMediaQueryChange
+    )
+
+    return () => {
+      mediaQuery.removeEventListener(
+        'change',
+        onMediaQueryChange
+      )
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) {

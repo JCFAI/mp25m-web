@@ -7,6 +7,8 @@ import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
   confirmOrganizationNodeLink,
   createOrganizationNodeLink,
+  resolveOrganizationTypeProposal,
+  type ResolveOrganizationTypeProposalAction,
   updateOrganizationNodeLinkDetails,
 } from '../../../../lib/organizations/manage'
 import { createClient } from '../../../../lib/supabase/server'
@@ -18,6 +20,16 @@ export type OrganizationNodeLinkActionState = {
     nodeId?: string
     evidenceText?: string
     startedOn?: string
+    reason?: string
+  }
+}
+
+export type OrganizationTypeProposalResolutionActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+  fieldErrors: {
+    resolutionAction?: string
+    organizationTypeCode?: string
     reason?: string
   }
 }
@@ -39,6 +51,27 @@ function failure(
 function success(
   message: string
 ): OrganizationNodeLinkActionState {
+  return {
+    status: 'success',
+    message,
+    fieldErrors: {},
+  }
+}
+
+function proposalFailure(
+  message: string,
+  fieldErrors: OrganizationTypeProposalResolutionActionState['fieldErrors'] = {}
+): OrganizationTypeProposalResolutionActionState {
+  return {
+    status: 'error',
+    message,
+    fieldErrors,
+  }
+}
+
+function proposalSuccess(
+  message: string
+): OrganizationTypeProposalResolutionActionState {
   return {
     status: 'success',
     message,
@@ -92,10 +125,10 @@ function mapCreateLinkError(
 
   if (/already exists|duplicate/i.test(detail)) {
     return failure(
-      'La organización ya tiene un vínculo registrado con ese nodo. Revisá el estado actual antes de cargar otro.',
+      'Este nodo ya está vinculado con la organización. Revisá el vínculo existente debajo.',
       {
         nodeId:
-          'El vínculo con este nodo ya existe.',
+          'Este nodo ya está vinculado con la organización.',
       }
     )
   }
@@ -222,6 +255,78 @@ function mapUpdateLinkDetailsError(
 
   return failure(
     'No se pudo actualizar la evidencia del vínculo territorial. No se modificó ningún otro dato.'
+  )
+}
+
+function mapResolveTypeProposalError(
+  error: unknown
+) {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : ''
+
+  if (
+    /strong organization type match|duplicate|already exists/i.test(
+      detail
+    )
+  ) {
+    const [, matchingTypeName] =
+      detail.match(
+        /strong organization type match already exists:\s*(.*?)\s*\(/i
+      ) ?? []
+
+    return proposalFailure(
+      matchingTypeName
+        ? `Se detectó una posible coincidencia con ${matchingTypeName}. Revisá si corresponde usar ese tipo existente o mantener la propuesta como un tipo diferente.`
+        : 'Se detectó una posible coincidencia con un tipo de organización existente. Revisá si corresponde usar ese tipo existente o mantener la propuesta como un tipo diferente.',
+      {
+        organizationTypeCode:
+          'Seleccioná el tipo canónico sugerido o justificá mantener la propuesta como tipo nuevo.',
+      }
+    )
+  }
+
+  if (/not pending/i.test(detail)) {
+    return proposalFailure(
+      'La propuesta de tipo ya fue resuelta. Actualizá la pantalla para ver su estado actual.'
+    )
+  }
+
+  if (/canonical organization type|invalid organization type/i.test(detail)) {
+    return proposalFailure(
+      'El tipo canónico seleccionado no está disponible.',
+      {
+        organizationTypeCode:
+          'Seleccioná un tipo vigente.',
+      }
+    )
+  }
+
+  if (/reason.*required|invalid.*reason/i.test(detail)) {
+    return proposalFailure(
+      'Indicá una justificación breve para resolver la propuesta.',
+      {
+        reason:
+          'La justificación debe tener entre 3 y 2000 caracteres.',
+      }
+    )
+  }
+
+  if (/cannot resolve|permission|not allowed/i.test(detail)) {
+    return proposalFailure(
+      'Tu usuario no tiene permisos para resolver propuestas de tipo.'
+    )
+  }
+
+  if (/not found|inactive/i.test(detail)) {
+    return proposalFailure(
+      'No se encontró la propuesta pendiente para resolver.'
+    )
+  }
+
+  return proposalFailure(
+    'No se pudo resolver la propuesta de tipo. No se modificó ningún otro dato.'
   )
 }
 
@@ -452,5 +557,102 @@ export async function updateOrganizationNodeLinkDetailsAction(
 
   return success(
     'La evidencia del vínculo pendiente fue actualizada.'
+  )
+}
+
+export async function resolveOrganizationTypeProposalAction(
+  organizationId: string,
+  proposalId: string,
+  _previousState: OrganizationTypeProposalResolutionActionState,
+  formData: FormData
+): Promise<OrganizationTypeProposalResolutionActionState> {
+  const access = await getCurrentAccess()
+
+  const resolutionAction = String(
+    formData.get('resolution_action') ?? ''
+  ).trim() as ResolveOrganizationTypeProposalAction
+
+  const organizationTypeCode = String(
+    formData.get(
+      'resolved_organization_type_code'
+    ) ?? ''
+  ).trim()
+
+  const reason = String(
+    formData.get('reason') ?? ''
+  ).trim()
+
+  const fieldErrors:
+    OrganizationTypeProposalResolutionActionState['fieldErrors'] = {}
+
+  if (
+    !UUID_PATTERN.test(organizationId) ||
+    !UUID_PATTERN.test(proposalId)
+  ) {
+    return proposalFailure(
+      'La propuesta de tipo seleccionada no es válida.'
+    )
+  }
+
+  if (
+    ![
+      'mapped',
+      'approved',
+      'approved_override',
+      'rejected',
+    ].includes(resolutionAction)
+  ) {
+    fieldErrors.resolutionAction =
+      'Seleccioná una acción de resolución.'
+  }
+
+  if (
+    resolutionAction === 'mapped' &&
+    !organizationTypeCode
+  ) {
+    fieldErrors.organizationTypeCode =
+      'Seleccioná un tipo canónico existente.'
+  }
+
+  if (reason.length < 3) {
+    fieldErrors.reason =
+      'La justificación debe tener al menos 3 caracteres.'
+  } else if (reason.length > 2000) {
+    fieldErrors.reason =
+      'La justificación no puede superar los 2000 caracteres.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return proposalFailure(
+      'Hay datos que necesitan corrección.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await resolveOrganizationTypeProposal(access, {
+      proposalId,
+      resolutionAction,
+      existingOrganizationTypeCode:
+        organizationTypeCode || null,
+      reason,
+    })
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization type proposal resolution failed:',
+      error
+    )
+
+    return mapResolveTypeProposalError(error)
+  }
+
+  revalidatePath(
+    `/panel/organizaciones/${organizationId}`
+  )
+  revalidatePath('/panel/organizaciones')
+  revalidatePath('/panel/nodos')
+
+  return proposalSuccess(
+    'La propuesta de tipo fue resuelta correctamente.'
   )
 }

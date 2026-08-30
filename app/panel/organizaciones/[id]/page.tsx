@@ -8,6 +8,7 @@ import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
   canManageOrganizations,
   canValidateOrganizationNodeLinks,
+  listOrganizationTypeOptions,
 } from '../../../../lib/organizations/manage'
 import {
   getCanonicalOrganizationProfile,
@@ -17,6 +18,7 @@ import { createClient } from '../../../../lib/supabase/server'
 import { OrganizationNodeConfirmationForm } from './organization-node-confirmation-form'
 import { OrganizationNodeLinkForm } from './organization-node-link-form'
 import { OrganizationNodeLinkDetailsForm } from './organization-node-link-details-form'
+import { OrganizationTypeProposalResolutionForm } from './organization-type-proposal-resolution-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,18 +88,22 @@ function OrganizationNodeCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link
-            href={`/panel/nodos/${node.node_id}`}
-            className="font-semibold text-[#2F5D8C] hover:underline"
-          >
+          <p className="font-semibold text-slate-950">
             {node.node_name}
-          </Link>
+          </p>
 
           {node.node_number !== null ? (
             <p className="mt-1 text-xs text-slate-500">
               Nodo {node.node_number}
             </p>
           ) : null}
+
+          <Link
+            href={`/panel/nodos/${node.node_id}`}
+            className="mt-2 inline-flex text-xs font-semibold text-[#2F5D8C] hover:underline"
+          >
+            Ver nodo
+          </Link>
         </div>
 
         <span
@@ -212,6 +218,7 @@ export default async function OrganizationProfilePage({
     nodes,
     capabilities,
     articulations,
+    typeProposals,
   } = profile
 
   const canManage =
@@ -235,6 +242,17 @@ export default async function OrganizationProfilePage({
       node.verification_status !== 'pending' &&
       node.verification_status !== 'confirmed'
   )
+
+  const pendingTypeProposal =
+    typeProposals.find(
+      (proposal) =>
+        proposal.status === 'pending'
+    ) ?? null
+
+  const organizationTypes =
+    canManage && pendingTypeProposal
+      ? await listOrganizationTypeOptions()
+      : []
 
   return (
     <div className="space-y-7">
@@ -330,6 +348,41 @@ export default async function OrganizationProfilePage({
           </div>
         </dl>
 
+        {pendingTypeProposal ? (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Tipo propuesto
+            </p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <p className="font-semibold text-slate-950">
+                {pendingTypeProposal.proposed_name}
+              </p>
+
+              <span className={verificationBadgeClass('pending')}>
+                Pendiente de validación
+              </span>
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-amber-900">
+              El tipo canónico vigente sigue siendo{' '}
+              <strong>
+                {organization.organization_type_name}
+              </strong>
+              .
+            </p>
+
+            {canManage ? (
+              <OrganizationTypeProposalResolutionForm
+                organizationId={organization.id}
+                proposalId={pendingTypeProposal.id}
+                proposal={pendingTypeProposal}
+                organizationTypes={organizationTypes}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
         {organization.notes ? (
           <div className="mt-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -356,16 +409,21 @@ export default async function OrganizationProfilePage({
         {canManage ? (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
             <h3 className="text-base font-semibold text-slate-950">
-              Vincular con un nodo
+              Agregar otro vínculo territorial
             </h3>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
+              Usá este formulario únicamente para
+              vincular la organización con otro nodo.
               El vínculo nuevo queda pendiente hasta una
               confirmación explícita.
             </p>
 
             <OrganizationNodeLinkForm
               organizationId={organization.id}
+              linkedNodeIds={nodes.map(
+                (node) => node.node_id
+              )}
             />
           </div>
         ) : null}

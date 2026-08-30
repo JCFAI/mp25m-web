@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
-import { canManageOrganizations } from '../../../lib/organizations/manage'
+import {
+  canManageOrganizations,
+  listOrganizationTypeOptions,
+} from '../../../lib/organizations/manage'
 import { createClient } from '../../../lib/supabase/server'
 import { OrganizationSearch } from './organization-search'
 
@@ -32,6 +35,9 @@ export default async function OrganizationsPage() {
 
   const canCreate =
     canManageOrganizations(access)
+
+  const organizationTypes =
+    await listOrganizationTypeOptions()
 
   return (
     <div className="space-y-7">
@@ -66,7 +72,9 @@ export default async function OrganizationsPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <OrganizationSearch />
+        <OrganizationSearch
+          organizationTypes={organizationTypes}
+        />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">

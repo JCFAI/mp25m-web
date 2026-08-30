@@ -38,7 +38,14 @@ export async function GET(request: NextRequest) {
   const query =
     request.nextUrl.searchParams.get('q') ?? ''
 
-  const results = await searchNodes(query)
+  const excludeOrganizationId =
+    request.nextUrl.searchParams.get(
+      'exclude_organization_id'
+    ) ?? null
+
+  const results = await searchNodes(query, {
+    excludeOrganizationId,
+  })
 
   return NextResponse.json(results, {
     headers: {

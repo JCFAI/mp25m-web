@@ -38,8 +38,15 @@ export async function GET(request: NextRequest) {
   const query =
     request.nextUrl.searchParams.get('q') ?? ''
 
+  const organizationTypeCode =
+    request.nextUrl.searchParams.get('type') ??
+    null
+
   const results =
-    await searchOrganizations(query)
+    await searchOrganizations({
+      query,
+      organizationTypeCode,
+    })
 
   return NextResponse.json(results, {
     headers: {

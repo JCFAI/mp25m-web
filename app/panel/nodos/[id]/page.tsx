@@ -64,6 +64,16 @@ function roleVerificationLabel(value: string) {
   return value
 }
 
+function organizationVerificationBadgeClass(
+  value: string
+) {
+  if (value === 'pending') {
+    return 'rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200'
+  }
+
+  return 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200'
+}
+
 export default async function NodeProfilePage({
   params,
 }: PageProps) {
@@ -108,6 +118,7 @@ export default async function NodeProfilePage({
     skills,
     articulations,
     organizations,
+    pendingOrganizations,
   } = profile
 
   return (
@@ -206,7 +217,7 @@ export default async function NodeProfilePage({
             {node.organization_count}
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Organizaciones
+            Organizaciones confirmadas
           </p>
         </article>
       </section>
@@ -433,16 +444,27 @@ export default async function NodeProfilePage({
             Organizaciones canónicas relacionadas territorialmente con el nodo.
           </p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-slate-950">
+              Confirmadas
+            </h3>
+
+            <span className={organizationVerificationBadgeClass('confirmed')}>
+              Confirmadas
+            </span>
+          </div>
+
+          <div className="mt-3 space-y-3">
             {organizations.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                Organizaciones pendientes de registrar.
+                No hay organizaciones confirmadas en este nodo.
               </div>
             ) : (
               organizations.map((organization) => (
-                <article
+                <Link
                   key={organization.organization_id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  href={`/panel/organizaciones/${organization.organization_id}`}
+                  className="block rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
                 >
                   <p className="font-semibold text-slate-950">
                     {organization.organization_name}
@@ -457,9 +479,75 @@ export default async function NodeProfilePage({
                       {organization.notes}
                     </p>
                   ) : null}
-                </article>
+                </Link>
               ))
             )}
+          </div>
+
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold text-slate-950">
+                Vínculos de organizaciones pendientes
+              </h3>
+
+              <span className={organizationVerificationBadgeClass('pending')}>
+                Pendientes
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              {pendingOrganizations.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  No hay vínculos de organizaciones pendientes en este nodo.
+                </div>
+              ) : (
+                pendingOrganizations.map(
+                  (organization) => (
+                    <Link
+                      key={organization.organization_id}
+                      href={`/panel/organizaciones/${organization.organization_id}`}
+                      className="block rounded-xl border border-amber-200 bg-amber-50/60 p-4 transition hover:border-amber-300 hover:bg-amber-50"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-950">
+                            {
+                              organization.organization_name
+                            }
+                          </p>
+
+                          <p className="mt-1 text-xs font-semibold text-[#2F5D8C]">
+                            {
+                              organization.organization_type_name
+                            }
+                          </p>
+                        </div>
+
+                        <span className={organizationVerificationBadgeClass('pending')}>
+                          Pendiente
+                        </span>
+                      </div>
+
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                        Evidencia:{' '}
+                        {organization.evidence_text?.trim()
+                          ? organization.evidence_text
+                          : 'Sin evidencia registrada.'}
+                      </p>
+
+                      <p className="mt-2 text-xs text-slate-500">
+                        Inicio:{' '}
+                        {organization.started_on
+                          ? formatDate(
+                              organization.started_on
+                            )
+                          : 'Fecha de inicio no informada.'}
+                      </p>
+                    </Link>
+                  )
+                )
+              )}
+            </div>
           </div>
         </section>
       </div>

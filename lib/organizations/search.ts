@@ -12,7 +12,17 @@ export type OrganizationSearchResult = {
   capability_count: number
 }
 
+export type SearchOrganizationsInput = {
+  query: string
+  organizationTypeCode?: string | null
+}
+
 const MINIMUM_QUERY_LENGTH = 3
+const NAME_SEARCH_LIMIT = 10
+const TYPE_SEARCH_LIMIT = 20
+
+const ORGANIZATION_TYPE_CODE_PATTERN =
+  /^[a-z0-9_]+$/i
 
 function normalizeOrganizationSearchTerm(
   value: string
@@ -27,18 +37,33 @@ function normalizeOrganizationSearchTerm(
 }
 
 export async function searchOrganizations(
-  query: string
+  input: SearchOrganizationsInput
 ): Promise<OrganizationSearchResult[]> {
   const term =
-    normalizeOrganizationSearchTerm(query)
+    normalizeOrganizationSearchTerm(input.query)
 
-  if (term.length < MINIMUM_QUERY_LENGTH) {
+  const organizationTypeCode =
+    input.organizationTypeCode?.trim() || null
+
+  if (
+    organizationTypeCode &&
+    !ORGANIZATION_TYPE_CODE_PATTERN.test(
+      organizationTypeCode
+    )
+  ) {
+    return []
+  }
+
+  if (
+    !organizationTypeCode &&
+    term.length < MINIMUM_QUERY_LENGTH
+  ) {
     return []
   }
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('organization_directory')
     .select(`
       id,
@@ -49,11 +74,29 @@ export async function searchOrganizations(
       confirmed_node_count,
       capability_count
     `)
-    .ilike('search_name', `%${term}%`)
     .order('display_name', {
       ascending: true,
     })
-    .limit(10)
+
+  if (organizationTypeCode) {
+    query = query.eq(
+      'organization_type_code',
+      organizationTypeCode
+    )
+  }
+
+  if (term.length > 0) {
+    query = query.ilike(
+      'search_name',
+      `%${term}%`
+    )
+  }
+
+  const { data, error } = await query.limit(
+    organizationTypeCode
+      ? TYPE_SEARCH_LIMIT
+      : NAME_SEARCH_LIMIT
+  )
 
   if (error) {
     throw new Error(

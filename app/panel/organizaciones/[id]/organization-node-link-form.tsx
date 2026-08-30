@@ -4,6 +4,7 @@ import {
   useActionState,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -74,8 +75,10 @@ function FieldError({
 
 export function OrganizationNodeLinkForm({
   organizationId,
+  linkedNodeIds,
 }: {
   organizationId: string
+  linkedNodeIds: string[]
 }) {
   const inputId = useId()
   const resultsId = useId()
@@ -105,6 +108,11 @@ export function OrganizationNodeLinkForm({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+
+  const linkedNodeIdSet = useMemo(
+    () => new Set(linkedNodeIds),
+    [linkedNodeIds]
+  )
 
   const term = query.trim()
   const searchIsOpen =
@@ -148,8 +156,17 @@ export function OrganizationNodeLinkForm({
     const timeout = window.setTimeout(
       async () => {
         try {
+          const searchParams =
+            new URLSearchParams()
+
+          searchParams.set('q', currentTerm)
+          searchParams.set(
+            'exclude_organization_id',
+            organizationId
+          )
+
           const response = await fetch(
-            `/api/panel/nodos?q=${encodeURIComponent(currentTerm)}`,
+            `/api/panel/nodos?${searchParams.toString()}`,
             {
               signal: controller.signal,
               cache: 'no-store',
@@ -166,7 +183,12 @@ export function OrganizationNodeLinkForm({
             (await response.json()) as NodeSearchResult[]
 
           if (!controller.signal.aborted) {
-            setResults(data)
+            setResults(
+              data.filter(
+                (node) =>
+                  !linkedNodeIdSet.has(node.id)
+              )
+            )
           }
         } catch (error) {
           if (
@@ -196,7 +218,12 @@ export function OrganizationNodeLinkForm({
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [query, selectedNode])
+  }, [
+    query,
+    selectedNode,
+    organizationId,
+    linkedNodeIdSet,
+  ])
 
   return (
     <form

@@ -17,6 +17,12 @@ type OrganizationSearchResult = {
   capability_count: number
 }
 
+type OrganizationTypeOption = {
+  code: string
+  name: string
+  display_order: number
+}
+
 const MINIMUM_QUERY_LENGTH = 3
 
 function organizationMetadata(
@@ -39,11 +45,18 @@ function organizationMetadata(
   ].join(' · ')
 }
 
-export function OrganizationSearch() {
+export function OrganizationSearch({
+  organizationTypes,
+}: {
+  organizationTypes: OrganizationTypeOption[]
+}) {
   const inputId = useId()
+  const typeId = useId()
   const resultsId = useId()
 
   const [query, setQuery] = useState('')
+  const [organizationTypeCode, setOrganizationTypeCode] =
+    useState('')
   const [results, setResults] =
     useState<OrganizationSearchResult[]>([])
   const [loading, setLoading] =
@@ -54,18 +67,38 @@ export function OrganizationSearch() {
     useState<string | null>(null)
 
   const term = query.trim()
+  const hasTypeFilter =
+    organizationTypeCode.length > 0
+  const canSearch =
+    hasTypeFilter ||
+    term.length >= MINIMUM_QUERY_LENGTH
 
   const searchIsOpen =
-    term.length >= MINIMUM_QUERY_LENGTH
+    canSearch
+
+  const hasActiveFilters =
+    term.length > 0 || hasTypeFilter
+
+  function clearFilters() {
+    setQuery('')
+    setOrganizationTypeCode('')
+    setResults([])
+    setHasSearched(false)
+    setErrorMessage(null)
+    setLoading(false)
+  }
 
   useEffect(() => {
     const currentTerm = query.trim()
+    const currentType =
+      organizationTypeCode.trim()
 
     setResults([])
     setHasSearched(false)
     setErrorMessage(null)
 
     if (
+      !currentType &&
       currentTerm.length <
       MINIMUM_QUERY_LENGTH
     ) {
@@ -80,8 +113,20 @@ export function OrganizationSearch() {
     const timeout = window.setTimeout(
       async () => {
         try {
+          const searchParams =
+            new URLSearchParams()
+
+          searchParams.set('q', currentTerm)
+
+          if (currentType) {
+            searchParams.set(
+              'type',
+              currentType
+            )
+          }
+
           const response = await fetch(
-            `/api/panel/organizaciones?q=${encodeURIComponent(currentTerm)}`,
+            `/api/panel/organizaciones?${searchParams.toString()}`,
             {
               signal: controller.signal,
               cache: 'no-store',
@@ -128,7 +173,7 @@ export function OrganizationSearch() {
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [query])
+  }, [query, organizationTypeCode])
 
   return (
     <div>
@@ -145,23 +190,68 @@ export function OrganizationSearch() {
         incorporadas al registro canónico.
       </p>
 
-      <div className="relative mt-4">
-        <input
-          id={inputId}
-          value={query}
-          onChange={(event) =>
-            setQuery(event.target.value)
-          }
-          placeholder="Ej.: universidad, cooperativa..."
-          autoComplete="off"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={searchIsOpen}
-          aria-controls={resultsId}
-          aria-busy={loading}
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-        />
+      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
+        <label className="block">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Nombre
+          </span>
 
+          <input
+            id={inputId}
+            value={query}
+            onChange={(event) =>
+              setQuery(event.target.value)
+            }
+            placeholder="Ej.: universidad, cooperativa..."
+            autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={searchIsOpen}
+            aria-controls={resultsId}
+            aria-busy={loading}
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+          />
+        </label>
+
+        <label
+          htmlFor={typeId}
+          className="block"
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Tipo de organización
+          </span>
+
+          <select
+            id={typeId}
+            value={organizationTypeCode}
+            onChange={(event) => {
+              setQuery('')
+              setResults([])
+              setHasSearched(false)
+              setErrorMessage(null)
+              setOrganizationTypeCode(
+                event.target.value
+              )
+            }}
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+          >
+            <option value="">
+              Todos los tipos
+            </option>
+
+            {organizationTypes.map((type) => (
+              <option
+                key={type.code}
+                value={type.code}
+              >
+                {type.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="relative">
         {searchIsOpen ? (
           <div
             id={resultsId}
@@ -196,18 +286,30 @@ export function OrganizationSearch() {
               ))
             ) : hasSearched ? (
               <p className="px-4 py-3 text-sm text-slate-500">
-                No se encontraron organizaciones coincidentes.
+                No se encontraron organizaciones con estos filtros.
               </p>
             ) : null}
           </div>
         ) : null}
       </div>
 
-      <p className="mt-3 text-xs leading-5 text-slate-400">
-        Escribí al menos tres caracteres. Se muestran
-        hasta diez coincidencias y no se carga el
-        directorio completo.
-      </p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs leading-5 text-slate-400">
+          Sin filtro de tipo, escribí al menos tres
+          caracteres. Con tipo seleccionado se muestran
+          hasta veinte organizaciones de ese tipo.
+        </p>
+
+        {hasActiveFilters ? (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#2F5D8C] transition hover:border-[#2F5D8C]/40 hover:bg-slate-50"
+          >
+            Limpiar filtros
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }

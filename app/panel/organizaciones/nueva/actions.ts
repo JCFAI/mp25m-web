@@ -4,8 +4,14 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
-import { createCanonicalOrganization } from '../../../../lib/organizations/manage'
+import {
+  createCanonicalOrganization,
+  createOrganizationWithTypeProposal,
+} from '../../../../lib/organizations/manage'
 import { createClient } from '../../../../lib/supabase/server'
+
+const PROPOSE_NEW_TYPE_VALUE =
+  '__propose_new_type__'
 
 export type CreateOrganizationActionState = {
   status: 'idle' | 'error'
@@ -13,6 +19,7 @@ export type CreateOrganizationActionState = {
   fieldErrors: {
     name?: string
     organizationTypeCode?: string
+    proposedTypeName?: string
     notes?: string
   }
 }
@@ -61,6 +68,16 @@ function mapCreateOrganizationError(
   }
 
   if (/organization type/i.test(detail)) {
+    if (/proposal/i.test(detail)) {
+      return failure(
+        'El tipo propuesto necesita corrección.',
+        {
+          proposedTypeName:
+            'Ingresá un nombre de tipo válido.',
+        }
+      )
+    }
+
     return failure(
       'El tipo de organización seleccionado ya no está disponible.',
       {
@@ -112,6 +129,14 @@ export async function createOrganizationAction(
     formData.get('notes') ?? ''
   ).trim()
 
+  const proposedTypeName = String(
+    formData.get('proposed_type_name') ?? ''
+  ).trim()
+
+  const isTypeProposal =
+    organizationTypeCode ===
+    PROPOSE_NEW_TYPE_VALUE
+
   const fieldErrors:
     CreateOrganizationActionState['fieldErrors'] = {}
 
@@ -126,6 +151,16 @@ export async function createOrganizationAction(
   if (!organizationTypeCode) {
     fieldErrors.organizationTypeCode =
       'Seleccioná un tipo de organización.'
+  }
+
+  if (isTypeProposal) {
+    if (proposedTypeName.length < 2) {
+      fieldErrors.proposedTypeName =
+        'El tipo propuesto debe tener al menos 2 caracteres.'
+    } else if (proposedTypeName.length > 120) {
+      fieldErrors.proposedTypeName =
+        'El tipo propuesto no puede superar los 120 caracteres.'
+    }
   }
 
   if (notes.length > 2000) {
@@ -143,12 +178,20 @@ export async function createOrganizationAction(
   let organizationId: string
 
   try {
-    organizationId =
-      await createCanonicalOrganization(access, {
-        name,
-        organizationTypeCode,
-        notes: notes || null,
-      })
+    organizationId = isTypeProposal
+      ? await createOrganizationWithTypeProposal(
+          access,
+          {
+            name,
+            proposedTypeName,
+            notes: notes || null,
+          }
+        )
+      : await createCanonicalOrganization(access, {
+          name,
+          organizationTypeCode,
+          notes: notes || null,
+        })
   } catch (error) {
     console.error(
       '[MP25M] Organization creation failed:',

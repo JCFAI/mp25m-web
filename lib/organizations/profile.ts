@@ -70,11 +70,31 @@ export type OrganizationArticulation = {
   updated_at: string
 }
 
+export type OrganizationTypeProposal = {
+  id: string
+  organization_id: string
+  proposed_name: string
+  normalized_name: string
+  status: string
+  resolved_organization_type_code: string | null
+  resolved_organization_type_name: string | null
+  created_by_internal_user_id: string
+  resolved_by_internal_user_id: string | null
+  resolution_reason: string | null
+  created_at: string
+  resolved_at: string | null
+  suggested_organization_type_code: string | null
+  suggested_organization_type_name: string | null
+  suggested_match_kind: string | null
+  suggested_similarity: number | null
+}
+
 export type CanonicalOrganizationProfile = {
   organization: OrganizationProfile
   nodes: OrganizationNode[]
   capabilities: OrganizationCapability[]
   articulations: OrganizationArticulation[]
+  typeProposals: OrganizationTypeProposal[]
 }
 
 export async function getCanonicalOrganizationProfile(
@@ -87,6 +107,7 @@ export async function getCanonicalOrganizationProfile(
     nodesResult,
     capabilitiesResult,
     articulationsResult,
+    typeProposalsResult,
   ] = await Promise.all([
     supabase
       .from('organization_profile')
@@ -112,6 +133,14 @@ export async function getCanonicalOrganizationProfile(
 
     supabase
       .from('organization_articulation_list')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', {
+        ascending: false,
+      }),
+
+    supabase
+      .from('organization_type_proposal_list')
       .select('*')
       .eq('organization_id', organizationId)
       .order('created_at', {
@@ -147,6 +176,12 @@ export async function getCanonicalOrganizationProfile(
     )
   }
 
+  if (typeProposalsResult.error) {
+    throw new Error(
+      `Unable to load organization type proposals: ${typeProposalsResult.error.message}`
+    )
+  }
+
   return {
     organization:
       organizationResult.data as OrganizationProfile,
@@ -163,5 +198,10 @@ export async function getCanonicalOrganizationProfile(
       (
         articulationsResult.data ?? []
       ) as OrganizationArticulation[],
+
+    typeProposals:
+      (
+        typeProposalsResult.data ?? []
+      ) as OrganizationTypeProposal[],
   }
 }

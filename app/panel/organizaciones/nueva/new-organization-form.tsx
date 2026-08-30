@@ -1,6 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import {
+  useActionState,
+  useState,
+} from 'react'
 
 import {
   createOrganizationAction,
@@ -18,6 +21,9 @@ const initialState: CreateOrganizationActionState = {
   message: null,
   fieldErrors: {},
 }
+
+const PROPOSE_NEW_TYPE_VALUE =
+  '__propose_new_type__'
 
 function fieldClass(hasError: boolean) {
   return hasError
@@ -51,6 +57,13 @@ export function NewOrganizationForm({
       createOrganizationAction,
       initialState
     )
+
+  const [organizationTypeCode, setOrganizationTypeCode] =
+    useState('')
+
+  const isTypeProposal =
+    organizationTypeCode ===
+    PROPOSE_NEW_TYPE_VALUE
 
   return (
     <form
@@ -107,6 +120,11 @@ export function NewOrganizationForm({
           name="organization_type_code"
           required
           defaultValue=""
+          onChange={(event) =>
+            setOrganizationTypeCode(
+              event.target.value
+            )
+          }
           className={fieldClass(
             Boolean(
               state.fieldErrors
@@ -130,6 +148,10 @@ export function NewOrganizationForm({
               {type.name}
             </option>
           ))}
+
+          <option value={PROPOSE_NEW_TYPE_VALUE}>
+            Proponer un nuevo tipo...
+          </option>
         </select>
 
         <FieldError
@@ -139,6 +161,44 @@ export function NewOrganizationForm({
           }
         />
       </label>
+
+      {isTypeProposal ? (
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">
+            Nuevo tipo propuesto
+          </span>
+
+          <input
+            name="proposed_type_name"
+            required
+            minLength={2}
+            maxLength={120}
+            autoComplete="off"
+            className={fieldClass(
+              Boolean(
+                state.fieldErrors
+                  .proposedTypeName
+              )
+            )}
+            aria-invalid={Boolean(
+              state.fieldErrors
+                .proposedTypeName
+            )}
+            placeholder="Ej.: Centro tecnológico comunitario"
+          />
+
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+            El tipo quedará pendiente de validación.
+          </p>
+
+          <FieldError
+            message={
+              state.fieldErrors
+                .proposedTypeName
+            }
+          />
+        </label>
+      ) : null}
 
       <label className="block">
         <span className="text-sm font-semibold text-slate-700">

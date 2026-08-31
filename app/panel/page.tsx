@@ -39,8 +39,9 @@ const modules: PanelModule[] = [
   {
     name: 'Habilidades',
     description:
-      'Mapa de habilidades, profesiones y rubros relevados en el movimiento.',
-    status: 'next',
+      'Directorio de habilidades personales y capacidades productivas u organizacionales relevadas.',
+    status: 'active',
+    href: '/panel/habilidades',
   },
   {
     name: 'Proyectos',
@@ -207,16 +208,16 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 5
+              Incremento 6
             </span>
           </div>
 
           <h2 className="mt-4 text-base font-semibold text-[#1E3A5F] sm:mt-5 sm:text-lg">
-            Organizaciones y territorio
+            Habilidades y capacidades
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            {'El sistema ya integra personas, nodos, organizaciones y sus vinculaciones territoriales.'}
+            {'El sistema integra personas, nodos, organizaciones y el catálogo común de capacidades.'}
           </p>
         </article>
       </section>

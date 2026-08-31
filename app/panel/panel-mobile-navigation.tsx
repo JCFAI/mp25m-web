@@ -39,13 +39,14 @@ const navigationItems = [
     label: 'Organizaciones',
     marker: 'O',
   },
-]
-
-const futureModules = [
   {
+    href: '/panel/habilidades',
     label: 'Habilidades',
     marker: 'H',
   },
+]
+
+const futureModules = [
   {
     label: 'Proyectos',
     marker: 'P',

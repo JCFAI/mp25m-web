@@ -4,6 +4,14 @@ import { createAdminClient } from '../supabase/admin'
 
 export type SkillApplicationFilter =
   | 'all'
+  | 'person'
+  | 'people'
+  | 'organization'
+  | 'organizations'
+  | 'both'
+
+type CanonicalSkillApplicationFilter =
+  | 'all'
   | 'people'
   | 'organizations'
   | 'both'
@@ -53,15 +61,29 @@ function normalizeSkillSearchTerm(value: string) {
     .trim()
 }
 
-function isApplicationFilter(
+function normalizeApplicationFilter(
   value: string | null | undefined
-): value is SkillApplicationFilter {
-  return (
-    value === 'all' ||
-    value === 'people' ||
-    value === 'organizations' ||
-    value === 'both'
-  )
+): CanonicalSkillApplicationFilter | null {
+  if (!value || value === 'all') {
+    return 'all'
+  }
+
+  if (value === 'person' || value === 'people') {
+    return 'people'
+  }
+
+  if (
+    value === 'organization' ||
+    value === 'organizations'
+  ) {
+    return 'organizations'
+  }
+
+  if (value === 'both') {
+    return 'both'
+  }
+
+  return null
 }
 
 export async function listSkillCategoryOptions(): Promise<
@@ -106,7 +128,9 @@ export async function searchSkills(
     input.categoryCode?.trim() || null
 
   const application =
-    input.application?.trim() || 'all'
+    normalizeApplicationFilter(
+      input.application?.trim()
+    )
 
   if (
     categoryCode &&
@@ -115,7 +139,7 @@ export async function searchSkills(
     return []
   }
 
-  if (!isApplicationFilter(application)) {
+  if (!application) {
     return []
   }
 

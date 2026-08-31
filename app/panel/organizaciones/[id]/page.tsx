@@ -34,7 +34,7 @@ const UUID_PATTERN =
 function verificationLabel(value: string) {
   const labels: Record<string, string> = {
     self_reported: 'Autodeclarada',
-    candidate: 'Candidata',
+    candidate: 'Pendiente de validación',
     pending: 'Pendiente',
     confirmed: 'Confirmada',
     rejected: 'Rechazada',

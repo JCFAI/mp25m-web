@@ -6,7 +6,11 @@ import {
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import { getCanonicalPersonProfile } from '../../../../lib/people/profile'
+import { canManagePersonSkills } from '../../../../lib/skills/person-manage'
 import { createClient } from '../../../../lib/supabase/server'
+import { PersonSkillAddForm } from './person-skill-add-form'
+import { PersonSkillEditForm } from './person-skill-edit-form'
+import { PersonSkillStatusForm } from './person-skill-status-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +34,69 @@ function participationVerificationLabel(
   return value === 'confirmed'
     ? 'Participación confirmada'
     : 'Participación pendiente'
+}
+
+function skillVerificationLabel(value: string) {
+  const labels: Record<string, string> = {
+    self_reported: 'Autodeclarada',
+    candidate: 'Pendiente de validación',
+    confirmed: 'Confirmada',
+    rejected: 'Rechazada',
+  }
+
+  return labels[value] ?? value
+}
+
+function skillVerificationBadgeClass(value: string) {
+  const classes: Record<string, string> = {
+    self_reported:
+      'bg-sky-100 text-sky-800 ring-1 ring-sky-200',
+    candidate:
+      'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200',
+    confirmed:
+      'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200',
+    rejected:
+      'bg-red-100 text-red-700 ring-1 ring-red-200',
+  }
+
+  return [
+    'rounded-full px-2.5 py-1 text-xs font-semibold',
+    classes[value] ??
+      'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+  ].join(' ')
+}
+
+function experienceLabel(value: string | null) {
+  if (!value) {
+    return 'Experiencia sin informar'
+  }
+
+  const labels: Record<string, string> = {
+    lt_1: 'Menos de 1 año',
+    '1_3': '1 a 3 años',
+    '4_7': '4 a 7 años',
+    '8_15': '8 a 15 años',
+    gt_15: 'Más de 15 años',
+    unspecified: 'Sin especificar',
+  }
+
+  return labels[value] ?? value
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const [datePart] = value.split('T')
+  const [year, month, day] =
+    datePart.split('-')
+
+  if (!year || !month || !day) {
+    return value
+  }
+
+  return `${day}/${month}/${year}`
 }
 
 export default async function PersonProfilePage({
@@ -57,6 +124,9 @@ export default async function PersonProfilePage({
   if (access.length === 0) {
     redirect('/sin-acceso')
   }
+
+  const canManageSkills =
+    canManagePersonSkills(access)
 
   const profile =
     await getCanonicalPersonProfile(id)
@@ -271,28 +341,157 @@ export default async function PersonProfilePage({
             Las habilidades pueden incorporarse y validarse progresivamente.
           </p>
 
-          <div className="mt-5 space-y-3">
+          {canManageSkills ? (
+            <PersonSkillAddForm
+              personId={person.id}
+              personName={person.display_name}
+              activeSkillIds={skills.map(
+                (skill) => skill.skill_id
+              )}
+            />
+          ) : null}
+
+          <div className="mt-5 space-y-4">
             {skills.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 Habilidades pendientes de completar.
               </div>
             ) : (
-              skills.map((skill) => (
-                <article
-                  key={skill.person_skill_id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <p className="font-semibold text-slate-900">
-                    {skill.skill_name}
-                  </p>
+              skills.map((skill) => {
+                const lastSelfReportedAt =
+                  formatDate(
+                    skill.last_self_reported_at
+                  )
+                const canReject =
+                  skill.verification_status ===
+                    'self_reported' ||
+                  skill.verification_status ===
+                    'candidate'
 
-                  {skill.category_name ? (
-                    <p className="mt-1 text-xs text-slate-500">
-                      {skill.category_name}
-                    </p>
-                  ) : null}
-                </article>
-              ))
+                return (
+                  <article
+                    key={skill.person_skill_id}
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/panel/habilidades/${skill.skill_id}`}
+                          className="break-words font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+                        >
+                          {skill.skill_name}
+                        </Link>
+
+                        <p className="mt-1 break-words text-xs text-slate-500">
+                          {skill.category_name ??
+                            'Categoría pendiente'}
+                        </p>
+                      </div>
+
+                      <span
+                        className={skillVerificationBadgeClass(
+                          skill.verification_status
+                        )}
+                      >
+                        {skillVerificationLabel(
+                          skill.verification_status
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                      <span className="rounded-full bg-white px-2.5 py-1 font-semibold">
+                        {skill.proficiency_level
+                          ? `Nivel ${skill.proficiency_level}/5`
+                          : 'Nivel sin informar'}
+                      </span>
+
+                      <span className="rounded-full bg-white px-2.5 py-1 font-semibold">
+                        {experienceLabel(
+                          skill.experience_range
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 text-sm leading-6 text-slate-600">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Notas de experiencia
+                        </p>
+
+                        <p className="mt-1 break-words">
+                          {skill.experience_notes ??
+                            'Notas de experiencia no informadas.'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Observaciones
+                        </p>
+
+                        <p className="mt-1 break-words">
+                          {skill.notes ??
+                            'Observaciones no informadas.'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Autodeclaración
+                        </p>
+
+                        <p className="mt-1">
+                          {lastSelfReportedAt
+                            ? `Última autodeclaración: ${lastSelfReportedAt}`
+                            : 'Sin autodeclaración registrada.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canManageSkills ? (
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <PersonSkillEditForm
+                          personId={person.id}
+                          skill={skill}
+                        />
+
+                        {skill.verification_status !==
+                        'confirmed' ? (
+                          <PersonSkillStatusForm
+                            personId={person.id}
+                            personSkillId={
+                              skill.person_skill_id
+                            }
+                            skillId={skill.skill_id}
+                            actionType="confirm"
+                          />
+                        ) : null}
+
+                        {canReject ? (
+                          <PersonSkillStatusForm
+                            personId={person.id}
+                            personSkillId={
+                              skill.person_skill_id
+                            }
+                            skillId={skill.skill_id}
+                            actionType="reject"
+                          />
+                        ) : null}
+
+                        <PersonSkillStatusForm
+                          personId={person.id}
+                          personSkillId={
+                            skill.person_skill_id
+                          }
+                          skillId={skill.skill_id}
+                          actionType="deactivate"
+                        />
+                      </div>
+                    ) : null}
+                  </article>
+                )
+              })
             )}
           </div>
         </section>

@@ -48,6 +48,7 @@ export type SearchSkillsInput = {
 const MINIMUM_QUERY_LENGTH = 2
 const NAME_SEARCH_LIMIT = 10
 const FILTERED_SEARCH_LIMIT = 20
+const REFERENCE_LIST_LIMIT = 50
 
 const CODE_PATTERN = /^[a-z0-9_-]+$/i
 
@@ -224,6 +225,79 @@ export async function searchSkills(
   if (error) {
     throw new Error(
       `Unable to search skills: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as SkillSearchResult[]
+}
+
+export async function listSkillReferenceOptions({
+  application,
+}: {
+  application?: string | null
+}): Promise<SkillSearchResult[]> {
+  const normalizedApplication =
+    normalizeApplicationFilter(
+      application?.trim()
+    )
+
+  if (!normalizedApplication) {
+    return []
+  }
+
+  const supabase = createAdminClient()
+
+  let query = supabase
+    .from('skill_directory')
+    .select(
+      `
+      id,
+      display_name,
+      search_name,
+      category_code,
+      category_name,
+      description,
+      applies_to_person,
+      applies_to_organization,
+      person_count,
+      organization_count,
+      node_count,
+      alias_count
+    `
+    )
+    .order('display_name', {
+      ascending: true,
+    })
+
+  if (normalizedApplication === 'people') {
+    query = query.eq(
+      'applies_to_person',
+      true
+    )
+  }
+
+  if (
+    normalizedApplication === 'organizations'
+  ) {
+    query = query.eq(
+      'applies_to_organization',
+      true
+    )
+  }
+
+  if (normalizedApplication === 'both') {
+    query = query
+      .eq('applies_to_person', true)
+      .eq('applies_to_organization', true)
+  }
+
+  const { data, error } = await query.limit(
+    REFERENCE_LIST_LIMIT
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to list skills: ${error.message}`
     )
   }
 

@@ -5,6 +5,18 @@ import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
+  addOrganizationActivity,
+  proposeOrganizationActivity,
+  type AddOrganizationActivityResult,
+} from '../../../../lib/organizations/activities-manage'
+import {
+  addOrganizationCapability,
+  deactivateOrganizationCapability,
+  resolveOrganizationCapability,
+  type AddOrganizationCapabilityResult,
+  updateOrganizationCapability,
+} from '../../../../lib/organizations/capabilities-manage'
+import {
   confirmOrganizationNodeLink,
   createOrganizationNodeLink,
   resolveOrganizationTypeProposal,
@@ -31,6 +43,29 @@ export type OrganizationTypeProposalResolutionActionState = {
     resolutionAction?: string
     organizationTypeCode?: string
     reason?: string
+  }
+}
+
+export type OrganizationCapabilityActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+  fieldErrors: {
+    skillId?: string
+    scopeKind?: string
+    nodeId?: string
+    notes?: string
+    evidenceText?: string
+    reason?: string
+  }
+}
+
+export type OrganizationActivityActionState = {
+  status: 'idle' | 'success' | 'error'
+  message: string | null
+  fieldErrors: {
+    activityId?: string
+    proposedName?: string
+    notes?: string
   }
 }
 
@@ -79,6 +114,48 @@ function proposalSuccess(
   }
 }
 
+function capabilityFailure(
+  message: string,
+  fieldErrors: OrganizationCapabilityActionState['fieldErrors'] = {}
+): OrganizationCapabilityActionState {
+  return {
+    status: 'error',
+    message,
+    fieldErrors,
+  }
+}
+
+function capabilitySuccess(
+  message: string
+): OrganizationCapabilityActionState {
+  return {
+    status: 'success',
+    message,
+    fieldErrors: {},
+  }
+}
+
+function activityFailure(
+  message: string,
+  fieldErrors: OrganizationActivityActionState['fieldErrors'] = {}
+): OrganizationActivityActionState {
+  return {
+    status: 'error',
+    message,
+    fieldErrors,
+  }
+}
+
+function activitySuccess(
+  message: string
+): OrganizationActivityActionState {
+  return {
+    status: 'success',
+    message,
+    fieldErrors: {},
+  }
+}
+
 async function getCurrentAccess() {
   const supabase = await createClient()
 
@@ -104,6 +181,15 @@ async function getCurrentAccess() {
   return access
 }
 
+function textField(
+  formData: FormData,
+  field: string
+) {
+  return String(
+    formData.get(field) ?? ''
+  ).trim()
+}
+
 function isFutureDate(value: string) {
   if (!value) {
     return false
@@ -113,6 +199,313 @@ function isFutureDate(value: string) {
     new Date().toISOString().slice(0, 10)
 
   return value > today
+}
+
+function parseCapabilityDetails(
+  formData: FormData
+) {
+  const notes =
+    textField(formData, 'notes')
+  const evidenceText =
+    textField(formData, 'evidence_text')
+
+  const fieldErrors:
+    OrganizationCapabilityActionState['fieldErrors'] = {}
+
+  if (notes.length > 2000) {
+    fieldErrors.notes =
+      'Las observaciones no pueden superar los 2000 caracteres.'
+  }
+
+  if (evidenceText.length > 2000) {
+    fieldErrors.evidenceText =
+      'La evidencia no puede superar los 2000 caracteres.'
+  }
+
+  return {
+    details: {
+      notes: notes || null,
+      evidenceText:
+        evidenceText || null,
+    },
+    fieldErrors,
+  }
+}
+
+function parseActivityNotes(
+  formData: FormData
+) {
+  const notes =
+    textField(formData, 'notes')
+
+  if (notes.length > 2000) {
+    return {
+      notes: notes || null,
+      fieldErrors: {
+        notes:
+          'Las observaciones no pueden superar los 2000 caracteres.',
+      },
+    }
+  }
+
+  return {
+    notes: notes || null,
+    fieldErrors: {},
+  }
+}
+
+function parseCapabilityReason(
+  formData: FormData,
+  fieldName: string
+) {
+  const reason =
+    textField(formData, 'reason')
+
+  if (reason.length < 3) {
+    return {
+      reason,
+      fieldErrors: {
+        reason: `${fieldName} debe tener al menos 3 caracteres.`,
+      },
+    }
+  }
+
+  if (reason.length > 2000) {
+    return {
+      reason,
+      fieldErrors: {
+        reason: `${fieldName} no puede superar los 2000 caracteres.`,
+      },
+    }
+  }
+
+  return {
+    reason,
+    fieldErrors: {},
+  }
+}
+
+function revalidateOrganizationCapabilityPaths(
+  organizationId: string,
+  skillId?: string,
+  nodeId?: string | null
+) {
+  revalidatePath(
+    `/panel/organizaciones/${organizationId}`
+  )
+  revalidatePath('/panel/habilidades')
+
+  if (skillId && UUID_PATTERN.test(skillId)) {
+    revalidatePath(
+      `/panel/habilidades/${skillId}`
+    )
+  }
+
+  if (nodeId && UUID_PATTERN.test(nodeId)) {
+    revalidatePath(
+      `/panel/nodos/${nodeId}/capacidades`
+    )
+  }
+}
+
+function revalidateOrganizationActivityPaths(
+  organizationId: string
+) {
+  revalidatePath(
+    `/panel/organizaciones/${organizationId}`
+  )
+}
+
+function organizationCapabilityStatusText(
+  verificationStatus: string
+) {
+  if (verificationStatus === 'confirmed') {
+    return 'Conserva el estado Confirmada.'
+  }
+
+  if (verificationStatus === 'self_reported') {
+    return 'Conserva el estado Autodeclarada.'
+  }
+
+  if (verificationStatus === 'candidate') {
+    return 'Quedó pendiente de validación.'
+  }
+
+  return 'Conserva su estado actual.'
+}
+
+function mapOrganizationCapabilityError(
+  error: unknown
+) {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : ''
+
+  if (
+    /already has this capability|duplicate/i.test(
+      detail
+    )
+  ) {
+    return capabilityFailure(
+      'La organización ya tiene esta capacidad registrada para este alcance.',
+      {
+        skillId:
+          'Revisá la capacidad existente en la lista.',
+      }
+    )
+  }
+
+  if (
+    /confirmed current territorial link|territorial link/i.test(
+      detail
+    )
+  ) {
+    return capabilityFailure(
+      'La organización no tiene un vínculo territorial confirmado y vigente con ese nodo.',
+      {
+        nodeId:
+          'Seleccioná un nodo confirmado para esta organización.',
+      }
+    )
+  }
+
+  if (
+    /skill not found|unavailable for organizations/i.test(
+      detail
+    )
+  ) {
+    return capabilityFailure(
+      'La capacidad seleccionada ya no está disponible para organizaciones.',
+      {
+        skillId:
+          'Buscá y seleccioná una capacidad activa del catálogo.',
+      }
+    )
+  }
+
+  if (/organization not found|organization.*inactive/i.test(detail)) {
+    return capabilityFailure(
+      'La organización ya no está disponible para actualizar capacidades.'
+    )
+  }
+
+  if (/not active/i.test(detail)) {
+    return capabilityFailure(
+      'La capacidad de la organización ya no está activa. Actualizá la ficha antes de continuar.'
+    )
+  }
+
+  if (/already confirmed/i.test(detail)) {
+    return capabilityFailure(
+      'La capacidad ya está confirmada.'
+    )
+  }
+
+  if (/only self-reported or candidate/i.test(detail)) {
+    return capabilityFailure(
+      'Solo pueden rechazarse capacidades autodeclaradas o pendientes de validación. Para una capacidad confirmada usá desactivar.'
+    )
+  }
+
+  if (/reason|motivo/i.test(detail)) {
+    return capabilityFailure(
+      'Indicá una justificación breve para completar la acción.',
+      {
+        reason:
+          'La justificación debe tener entre 3 y 2000 caracteres.',
+      }
+    )
+  }
+
+  if (/permission|cannot manage|not allowed/i.test(detail)) {
+    return capabilityFailure(
+      'Tu usuario no tiene permisos para gestionar capacidades de organizaciones.'
+    )
+  }
+
+  return capabilityFailure(
+    'No se pudo actualizar la capacidad. No se modificó ningún dato.'
+  )
+}
+
+function mapOrganizationActivityError(
+  error: unknown
+) {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : ''
+
+  if (
+    /already has this activity|duplicate/i.test(
+      detail
+    )
+  ) {
+    return activityFailure(
+      'La organización ya tiene esta actividad registrada.',
+      {
+        activityId:
+          'Revisá la actividad existente en la lista.',
+      }
+    )
+  }
+
+  if (/canonical activity already exists/i.test(detail)) {
+    return activityFailure(
+      'Ya existe una actividad equivalente. Seleccionala desde el buscador.',
+      {
+        proposedName:
+          'Buscá la actividad canónica y agregala desde los resultados.',
+      }
+    )
+  }
+
+  if (/pending organization activity proposal/i.test(detail)) {
+    return activityFailure(
+      'Ya existe una propuesta pendiente para esa actividad.',
+      {
+        proposedName:
+          'Revisá las propuestas pendientes de la organización.',
+      }
+    )
+  }
+
+  if (/activity not found|activity.*inactive/i.test(detail)) {
+    return activityFailure(
+      'La actividad seleccionada ya no está disponible.',
+      {
+        activityId:
+          'Buscá y seleccioná una actividad activa del catálogo.',
+      }
+    )
+  }
+
+  if (/proposal name|invalid organization activity proposal/i.test(detail)) {
+    return activityFailure(
+      'La actividad propuesta debe tener entre 2 y 200 caracteres.',
+      {
+        proposedName:
+          'Ingresá un nombre claro para la actividad propuesta.',
+      }
+    )
+  }
+
+  if (/organization not found|organization.*inactive/i.test(detail)) {
+    return activityFailure(
+      'La organización ya no está disponible para actualizar actividades.'
+    )
+  }
+
+  if (/cannot manage|permission|not allowed/i.test(detail)) {
+    return activityFailure(
+      'Tu usuario no tiene permisos para gestionar actividades de organizaciones.'
+    )
+  }
+
+  return activityFailure(
+    'No se pudo actualizar la actividad. No se modificó ningún dato.'
+  )
 }
 
 function mapCreateLinkError(
@@ -332,6 +725,7 @@ function mapResolveTypeProposalError(
 
 export async function createOrganizationNodeLinkAction(
   organizationId: string,
+  organizationName: string,
   _previousState: OrganizationNodeLinkActionState,
   formData: FormData
 ): Promise<OrganizationNodeLinkActionState> {
@@ -339,6 +733,10 @@ export async function createOrganizationNodeLinkAction(
 
   const nodeId = String(
     formData.get('node_id') ?? ''
+  ).trim()
+
+  const nodeName = String(
+    formData.get('node_name') ?? ''
   ).trim()
 
   const evidenceText = String(
@@ -409,8 +807,14 @@ export async function createOrganizationNodeLinkAction(
   )
   revalidatePath('/panel/organizaciones')
 
+  const readableNodeName =
+    nodeName || 'el nodo seleccionado'
+  const readableOrganizationName =
+    organizationName.trim() ||
+    'la organización'
+
   return success(
-    'El vínculo territorial fue registrado como pendiente.'
+    `Se agregó "${readableNodeName}" como vínculo territorial de ${readableOrganizationName}. Quedó pendiente de validación.`
   )
 }
 
@@ -654,5 +1058,517 @@ export async function resolveOrganizationTypeProposalAction(
 
   return proposalSuccess(
     'La propuesta de tipo fue resuelta correctamente.'
+  )
+}
+
+export async function addOrganizationActivityAction(
+  organizationId: string,
+  organizationName: string,
+  _previousState: OrganizationActivityActionState,
+  formData: FormData
+): Promise<OrganizationActivityActionState> {
+  const access = await getCurrentAccess()
+
+  const activityId =
+    textField(formData, 'activity_id')
+  const activityName =
+    textField(formData, 'activity_name')
+
+  const {
+    notes,
+    fieldErrors: notesFieldErrors,
+  } = parseActivityNotes(formData)
+
+  const fieldErrors:
+    OrganizationActivityActionState['fieldErrors'] = {
+      ...notesFieldErrors,
+    }
+
+  if (!UUID_PATTERN.test(organizationId)) {
+    return activityFailure(
+      'La organización seleccionada no es válida.'
+    )
+  }
+
+  if (!UUID_PATTERN.test(activityId)) {
+    fieldErrors.activityId =
+      'Seleccioná una actividad desde el buscador.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return activityFailure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  let result: AddOrganizationActivityResult
+
+  try {
+    result = await addOrganizationActivity(
+      access,
+      {
+        organizationId,
+        activityId,
+        notes,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization activity creation failed:',
+      error
+    )
+
+    return mapOrganizationActivityError(error)
+  }
+
+  revalidateOrganizationActivityPaths(
+    organizationId
+  )
+
+  const readableActivityName =
+    result.activityName ||
+    activityName ||
+    'la actividad seleccionada'
+  const readableOrganizationName =
+    result.organizationName ||
+    organizationName.trim()
+
+  if (result.operation === 'reactivate') {
+    return activitySuccess(
+      `Se reactivó "${readableActivityName}" en ${readableOrganizationName}. ${organizationCapabilityStatusText(result.verificationStatus)}`
+    )
+  }
+
+  return activitySuccess(
+    `Se agregó "${readableActivityName}" a ${readableOrganizationName}. Quedó pendiente de validación.`
+  )
+}
+
+export async function proposeOrganizationActivityAction(
+  organizationId: string,
+  organizationName: string,
+  _previousState: OrganizationActivityActionState,
+  formData: FormData
+): Promise<OrganizationActivityActionState> {
+  const access = await getCurrentAccess()
+
+  const proposedName =
+    textField(formData, 'proposed_name')
+
+  const fieldErrors:
+    OrganizationActivityActionState['fieldErrors'] = {}
+
+  if (!UUID_PATTERN.test(organizationId)) {
+    return activityFailure(
+      'La organización seleccionada no es válida.'
+    )
+  }
+
+  if (
+    proposedName.length < 2 ||
+    proposedName.length > 200
+  ) {
+    fieldErrors.proposedName =
+      'Ingresá un nombre de actividad entre 2 y 200 caracteres.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return activityFailure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await proposeOrganizationActivity(
+      access,
+      {
+        organizationId,
+        proposedName,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization activity proposal failed:',
+      error
+    )
+
+    return mapOrganizationActivityError(error)
+  }
+
+  revalidateOrganizationActivityPaths(
+    organizationId
+  )
+
+  return activitySuccess(
+    `Se propuso "${proposedName}" como nueva actividad de ${organizationName.trim()}. Quedó pendiente de validación.`
+  )
+}
+
+export async function addOrganizationCapabilityAction(
+  organizationId: string,
+  organizationName: string,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const skillId =
+    textField(formData, 'skill_id')
+  const skillName =
+    textField(formData, 'skill_name')
+  const scopeKind =
+    textField(formData, 'scope_kind')
+  const rawNodeId =
+    textField(formData, 'node_id')
+  const nodeName =
+    textField(formData, 'node_name')
+
+  const {
+    details,
+    fieldErrors,
+  } = parseCapabilityDetails(formData)
+
+  if (!UUID_PATTERN.test(organizationId)) {
+    return capabilityFailure(
+      'La organización seleccionada no es válida.'
+    )
+  }
+
+  if (!UUID_PATTERN.test(skillId)) {
+    fieldErrors.skillId =
+      'Seleccioná una capacidad desde el buscador.'
+  }
+
+  if (
+    scopeKind !== 'institutional' &&
+    scopeKind !== 'node'
+  ) {
+    fieldErrors.scopeKind =
+      'Seleccioná un alcance válido.'
+  }
+
+  const nodeId =
+    scopeKind === 'node'
+      ? rawNodeId
+      : null
+
+  if (
+    scopeKind === 'node' &&
+    !UUID_PATTERN.test(rawNodeId)
+  ) {
+    fieldErrors.nodeId =
+      'Seleccioná un nodo confirmado de la organización.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  let result: AddOrganizationCapabilityResult
+
+  try {
+    result = await addOrganizationCapability(
+      access,
+      {
+        organizationId,
+        skillId,
+        nodeId,
+        ...details,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization capability creation failed:',
+      error
+    )
+
+    return mapOrganizationCapabilityError(error)
+  }
+
+  revalidateOrganizationCapabilityPaths(
+    organizationId,
+    result.skillId,
+    result.nodeId
+  )
+
+  const readableSkillName =
+    result.skillName ||
+    skillName ||
+    'la capacidad seleccionada'
+  const readableOrganizationName =
+    result.organizationName ||
+    organizationName.trim()
+  const readableNodeName =
+    nodeName || result.nodeName
+
+  const scopeText =
+    result.nodeId
+      ? `para ${readableNodeName || 'el nodo seleccionado'}`
+      : 'como capacidad institucional'
+
+  if (result.operation === 'reactivate') {
+    return capabilitySuccess(
+      `Se reactivó "${readableSkillName}" en ${readableOrganizationName} ${scopeText}. ${organizationCapabilityStatusText(result.verificationStatus)}`
+    )
+  }
+
+  return capabilitySuccess(
+    `Se agregó "${readableSkillName}" a ${readableOrganizationName} ${scopeText}. Quedó pendiente de validación.`
+  )
+}
+
+export async function updateOrganizationCapabilityAction(
+  organizationId: string,
+  organizationCapabilityId: string,
+  skillId: string,
+  nodeId: string | null,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const {
+    details,
+    fieldErrors,
+  } = parseCapabilityDetails(formData)
+
+  if (
+    !UUID_PATTERN.test(organizationId) ||
+    !UUID_PATTERN.test(organizationCapabilityId)
+  ) {
+    return capabilityFailure(
+      'La capacidad seleccionada no es válida.'
+    )
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await updateOrganizationCapability(
+      access,
+      {
+        organizationId,
+        organizationCapabilityId,
+        ...details,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization capability update failed:',
+      error
+    )
+
+    return mapOrganizationCapabilityError(error)
+  }
+
+  revalidateOrganizationCapabilityPaths(
+    organizationId,
+    skillId,
+    nodeId
+  )
+
+  return capabilitySuccess(
+    'Los datos de la capacidad fueron actualizados.'
+  )
+}
+
+export async function confirmOrganizationCapabilityAction(
+  organizationId: string,
+  organizationCapabilityId: string,
+  skillId: string,
+  nodeId: string | null,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const {
+    reason,
+    fieldErrors,
+  } = parseCapabilityReason(
+    formData,
+    'La justificación de confirmación'
+  )
+
+  if (
+    !UUID_PATTERN.test(organizationId) ||
+    !UUID_PATTERN.test(organizationCapabilityId)
+  ) {
+    return capabilityFailure(
+      'La capacidad seleccionada no es válida.'
+    )
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await resolveOrganizationCapability(
+      access,
+      {
+        organizationId,
+        organizationCapabilityId,
+        resolutionAction: 'confirmed',
+        reason,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization capability confirmation failed:',
+      error
+    )
+
+    return mapOrganizationCapabilityError(error)
+  }
+
+  revalidateOrganizationCapabilityPaths(
+    organizationId,
+    skillId,
+    nodeId
+  )
+
+  return capabilitySuccess(
+    'La capacidad fue confirmada correctamente.'
+  )
+}
+
+export async function rejectOrganizationCapabilityAction(
+  organizationId: string,
+  organizationCapabilityId: string,
+  skillId: string,
+  nodeId: string | null,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const {
+    reason,
+    fieldErrors,
+  } = parseCapabilityReason(
+    formData,
+    'El motivo de rechazo'
+  )
+
+  if (
+    !UUID_PATTERN.test(organizationId) ||
+    !UUID_PATTERN.test(organizationCapabilityId)
+  ) {
+    return capabilityFailure(
+      'La capacidad seleccionada no es válida.'
+    )
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await resolveOrganizationCapability(
+      access,
+      {
+        organizationId,
+        organizationCapabilityId,
+        resolutionAction: 'rejected',
+        reason,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization capability rejection failed:',
+      error
+    )
+
+    return mapOrganizationCapabilityError(error)
+  }
+
+  revalidateOrganizationCapabilityPaths(
+    organizationId,
+    skillId,
+    nodeId
+  )
+
+  return capabilitySuccess(
+    'La capacidad fue rechazada y quedó inactiva. El registro se conserva para trazabilidad.'
+  )
+}
+
+export async function deactivateOrganizationCapabilityAction(
+  organizationId: string,
+  organizationCapabilityId: string,
+  skillId: string,
+  nodeId: string | null,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const {
+    reason,
+    fieldErrors,
+  } = parseCapabilityReason(
+    formData,
+    'El motivo de desactivación'
+  )
+
+  if (
+    !UUID_PATTERN.test(organizationId) ||
+    !UUID_PATTERN.test(organizationCapabilityId)
+  ) {
+    return capabilityFailure(
+      'La capacidad seleccionada no es válida.'
+    )
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await deactivateOrganizationCapability(
+      access,
+      {
+        organizationId,
+        organizationCapabilityId,
+        reason,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Organization capability deactivation failed:',
+      error
+    )
+
+    return mapOrganizationCapabilityError(error)
+  }
+
+  revalidateOrganizationCapabilityPaths(
+    organizationId,
+    skillId,
+    nodeId
+  )
+
+  return capabilitySuccess(
+    'La capacidad fue desactivada sin eliminar el registro.'
   )
 }

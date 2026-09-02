@@ -4,7 +4,10 @@ import {
 } from 'next/server'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
-import { searchSkills } from '../../../../lib/skills/search'
+import {
+  listSkillReferenceOptions,
+  searchSkills,
+} from '../../../../lib/skills/search'
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -48,11 +51,19 @@ export async function GET(request: NextRequest) {
       'application'
     ) ?? 'all'
 
-  const results = await searchSkills({
-    query,
-    categoryCode,
-    application,
-  })
+  const mode =
+    request.nextUrl.searchParams.get('mode')
+
+  const results =
+    mode === 'reference'
+      ? await listSkillReferenceOptions({
+          application,
+        })
+      : await searchSkills({
+          query,
+          categoryCode,
+          application,
+        })
 
   return NextResponse.json(results, {
     headers: {

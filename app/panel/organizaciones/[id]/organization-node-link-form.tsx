@@ -8,11 +8,13 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useRouter } from 'next/navigation'
 
 import {
   createOrganizationNodeLinkAction,
   type OrganizationNodeLinkActionState,
 } from './actions'
+import { ReferenceListDialog } from '../../../../components/reference-list-dialog'
 
 type NodeSearchResult = {
   id: string
@@ -34,10 +36,6 @@ const initialState: OrganizationNodeLinkActionState = {
 function nodeMetadata(node: NodeSearchResult) {
   const parts: string[] = []
 
-  if (node.node_number !== null) {
-    parts.push(`Nodo ${node.node_number}`)
-  }
-
   if (node.jurisdiction_name) {
     parts.push(
       node.jurisdiction_type_name
@@ -49,6 +47,18 @@ function nodeMetadata(node: NodeSearchResult) {
   return parts.length > 0
     ? parts.join(' · ')
     : 'Cobertura territorial pendiente de completar'
+}
+
+function nodeJurisdictionLabel(
+  node: NodeSearchResult
+) {
+  if (!node.jurisdiction_name) {
+    return 'Cobertura territorial pendiente de completar'
+  }
+
+  return node.jurisdiction_type_name
+    ? `${node.jurisdiction_type_name}: ${node.jurisdiction_name}`
+    : node.jurisdiction_name
 }
 
 function fieldClass(hasError: boolean) {
@@ -75,20 +85,28 @@ function FieldError({
 
 export function OrganizationNodeLinkForm({
   organizationId,
+  organizationName,
   linkedNodeIds,
 }: {
   organizationId: string
+  organizationName: string
   linkedNodeIds: string[]
 }) {
+  const router = useRouter()
   const inputId = useId()
   const resultsId = useId()
   const formRef = useRef<HTMLFormElement>(null)
+  const handledSuccessStateRef =
+    useRef<OrganizationNodeLinkActionState | null>(
+      null
+    )
 
   const [state, formAction, pending] =
     useActionState(
       createOrganizationNodeLinkAction.bind(
         null,
-        organizationId
+        organizationId,
+        organizationName
       ),
       initialState
     )
@@ -108,10 +126,33 @@ export function OrganizationNodeLinkForm({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const [referenceNodes, setReferenceNodes] =
+    useState<NodeSearchResult[]>([])
+  const [
+    referenceLoading,
+    setReferenceLoading,
+  ] = useState(false)
+  const [
+    referenceLoaded,
+    setReferenceLoaded,
+  ] = useState(false)
+  const [
+    referenceErrorMessage,
+    setReferenceErrorMessage,
+  ] = useState<string | null>(null)
 
   const linkedNodeIdSet = useMemo(
     () => new Set(linkedNodeIds),
     [linkedNodeIds]
+  )
+
+  const availableReferenceNodes = useMemo(
+    () =>
+      referenceNodes.filter(
+        (node) =>
+          !linkedNodeIdSet.has(node.id)
+      ),
+    [linkedNodeIdSet, referenceNodes]
   )
 
   const term = query.trim()
@@ -120,8 +161,23 @@ export function OrganizationNodeLinkForm({
     !selectedNode
 
   useEffect(() => {
-    if (state.status !== 'success') {
+    if (
+      state.status !== 'success' ||
+      handledSuccessStateRef.current === state
+    ) {
       return
+    }
+
+    handledSuccessStateRef.current = state
+
+    const savedNodeId = selectedNode?.id
+
+    if (savedNodeId) {
+      setReferenceNodes((currentNodes) =>
+        currentNodes.filter(
+          (node) => node.id !== savedNodeId
+        )
+      )
     }
 
     formRef.current?.reset()
@@ -132,7 +188,8 @@ export function OrganizationNodeLinkForm({
     setStartedOn('')
     setHasSearched(false)
     setErrorMessage(null)
-  }, [state.status, state.message])
+    router.refresh()
+  }, [selectedNode?.id, state, router])
 
   useEffect(() => {
     const currentTerm = query.trim()
@@ -225,6 +282,63 @@ export function OrganizationNodeLinkForm({
     linkedNodeIdSet,
   ])
 
+  function selectNode(node: NodeSearchResult) {
+    setSelectedNode(node)
+    setQuery(node.display_name)
+    setResults([])
+    setHasSearched(false)
+    setErrorMessage(null)
+  }
+
+  async function loadNodeReferenceItems() {
+    if (
+      referenceLoaded ||
+      referenceLoading
+    ) {
+      return
+    }
+
+    setReferenceLoading(true)
+    setReferenceErrorMessage(null)
+
+    try {
+      const searchParams =
+        new URLSearchParams()
+
+      searchParams.set('mode', 'reference')
+      searchParams.set(
+        'exclude_organization_id',
+        organizationId
+      )
+
+      const response = await fetch(
+        `/api/panel/nodos?${searchParams.toString()}`,
+        {
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          'No se pudo cargar la lista.'
+        )
+      }
+
+      const data =
+        (await response.json()) as NodeSearchResult[]
+
+      setReferenceNodes(data)
+      setReferenceLoaded(true)
+    } catch {
+      setReferenceNodes([])
+      setReferenceErrorMessage(
+        'No se pudo cargar la lista de nodos. Intentá nuevamente.'
+      )
+    } finally {
+      setReferenceLoading(false)
+    }
+  }
+
   return (
     <form
       ref={formRef}
@@ -253,74 +367,120 @@ export function OrganizationNodeLinkForm({
           Nodo
         </label>
 
-        <div className="relative">
-          <input
-            id={inputId}
-            value={query}
-            onChange={(event) => {
-              setSelectedNode(null)
-              setQuery(event.target.value)
-            }}
-            placeholder="Ej.: Avellaneda, Comuna 3..."
-            autoComplete="off"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={searchIsOpen}
-            aria-controls={resultsId}
-            aria-busy={loading}
-            className={fieldClass(
-              Boolean(state.fieldErrors.nodeId)
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div className="relative">
+            <input
+              id={inputId}
+              value={query}
+              onChange={(event) => {
+                setSelectedNode(null)
+                setQuery(event.target.value)
+              }}
+              placeholder="Ej.: Avellaneda, Comuna 3..."
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={searchIsOpen}
+              aria-controls={resultsId}
+              aria-busy={loading}
+              className={fieldClass(
+                Boolean(state.fieldErrors.nodeId)
+              )}
+            />
+
+            {searchIsOpen ? (
+              <div
+                id={resultsId}
+                className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+              >
+                {loading ? (
+                  <p className="px-4 py-3 text-sm text-slate-500">
+                    Buscando nodos...
+                  </p>
+                ) : errorMessage ? (
+                  <p className="px-4 py-3 text-sm text-red-600">
+                    {errorMessage}
+                  </p>
+                ) : results.length > 0 ? (
+                  results.map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() =>
+                        selectNode(node)
+                      }
+                      className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                    >
+                      <span className="block break-words text-sm font-semibold text-slate-900">
+                        {node.display_name}
+                      </span>
+
+                      <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
+                        {nodeMetadata(node)}
+                      </span>
+                    </button>
+                  ))
+                ) : hasSearched ? (
+                  <p className="px-4 py-3 text-sm text-slate-500">
+                    No se encontraron nodos coincidentes.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <ReferenceListDialog
+            buttonClassName="mt-2"
+            title="Nodos disponibles"
+            description="Seleccioná un nodo activo para crear un nuevo vínculo territorial pendiente."
+            items={availableReferenceNodes}
+            loading={referenceLoading}
+            errorMessage={
+              referenceErrorMessage
+            }
+            searchPlaceholder="Filtrar por nombre o jurisdicción..."
+            emptyMessage={
+              referenceLoaded
+                ? 'No hay nodos disponibles para vincular.'
+                : 'No se cargó la lista de nodos.'
+            }
+            getItemKey={(node) => node.id}
+            getItemSearchText={(node) =>
+              [
+                node.display_name,
+                node.jurisdiction_name ?? '',
+                node.jurisdiction_type_name ??
+                  '',
+              ].join(' ')
+            }
+            renderItem={(node) => (
+              <>
+                <span className="block break-words text-sm font-semibold text-slate-950">
+                  {node.display_name}
+                </span>
+
+                <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
+                  {nodeJurisdictionLabel(node)}
+                </span>
+              </>
             )}
+            onOpen={loadNodeReferenceItems}
+            onSelect={selectNode}
           />
-
-          {searchIsOpen ? (
-            <div
-              id={resultsId}
-              className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-            >
-              {loading ? (
-                <p className="px-4 py-3 text-sm text-slate-500">
-                  Buscando nodos...
-                </p>
-              ) : errorMessage ? (
-                <p className="px-4 py-3 text-sm text-red-600">
-                  {errorMessage}
-                </p>
-              ) : results.length > 0 ? (
-                results.map((node) => (
-                  <button
-                    key={node.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedNode(node)
-                      setQuery(node.display_name)
-                      setResults([])
-                      setHasSearched(false)
-                    }}
-                    className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
-                  >
-                    <span className="block break-words text-sm font-semibold text-slate-900">
-                      {node.display_name}
-                    </span>
-
-                    <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
-                      {nodeMetadata(node)}
-                    </span>
-                  </button>
-                ))
-              ) : hasSearched ? (
-                <p className="px-4 py-3 text-sm text-slate-500">
-                  No se encontraron nodos coincidentes.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </div>
 
         <input
           type="hidden"
           name="node_id"
           value={selectedNode?.id ?? ''}
+        />
+
+        <input
+          type="hidden"
+          name="node_name"
+          value={
+            selectedNode?.display_name ?? ''
+          }
         />
 
         {selectedNode ? (

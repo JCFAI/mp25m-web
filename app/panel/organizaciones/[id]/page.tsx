@@ -5,6 +5,8 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canManageOrganizationActivities } from '../../../../lib/organizations/activities-manage'
+import { canManageOrganizationCapabilities } from '../../../../lib/organizations/capabilities-manage'
 import {
   canManageOrganizations,
   canValidateOrganizationNodeLinks,
@@ -12,9 +14,16 @@ import {
 } from '../../../../lib/organizations/manage'
 import {
   getCanonicalOrganizationProfile,
+  type OrganizationActivity,
+  type OrganizationActivityProposal,
+  type OrganizationCapability,
   type OrganizationNode,
 } from '../../../../lib/organizations/profile'
 import { createClient } from '../../../../lib/supabase/server'
+import { OrganizationActivityForm } from './organization-activity-form'
+import { OrganizationCapabilityAddForm } from './organization-capability-add-form'
+import { OrganizationCapabilityEditForm } from './organization-capability-edit-form'
+import { OrganizationCapabilityStatusForm } from './organization-capability-status-form'
 import { OrganizationNodeConfirmationForm } from './organization-node-confirmation-form'
 import { OrganizationNodeLinkForm } from './organization-node-link-form'
 import { OrganizationNodeLinkDetailsForm } from './organization-node-link-details-form'
@@ -35,7 +44,7 @@ function verificationLabel(value: string) {
   const labels: Record<string, string> = {
     self_reported: 'Autodeclarada',
     candidate: 'Pendiente de validación',
-    pending: 'Pendiente',
+    pending: 'Pendiente de validación',
     confirmed: 'Confirmada',
     rejected: 'Rechazada',
   }
@@ -91,12 +100,6 @@ function OrganizationNodeCard({
           <p className="break-words font-semibold text-slate-950">
             {node.node_name}
           </p>
-
-          {node.node_number !== null ? (
-            <p className="mt-1 text-xs text-slate-500">
-              Nodo {node.node_number}
-            </p>
-          ) : null}
 
           <Link
             href={`/panel/nodos/${node.node_id}`}
@@ -176,6 +179,271 @@ function articulationKindLabel(
     : 'Oportunidad / oferta'
 }
 
+function formatDate(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const [datePart] = value.split('T')
+  const [year, month, day] =
+    datePart.split('-')
+
+  if (!year || !month || !day) {
+    return value
+  }
+
+  return `${day}/${month}/${year}`
+}
+
+function capabilityCountLabel(count: number) {
+  return count === 1
+    ? '1 capacidad'
+    : `${count} capacidades`
+}
+
+function OrganizationActivityCard({
+  activity,
+}: {
+  activity: OrganizationActivity
+}) {
+  return (
+    <article className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="break-words font-semibold text-slate-950">
+            {activity.activity_name}
+          </p>
+
+          <p className="mt-1 break-words text-xs text-slate-500">
+            Actividad canónica registrada para la organización.
+          </p>
+        </div>
+
+        <span
+          className={verificationBadgeClass(
+            activity.verification_status
+          )}
+        >
+          {verificationLabel(
+            activity.verification_status
+          )}
+        </span>
+      </div>
+
+      <div className="mt-4 text-sm leading-6 text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Observaciones
+        </p>
+
+        <p className="mt-1 whitespace-pre-wrap break-words">
+          {activity.notes ??
+            'Observaciones no informadas.'}
+        </p>
+      </div>
+    </article>
+  )
+}
+
+function OrganizationActivityProposalCard({
+  proposal,
+}: {
+  proposal: OrganizationActivityProposal
+}) {
+  return (
+    <article className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 shadow-sm sm:p-4 sm:shadow-none">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="break-words font-semibold text-slate-950">
+            {proposal.proposed_name}
+          </p>
+
+          <p className="mt-1 break-words text-xs text-amber-900">
+            Propuesta de actividad nueva. No forma parte del catálogo canónico.
+          </p>
+        </div>
+
+        <span className={verificationBadgeClass('pending')}>
+          Pendiente de validación
+        </span>
+      </div>
+    </article>
+  )
+}
+
+function OrganizationCapabilityCard({
+  organizationId,
+  capability,
+  canManage,
+}: {
+  organizationId: string
+  capability: OrganizationCapability
+  canManage: boolean
+}) {
+  const lastSelfReportedAt =
+    formatDate(
+      capability.last_self_reported_at
+    )
+  const canReject =
+    capability.verification_status ===
+      'self_reported' ||
+    capability.verification_status ===
+      'candidate'
+
+  return (
+    <article className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Link
+            href={`/panel/habilidades/${capability.skill_id}`}
+            className="break-words font-semibold text-[#2F5D8C] transition hover:text-[#1E3A5F] hover:underline"
+          >
+            {capability.capability_name}
+          </Link>
+
+          <p className="mt-1 break-words text-xs text-slate-500">
+            {capability.category_name ??
+              'Categoría pendiente'}
+          </p>
+        </div>
+
+        <span
+          className={verificationBadgeClass(
+            capability.verification_status
+          )}
+        >
+          {verificationLabel(
+            capability.verification_status
+          )}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-4 text-sm leading-6 text-slate-600">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Alcance
+          </p>
+
+          {capability.scope_node_id ? (
+            <div className="mt-1">
+              <p className="break-words">
+                Específica de nodo:{' '}
+                {capability.scope_node_name ??
+                  'Nodo sin nombre disponible'}
+              </p>
+
+              <Link
+                href={`/panel/nodos/${capability.scope_node_id}/capacidades`}
+                className="mt-1 inline-flex min-h-10 items-center text-xs font-semibold text-[#2F5D8C] hover:underline"
+              >
+                Ver capacidades del nodo
+              </Link>
+            </div>
+          ) : (
+            <p className="mt-1 break-words">
+              Institucional / general. No afirma presencia territorial por sí misma.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Observaciones
+          </p>
+
+          <p className="mt-1 whitespace-pre-wrap break-words">
+            {capability.notes ??
+              'Observaciones no informadas.'}
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Evidencias
+            </p>
+
+            <p className="mt-1">
+              Evidencias registradas:{' '}
+              {capability.evidence_count}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Fuente
+            </p>
+
+            <p className="mt-1 break-words">
+              {capability.source_name ??
+                'Sin fuente externa registrada.'}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Autodeclaración
+          </p>
+
+          <p className="mt-1">
+            {lastSelfReportedAt
+              ? `Última autodeclaración: ${lastSelfReportedAt}`
+              : 'Sin autodeclaración registrada.'}
+          </p>
+        </div>
+      </div>
+
+      {canManage ? (
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <OrganizationCapabilityEditForm
+            organizationId={organizationId}
+            capability={capability}
+          />
+
+          {capability.verification_status !==
+          'confirmed' ? (
+            <OrganizationCapabilityStatusForm
+              organizationId={organizationId}
+              organizationCapabilityId={
+                capability.organization_capability_id
+              }
+              skillId={capability.skill_id}
+              scopeNodeId={
+                capability.scope_node_id
+              }
+              actionType="confirm"
+            />
+          ) : null}
+
+          {canReject ? (
+            <OrganizationCapabilityStatusForm
+              organizationId={organizationId}
+              organizationCapabilityId={
+                capability.organization_capability_id
+              }
+              skillId={capability.skill_id}
+              scopeNodeId={
+                capability.scope_node_id
+              }
+              actionType="reject"
+            />
+          ) : null}
+
+          <OrganizationCapabilityStatusForm
+            organizationId={organizationId}
+            organizationCapabilityId={
+              capability.organization_capability_id
+            }
+            skillId={capability.skill_id}
+            scopeNodeId={capability.scope_node_id}
+            actionType="deactivate"
+          />
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
 export default async function OrganizationProfilePage({
   params,
 }: PageProps) {
@@ -216,6 +484,9 @@ export default async function OrganizationProfilePage({
   const {
     organization,
     nodes,
+    activities,
+    activitySkillSuggestions,
+    activityProposals,
     capabilities,
     articulations,
     typeProposals,
@@ -223,6 +494,12 @@ export default async function OrganizationProfilePage({
 
   const canManage =
     canManageOrganizations(access)
+
+  const canManageActivities =
+    canManageOrganizationActivities(access)
+
+  const canManageCapabilities =
+    canManageOrganizationCapabilities(access)
 
   const canConfirmLinks =
     canValidateOrganizationNodeLinks(access)
@@ -249,10 +526,28 @@ export default async function OrganizationProfilePage({
         proposal.status === 'pending'
     ) ?? null
 
+  const pendingActivityProposals =
+    activityProposals.filter(
+      (proposal) =>
+        proposal.status === 'pending'
+    )
+
   const organizationTypes =
     canManage && pendingTypeProposal
       ? await listOrganizationTypeOptions()
       : []
+
+  const institutionalCapabilities =
+    capabilities.filter(
+      (capability) =>
+        capability.scope_node_id === null
+    )
+
+  const territorialCapabilities =
+    capabilities.filter(
+      (capability) =>
+        capability.scope_node_id !== null
+    )
 
   return (
     <div className="space-y-5 sm:space-y-7">
@@ -421,6 +716,9 @@ export default async function OrganizationProfilePage({
 
             <OrganizationNodeLinkForm
               organizationId={organization.id}
+              organizationName={
+                organization.display_name
+              }
               linkedNodeIds={nodes.map(
                 (node) => node.node_id
               )}
@@ -432,11 +730,11 @@ export default async function OrganizationProfilePage({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="break-words text-base font-semibold text-slate-950">
-                Vínculos pendientes
+                Vínculos pendientes ({pendingNodes.length})
               </h3>
 
               <span className={verificationBadgeClass('pending')}>
-                Pendiente
+                Pendiente de validación
               </span>
             </div>
 
@@ -462,7 +760,7 @@ export default async function OrganizationProfilePage({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="break-words text-base font-semibold text-slate-950">
-                Vínculos confirmados
+                Vínculos confirmados ({confirmedNodes.length})
               </h3>
 
               <span className={verificationBadgeClass('confirmed')}>
@@ -513,68 +811,211 @@ export default async function OrganizationProfilePage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="break-words text-lg font-semibold text-slate-950">
+          Actividades
+        </h2>
+
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Las actividades describen qué hace la organización. Sirven también para orientar la identificación de sus capacidades.
+        </p>
+
+        {canManageActivities ? (
+          <OrganizationActivityForm
+            organizationId={organization.id}
+            organizationName={
+              organization.display_name
+            }
+            activeActivityIds={activities.map(
+              (activity) =>
+                activity.activity_id
+            )}
+          />
+        ) : null}
+
+        <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="break-words text-base font-semibold text-slate-950">
+                Actividades registradas
+              </h3>
+
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                {activities.length}
+              </span>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:gap-4 md:grid-cols-2">
+              {activities.length === 0 ? (
+                <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+                  No hay actividades registradas.
+                </div>
+              ) : (
+                activities.map((activity) => (
+                  <OrganizationActivityCard
+                    key={
+                      activity.organization_activity_id
+                    }
+                    activity={activity}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="break-words text-base font-semibold text-slate-950">
+                Propuestas de actividad pendientes
+              </h3>
+
+              <span className={verificationBadgeClass('pending')}>
+                Pendiente
+              </span>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:gap-4 md:grid-cols-2">
+              {pendingActivityProposals.length === 0 ? (
+                <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+                  No hay propuestas de actividad pendientes.
+                </div>
+              ) : (
+                pendingActivityProposals.map(
+                  (proposal) => (
+                    <OrganizationActivityProposalCard
+                      key={proposal.proposal_id}
+                      proposal={proposal}
+                    />
+                  )
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="break-words text-lg font-semibold text-slate-950">
           Capacidades
         </h2>
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          Capacidades institucionales generales o
-          específicas de un nodo.
+          Las capacidades pueden incorporarse y validarse
+          progresivamente, con alcance institucional o
+          específico de un nodo confirmado.
         </p>
 
-        <div className="mt-4 space-y-3 sm:mt-5">
-          {capabilities.length === 0 ? (
-            <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
-              Capacidades organizacionales pendientes de
-              registrar.
+        {canManageCapabilities ? (
+          <OrganizationCapabilityAddForm
+            organizationId={organization.id}
+            organizationName={
+              organization.display_name
+            }
+            confirmedNodes={confirmedNodes.map(
+              (node) => ({
+                node_id: node.node_id,
+                node_name: node.node_name,
+              })
+            )}
+            activeCapabilityScopes={capabilities.map(
+              (capability) => ({
+                skill_id: capability.skill_id,
+                scope_node_id:
+                  capability.scope_node_id,
+              })
+            )}
+            organizationActivities={activities.map(
+              (activity) => ({
+                activity_id:
+                  activity.activity_id,
+                activity_name:
+                  activity.activity_name,
+              })
+            )}
+            activitySkillSuggestions={
+              activitySkillSuggestions
+            }
+          />
+        ) : null}
+
+        <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="break-words text-base font-semibold text-slate-950">
+                Capacidades institucionales
+              </h3>
+
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                {capabilityCountLabel(
+                  institutionalCapabilities.length
+                )}
+              </span>
             </div>
-          ) : (
-            capabilities.map((capability) => (
-              <article
-                key={
-                  capability.organization_capability_id
-                }
-                className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words font-semibold text-slate-950">
-                      {capability.capability_name}
-                    </p>
 
-                    {capability.category_name ? (
-                      <p className="mt-1 text-xs text-slate-500">
-                        {capability.category_name}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-                    {verificationLabel(
-                      capability.verification_status
-                    )}
-                  </span>
+            <div className="mt-3 grid gap-3 sm:gap-4 md:grid-cols-2">
+              {institutionalCapabilities.length === 0 ? (
+                <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+                  No hay capacidades institucionales
+                  registradas.
                 </div>
+              ) : (
+                institutionalCapabilities.map(
+                  (capability) => (
+                    <OrganizationCapabilityCard
+                      key={
+                        capability.organization_capability_id
+                      }
+                      organizationId={
+                        organization.id
+                      }
+                      capability={capability}
+                      canManage={
+                        canManageCapabilities
+                      }
+                    />
+                  )
+                )
+              )}
+            </div>
+          </div>
 
-                <p className="mt-3 break-words text-sm text-slate-600">
-                  Alcance:{' '}
-                  {capability.scope_node_name
-                    ? capability.scope_node_name
-                    : 'Institucional / general'}
-                </p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="break-words text-base font-semibold text-slate-950">
+                Capacidades territoriales
+              </h3>
 
-                {capability.notes ? (
-                  <p className="mt-2 break-words text-sm leading-6 text-slate-600">
-                    {capability.notes}
-                  </p>
-                ) : null}
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                {capabilityCountLabel(
+                  territorialCapabilities.length
+                )}
+              </span>
+            </div>
 
-                <p className="mt-2 text-xs text-slate-500">
-                  Evidencias registradas:{' '}
-                  {capability.evidence_count}
-                </p>
-              </article>
-            ))
-          )}
+            <div className="mt-3 grid gap-3 sm:gap-4 md:grid-cols-2">
+              {territorialCapabilities.length === 0 ? (
+                <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
+                  No hay capacidades específicas de
+                  nodos registradas.
+                </div>
+              ) : (
+                territorialCapabilities.map(
+                  (capability) => (
+                    <OrganizationCapabilityCard
+                      key={
+                        capability.organization_capability_id
+                      }
+                      organizationId={
+                        organization.id
+                      }
+                      capability={capability}
+                      canManage={
+                        canManageCapabilities
+                      }
+                    />
+                  )
+                )
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

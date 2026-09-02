@@ -56,6 +56,45 @@ export type OrganizationCapability = {
   updated_at: string
 }
 
+export type OrganizationActivity = {
+  organization_id: string
+  organization_activity_id: string
+  activity_id: string
+  activity_name: string
+  activity_search_name: string
+  verification_status: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ActivitySkillSuggestion = {
+  activity_id: string
+  activity_name: string
+  skill_id: string
+  skill_name: string
+  skill_search_name: string
+  category_code: string | null
+  category_name: string | null
+  description: string | null
+  sort_order: number
+}
+
+export type OrganizationActivityProposal = {
+  organization_id: string
+  proposal_id: string
+  proposed_name: string
+  normalized_name: string
+  status: string
+  resolved_activity_id: string | null
+  resolved_activity_name: string | null
+  created_by_internal_user_id: string
+  resolved_by_internal_user_id: string | null
+  resolution_reason: string | null
+  created_at: string
+  resolved_at: string | null
+}
+
 export type OrganizationArticulation = {
   organization_id: string
   opportunity_id: string
@@ -92,6 +131,9 @@ export type OrganizationTypeProposal = {
 export type CanonicalOrganizationProfile = {
   organization: OrganizationProfile
   nodes: OrganizationNode[]
+  activities: OrganizationActivity[]
+  activitySkillSuggestions: ActivitySkillSuggestion[]
+  activityProposals: OrganizationActivityProposal[]
   capabilities: OrganizationCapability[]
   articulations: OrganizationArticulation[]
   typeProposals: OrganizationTypeProposal[]
@@ -105,6 +147,8 @@ export async function getCanonicalOrganizationProfile(
   const [
     organizationResult,
     nodesResult,
+    activitiesResult,
+    activityProposalsResult,
     capabilitiesResult,
     articulationsResult,
     typeProposalsResult,
@@ -121,6 +165,22 @@ export async function getCanonicalOrganizationProfile(
       .eq('organization_id', organizationId)
       .order('node_name', {
         ascending: true,
+      }),
+
+    supabase
+      .from('organization_activity_list')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('activity_name', {
+        ascending: true,
+      }),
+
+    supabase
+      .from('organization_activity_proposal_list')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', {
+        ascending: false,
       }),
 
     supabase
@@ -164,6 +224,18 @@ export async function getCanonicalOrganizationProfile(
     )
   }
 
+  if (activitiesResult.error) {
+    throw new Error(
+      `Unable to load organization activities: ${activitiesResult.error.message}`
+    )
+  }
+
+  if (activityProposalsResult.error) {
+    throw new Error(
+      `Unable to load organization activity proposals: ${activityProposalsResult.error.message}`
+    )
+  }
+
   if (capabilitiesResult.error) {
     throw new Error(
       `Unable to load organization capabilities: ${capabilitiesResult.error.message}`
@@ -182,12 +254,63 @@ export async function getCanonicalOrganizationProfile(
     )
   }
 
+  const activities =
+    (
+      activitiesResult.data ?? []
+    ) as OrganizationActivity[]
+
+  const activityIds = activities.map(
+    (activity) => activity.activity_id
+  )
+
+  let activitySkillSuggestions:
+    ActivitySkillSuggestion[] = []
+
+  if (activityIds.length > 0) {
+    const {
+      data: suggestionData,
+      error: suggestionError,
+    } = await supabase
+      .from('activity_skill_suggestion_list')
+      .select('*')
+      .in('activity_id', activityIds)
+      .order('activity_name', {
+        ascending: true,
+      })
+      .order('sort_order', {
+        ascending: true,
+      })
+      .order('skill_name', {
+        ascending: true,
+      })
+
+    if (suggestionError) {
+      throw new Error(
+        `Unable to load activity skill suggestions: ${suggestionError.message}`
+      )
+    }
+
+    activitySkillSuggestions =
+      (
+        suggestionData ?? []
+      ) as ActivitySkillSuggestion[]
+  }
+
   return {
     organization:
       organizationResult.data as OrganizationProfile,
 
     nodes:
       (nodesResult.data ?? []) as OrganizationNode[],
+
+    activities,
+
+    activitySkillSuggestions,
+
+    activityProposals:
+      (
+        activityProposalsResult.data ?? []
+      ) as OrganizationActivityProposal[],
 
     capabilities:
       (

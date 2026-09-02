@@ -5,9 +5,9 @@ import {
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
-  listNodeReferenceOptions,
-  searchNodes,
-} from '../../../../lib/nodes/search'
+  listActivityReferenceOptions,
+  searchActivities,
+} from '../../../../lib/organizations/activities'
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -41,22 +41,13 @@ export async function GET(request: NextRequest) {
   const query =
     request.nextUrl.searchParams.get('q') ?? ''
 
-  const excludeOrganizationId =
-    request.nextUrl.searchParams.get(
-      'exclude_organization_id'
-    ) ?? null
-
   const mode =
     request.nextUrl.searchParams.get('mode')
 
   const results =
     mode === 'reference'
-      ? await listNodeReferenceOptions({
-          excludeOrganizationId,
-        })
-      : await searchNodes(query, {
-          excludeOrganizationId,
-        })
+      ? await listActivityReferenceOptions()
+      : await searchActivities(query)
 
   return NextResponse.json(results, {
     headers: {

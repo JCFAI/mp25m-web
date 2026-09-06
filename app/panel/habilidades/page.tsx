@@ -1,6 +1,9 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { canManageSkillCatalog } from '../../../lib/skills/governance'
+import { listSkillProposals } from '../../../lib/skills/proposals'
 import { listSkillCategoryOptions } from '../../../lib/skills/search'
 import { createClient } from '../../../lib/supabase/server'
 import { SkillSearch } from './skill-search'
@@ -29,8 +32,18 @@ export default async function SkillsPage() {
     redirect('/sin-acceso')
   }
 
-  const categories =
-    await listSkillCategoryOptions()
+  const canManageCatalog =
+    canManageSkillCatalog(access)
+
+  const [categories, pendingProposals] =
+    await Promise.all([
+      listSkillCategoryOptions(),
+      canManageCatalog
+        ? listSkillProposals({
+            status: 'pending',
+          })
+        : Promise.resolve([]),
+    ])
 
   return (
     <div className="space-y-5 sm:space-y-7">
@@ -51,6 +64,29 @@ export default async function SkillsPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        {canManageCatalog ? (
+          <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">
+                Revisión del catálogo
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                {pendingProposals.length === 1
+                  ? 'Hay 1 propuesta pendiente de revisión.'
+                  : `Hay ${pendingProposals.length} propuestas pendientes de revisión.`}
+              </p>
+            </div>
+
+            <Link
+              href="/panel/habilidades/propuestas"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 sm:w-auto"
+            >
+              Revisar propuestas
+            </Link>
+          </div>
+        ) : null}
+
         <SkillSearch categories={categories} />
       </section>
 

@@ -1,11 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   useEffect,
   useId,
   useState,
 } from 'react'
+
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
 
 type SkillSearchResult = {
   id: string
@@ -68,6 +71,7 @@ export function SkillSearch({
 }: {
   categories: SkillCategoryOption[]
 }) {
+  const router = useRouter()
   const inputId = useId()
   const categoryId = useId()
   const applicationId = useId()
@@ -86,6 +90,20 @@ export function SkillSearch({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const [referenceSkills, setReferenceSkills] =
+    useState<SkillSearchResult[]>([])
+  const [
+    referenceLoading,
+    setReferenceLoading,
+  ] = useState(false)
+  const [
+    referenceLoaded,
+    setReferenceLoaded,
+  ] = useState(false)
+  const [
+    referenceErrorMessage,
+    setReferenceErrorMessage,
+  ] = useState<string | null>(null)
 
   const term = query.trim()
   const hasCategoryFilter =
@@ -214,6 +232,58 @@ export function SkillSearch({
     }
   }, [query, categoryCode, application])
 
+  async function loadSkillReferenceItems() {
+    if (
+      referenceLoaded ||
+      referenceLoading
+    ) {
+      return
+    }
+
+    setReferenceLoading(true)
+    setReferenceErrorMessage(null)
+
+    try {
+      const searchParams =
+        new URLSearchParams()
+
+      searchParams.set('mode', 'reference')
+      searchParams.set('application', 'all')
+
+      const response = await fetch(
+        `/api/panel/habilidades?${searchParams.toString()}`,
+        {
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          'No se pudo cargar la lista.'
+        )
+      }
+
+      const data =
+        (await response.json()) as SkillSearchResult[]
+
+      setReferenceSkills(data)
+      setReferenceLoaded(true)
+    } catch {
+      setReferenceSkills([])
+      setReferenceErrorMessage(
+        'No se pudo cargar la lista de habilidades. Intentá nuevamente.'
+      )
+    } finally {
+      setReferenceLoading(false)
+    }
+  }
+
+  function openSkillProfile(
+    skill: SkillSearchResult
+  ) {
+    router.push(`/panel/habilidades/${skill.id}`)
+  }
+
   return (
     <div>
       <label
@@ -225,31 +295,88 @@ export function SkillSearch({
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
         Buscá por nombre canónico o alias, y acotá por
-        categoría o tipo de actor.
+        categoría o a quién aplica.
       </p>
 
       <div className="mt-3 grid gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_minmax(180px,240px)] lg:gap-4">
-        <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <div>
+          <label
+            htmlFor={inputId}
+            className="text-xs font-semibold uppercase tracking-wide text-slate-400"
+          >
             Nombre
-          </span>
+          </label>
 
-          <input
-            id={inputId}
-            value={query}
-            onChange={(event) =>
-              setQuery(event.target.value)
-            }
-            placeholder="Ej.: programación, soldadura..."
-            autoComplete="off"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={canSearch}
-            aria-controls={resultsId}
-            aria-busy={loading}
-            className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-          />
-        </label>
+          <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+            <input
+              id={inputId}
+              value={query}
+              onChange={(event) =>
+                setQuery(event.target.value)
+              }
+              placeholder="Ej.: programación, soldadura..."
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={canSearch}
+              aria-controls={resultsId}
+              aria-busy={loading}
+              className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            />
+
+            <ReferenceListDialog
+              title="Habilidades"
+              description="Consultá habilidades canónicas activas y abrí su ficha sin modificar datos."
+              items={referenceSkills}
+              loading={referenceLoading}
+              errorMessage={
+                referenceErrorMessage
+              }
+              searchPlaceholder="Filtrar por nombre, categoría o descripción..."
+              emptyMessage={
+                referenceLoaded
+                  ? 'No hay habilidades disponibles.'
+                  : 'No se cargó la lista de habilidades.'
+              }
+              getItemKey={(skill) => skill.id}
+              getItemSearchText={(skill) =>
+                [
+                  skill.display_name,
+                  skill.category_name ?? '',
+                  skill.description ?? '',
+                ].join(' ')
+              }
+              renderItem={(skill) => (
+                <>
+                  <span className="block break-words text-sm font-semibold text-slate-950">
+                    {skill.display_name}
+                  </span>
+
+                  <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
+                    {skill.category_name ??
+                      'Categoría pendiente'}
+                  </span>
+
+                  <span className="mt-2 flex flex-wrap gap-2">
+                    {skill.applies_to_person ? (
+                      <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-800">
+                        Personas
+                      </span>
+                    ) : null}
+
+                    {skill.applies_to_organization ? (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                        Organizaciones
+                      </span>
+                    ) : null}
+                  </span>
+                </>
+              )}
+              onOpen={loadSkillReferenceItems}
+              onSelect={openSkillProfile}
+            />
+          </div>
+        </div>
 
         <label
           htmlFor={categoryId}
@@ -287,7 +414,7 @@ export function SkillSearch({
           className="block"
         >
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Aplicación
+            Aplica a
           </span>
 
           <select
@@ -301,7 +428,7 @@ export function SkillSearch({
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           >
             <option value="all">
-              Todas
+              Todos
             </option>
             <option value="people">
               Personas
@@ -383,9 +510,9 @@ export function SkillSearch({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs leading-5 text-slate-400">
-          Sin filtros, escribí al menos dos caracteres.
-          Con categoría o aplicación se muestran hasta
-          veinte resultados.
+          {hasActiveFilters
+            ? 'Se muestran hasta veinte resultados. Podés ajustar el nombre, la categoría o a quién aplica.'
+            : 'Buscá por nombre, elegí una categoría o indicá a quién aplica. También podés abrir la lista completa.'}
         </p>
 
         {hasActiveFilters ? (

@@ -5,11 +5,13 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canManageSkillCatalog } from '../../../../lib/skills/governance'
 import {
   getGlobalSkillProfile,
   type SkillPerson,
 } from '../../../../lib/skills/profile'
 import { createClient } from '../../../../lib/supabase/server'
+import { SkillAliasAddForm } from './skill-alias-add-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,6 +135,9 @@ export default async function SkillProfilePage({
     redirect('/sin-acceso')
   }
 
+  const canManageCatalog =
+    canManageSkillCatalog(access)
+
   const profile =
     await getGlobalSkillProfile(id)
 
@@ -238,9 +243,16 @@ export default async function SkillProfilePage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="break-words text-lg font-semibold text-slate-950">
-          Aliases
-        </h2>
+        <div>
+          <h2 className="break-words text-lg font-semibold text-slate-950">
+            Aliases
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Formas alternativas de nombrar esta habilidad
+            en búsquedas internas.
+          </p>
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {aliases.length === 0 ? (
@@ -258,6 +270,13 @@ export default async function SkillProfilePage({
             ))
           )}
         </div>
+
+        {canManageCatalog ? (
+          <SkillAliasAddForm
+            skillId={skill.id}
+            skillName={skill.display_name}
+          />
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">

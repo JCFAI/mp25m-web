@@ -16,6 +16,7 @@ import {
   type AddOrganizationCapabilityResult,
   updateOrganizationCapability,
 } from '../../../../lib/organizations/capabilities-manage'
+import { proposeSkill } from '../../../../lib/skills/proposals-manage'
 import {
   confirmOrganizationNodeLink,
   createOrganizationNodeLink,
@@ -55,6 +56,7 @@ export type OrganizationCapabilityActionState = {
     nodeId?: string
     notes?: string
     evidenceText?: string
+    proposedName?: string
     reason?: string
   }
 }
@@ -426,6 +428,60 @@ function mapOrganizationCapabilityError(
 
   return capabilityFailure(
     'No se pudo actualizar la capacidad. No se modificó ningún dato.'
+  )
+}
+
+function mapSkillProposalError(
+  error: unknown
+) {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : ''
+
+  const [, equivalentSkillName] =
+    detail.match(
+      /Equivalent skill already exists:\s*(.+)$/i
+    ) ?? []
+
+  if (equivalentSkillName) {
+    return capabilityFailure(
+      `Ya existe una habilidad equivalente: "${equivalentSkillName}". Seleccionala desde el catálogo.`,
+      {
+        proposedName:
+          'Buscá la habilidad equivalente en el catálogo.',
+      }
+    )
+  }
+
+  if (/pending skill proposal/i.test(detail)) {
+    return capabilityFailure(
+      'Ya existe una propuesta pendiente para esa habilidad.',
+      {
+        proposedName:
+          'Revisá las propuestas pendientes del catálogo.',
+      }
+    )
+  }
+
+  if (/proposal name|invalid skill proposal/i.test(detail)) {
+    return capabilityFailure(
+      'La habilidad propuesta debe tener entre 2 y 200 caracteres.',
+      {
+        proposedName:
+          'Ingresá un nombre claro para la habilidad propuesta.',
+      }
+    )
+  }
+
+  if (/cannot manage|permission|not allowed/i.test(detail)) {
+    return capabilityFailure(
+      'Tu usuario no tiene permisos para proponer habilidades del catálogo.'
+    )
+  }
+
+  return capabilityFailure(
+    'No se pudo registrar la propuesta. No se creó ninguna habilidad ni capacidad.'
   )
 }
 
@@ -1319,6 +1375,65 @@ export async function addOrganizationCapabilityAction(
 
   return capabilitySuccess(
     `Se agregó "${readableSkillName}" a ${readableOrganizationName} ${scopeText}. Quedó pendiente de validación.`
+  )
+}
+
+export async function proposeOrganizationCapabilitySkillAction(
+  organizationId: string,
+  _previousState: OrganizationCapabilityActionState,
+  formData: FormData
+): Promise<OrganizationCapabilityActionState> {
+  const access = await getCurrentAccess()
+
+  const proposedName =
+    textField(formData, 'proposed_name')
+
+  const fieldErrors:
+    OrganizationCapabilityActionState['fieldErrors'] = {}
+
+  if (!UUID_PATTERN.test(organizationId)) {
+    return capabilityFailure(
+      'La organización seleccionada no es válida.'
+    )
+  }
+
+  if (
+    proposedName.length < 2 ||
+    proposedName.length > 200
+  ) {
+    fieldErrors.proposedName =
+      'Ingresá un nombre de habilidad entre 2 y 200 caracteres.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return capabilityFailure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await proposeSkill(access, {
+      proposedName,
+      suggestedAppliesToPerson: false,
+      suggestedAppliesToOrganization: true,
+      originKind: 'organization',
+      originId: organizationId,
+    })
+  } catch (error) {
+    console.error(
+      '[MP25M] Skill proposal from organization failed:',
+      error
+    )
+
+    return mapSkillProposalError(error)
+  }
+
+  revalidatePath('/panel/habilidades')
+  revalidatePath('/panel/habilidades/propuestas')
+
+  return capabilitySuccess(
+    `Se propuso "${proposedName}" como nueva habilidad. Quedó pendiente de revisión del catálogo.`
   )
 }
 

@@ -2,6 +2,7 @@
 
 import {
   useActionState,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -12,13 +13,27 @@ import { useRouter } from 'next/navigation'
 
 import {
   addPersonSkillAction,
+  proposePersonSkillAction,
   type PersonSkillActionState,
 } from './actions'
+import { ReferenceListDialog } from '../../../../components/reference-list-dialog'
+import {
+  combineSkillProposalTerms,
+  findSkillProposalTermMatch,
+  isPendingSkillProposalDuplicateMessage,
+  mapPendingSkillProposalReferencesToTerms,
+  normalizeSkillProposalTerm,
+  pendingSkillProposalDuplicateNotice,
+  skillProposalTermMessage,
+  type HandledSkillProposalTerm,
+  type PendingSkillProposalReferenceOption,
+} from '../../../../lib/skills/pending-proposal-reference'
 
 type SkillSearchResult = {
   id: string
   display_name: string
   category_name: string | null
+  search_name: string
   description: string | null
   applies_to_person: boolean
   applies_to_organization: boolean
@@ -70,6 +85,26 @@ function skillMetadata(skill: SkillSearchResult) {
   return parts.join(' · ')
 }
 
+function proposalTermMessage(
+  match: Parameters<
+    typeof skillProposalTermMessage
+  >[0]
+) {
+  if (!match) {
+    return null
+  }
+
+  if (match.matchKind === 'related') {
+    return `Ya existe una propuesta relacionada pendiente: "${match.label}".`
+  }
+
+  if (match.source === 'submitted') {
+    return `Ya propusiste "${match.label}". La propuesta está pendiente de revisión del catálogo.`
+  }
+
+  return `Ya existe una propuesta pendiente para "${match.label}".`
+}
+
 export function PersonSkillAddForm({
   personId,
   personName,
@@ -99,6 +134,18 @@ export function PersonSkillAddForm({
       initialState
     )
 
+  const [
+    proposalState,
+    proposalFormAction,
+    proposalPending,
+  ] = useActionState(
+    proposePersonSkillAction.bind(
+      null,
+      personId
+    ),
+    initialState
+  )
+
   const [query, setQuery] = useState('')
   const [results, setResults] =
     useState<SkillSearchResult[]>([])
@@ -110,18 +157,230 @@ export function PersonSkillAddForm({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const [referenceSkills, setReferenceSkills] =
+    useState<SkillSearchResult[]>([])
+  const [
+    referenceLoading,
+    setReferenceLoading,
+  ] = useState(false)
+  const [
+    referenceLoaded,
+    setReferenceLoaded,
+  ] = useState(false)
+  const [
+    referenceErrorMessage,
+    setReferenceErrorMessage,
+  ] = useState<string | null>(null)
+  const [
+    pendingProposalReferences,
+    setPendingProposalReferences,
+  ] = useState<
+    PendingSkillProposalReferenceOption[]
+  >([])
+  const [
+    pendingProposalReferencesLoading,
+    setPendingProposalReferencesLoading,
+  ] = useState(false)
+  const [
+    pendingProposalReferencesLoaded,
+    setPendingProposalReferencesLoaded,
+  ] = useState(false)
+  const [
+    pendingProposalReferencesErrorMessage,
+    setPendingProposalReferencesErrorMessage,
+  ] = useState<string | null>(null)
+  const pendingProposalReferencesRequestRef =
+    useRef<Promise<void> | null>(null)
+  const [lastAction, setLastAction] =
+    useState<'add' | 'proposal'>('add')
+  const [addFeedbackVisible, setAddFeedbackVisible] =
+    useState(false)
+
+  const [proposalFeedbackVisible, setProposalFeedbackVisible] =
+    useState(false)
+
+  const [submittedProposalTerm, setSubmittedProposalTerm] =
+    useState('')
+
+  const [handledProposalTerms, setHandledProposalTerms] =
+    useState<Map<string, HandledSkillProposalTerm>>(
+      () => new Map()
+    )
 
   const activeSkillIdSet = useMemo(
     () => new Set(activeSkillIds),
     [activeSkillIds]
   )
 
+  const availableReferenceSkills =
+    useMemo(
+      () =>
+        referenceSkills.filter(
+          (skill) =>
+            skill.applies_to_person &&
+            !activeSkillIdSet.has(skill.id)
+        ),
+      [activeSkillIdSet, referenceSkills]
+    )
+
+  const pendingProposalTerms = useMemo(
+    () =>
+      mapPendingSkillProposalReferencesToTerms(
+        pendingProposalReferences
+      ),
+    [pendingProposalReferences]
+  )
+
+  const combinedProposalTerms = useMemo(
+    () =>
+      combineSkillProposalTerms(
+        pendingProposalTerms,
+        handledProposalTerms
+      ),
+    [
+      handledProposalTerms,
+      pendingProposalTerms,
+    ]
+  )
+
   const term = query.trim()
+  const normalizedTerm =
+    normalizeSkillProposalTerm(term)
   const searchIsOpen =
     term.length >= MINIMUM_QUERY_LENGTH &&
     !selectedSkill
+  const handledProposalMatch =
+    findSkillProposalTermMatch(
+      normalizedTerm,
+      combinedProposalTerms
+    )
+  const handledProposalMessage =
+    proposalTermMessage(
+      handledProposalMatch
+    )
+  const pendingProposalLookupMessage =
+    searchIsOpen &&
+    hasSearched &&
+    !loading &&
+    !errorMessage &&
+    results.length === 0 &&
+    !handledProposalMessage
+      ? pendingProposalReferencesErrorMessage ??
+        (
+          !pendingProposalReferencesLoaded ||
+          pendingProposalReferencesLoading
+            ? 'Verificando propuestas pendientes...'
+            : null
+        )
+      : null
+  const exactResultExists = results.some(
+    (skill) =>
+      skill.search_name === normalizedTerm
+  )
+
+  const showProposalAction =
+    searchIsOpen &&
+    hasSearched &&
+    !loading &&
+    !errorMessage &&
+    pendingProposalReferencesLoaded &&
+    !pendingProposalReferencesErrorMessage &&
+    !exactResultExists &&
+    !handledProposalMatch
+
+  const currentState =
+    lastAction === 'proposal'
+      ? proposalFeedbackVisible
+        ? proposalState
+        : initialState
+      : addFeedbackVisible
+        ? state
+        : initialState
+  const proposalDuplicateNotice =
+    lastAction === 'proposal' &&
+    proposalFeedbackVisible &&
+    proposalState.status === 'error' &&
+    isPendingSkillProposalDuplicateMessage(
+      proposalState.message
+    )
+  const currentStateMessage =
+    proposalDuplicateNotice
+      ? pendingSkillProposalDuplicateNotice(
+          submittedProposalTerm
+        )
+      : currentState.message
+  const proposalNameFieldError =
+    proposalFeedbackVisible &&
+    !proposalDuplicateNotice
+      ? proposalState.fieldErrors.proposedName
+      : undefined
+
+  const loadPendingProposalReferences =
+    useCallback(async () => {
+      if (
+        pendingProposalReferencesLoaded ||
+        pendingProposalReferencesRequestRef.current
+      ) {
+        return
+      }
+
+      const request = (async () => {
+        setPendingProposalReferencesLoading(true)
+        setPendingProposalReferencesErrorMessage(null)
+
+        try {
+          const searchParams =
+            new URLSearchParams()
+
+          searchParams.set(
+            'mode',
+            'pending-proposals'
+          )
+
+          const response = await fetch(
+            `/api/panel/habilidades?${searchParams.toString()}`,
+            {
+              cache: 'no-store',
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error(
+              'No se pudo verificar la propuesta.'
+            )
+          }
+
+          const data =
+            (await response.json()) as PendingSkillProposalReferenceOption[]
+
+          setPendingProposalReferences(data)
+          setPendingProposalReferencesLoaded(true)
+        } catch {
+          setPendingProposalReferences([])
+          setPendingProposalReferencesErrorMessage(
+            'No se pudo verificar si ya existe una propuesta pendiente. Intentá nuevamente.'
+          )
+        } finally {
+          setPendingProposalReferencesLoading(false)
+          pendingProposalReferencesRequestRef.current =
+            null
+        }
+      })()
+
+      pendingProposalReferencesRequestRef.current =
+        request
+
+      await request
+    }, [pendingProposalReferencesLoaded])
 
   useEffect(() => {
+    if (state.status === 'idle') {
+      return
+    }
+
+    setAddFeedbackVisible(true)
+    setProposalFeedbackVisible(false)
+
     if (state.status !== 'success') {
       return
     }
@@ -132,8 +391,71 @@ export function PersonSkillAddForm({
     setSelectedSkill(null)
     setHasSearched(false)
     setErrorMessage(null)
+
     router.refresh()
-  }, [state.status, state.message, router])
+  }, [
+    state.status,
+    state.message,
+    router,
+  ])
+
+  useEffect(() => {
+    if (proposalState.status === 'idle') {
+      return
+    }
+
+    setProposalFeedbackVisible(true)
+    setAddFeedbackVisible(false)
+
+    const normalizedSubmittedTerm =
+      normalizeSkillProposalTerm(
+        submittedProposalTerm
+      )
+    const submittedLabel =
+      submittedProposalTerm.trim()
+    const duplicatePendingProposal =
+      isPendingSkillProposalDuplicateMessage(
+        proposalState.message
+      )
+
+    if (
+      normalizedSubmittedTerm &&
+      (
+        proposalState.status === 'success' ||
+        duplicatePendingProposal
+      )
+    ) {
+      setHandledProposalTerms((current) => {
+        const next = new Map(current)
+        next.set(normalizedSubmittedTerm, {
+          label: submittedLabel,
+          source:
+            proposalState.status === 'success'
+              ? 'submitted'
+              : 'pending',
+        })
+        return next
+      })
+    }
+
+    if (proposalState.status === 'success') {
+      setQuery('')
+      setResults([])
+      setSelectedSkill(null)
+      setHasSearched(false)
+      setErrorMessage(null)
+
+      // Una propuesta modifica el catálogo, no la ficha
+      // de la persona. No hacemos router.refresh().
+    }
+  }, [
+    proposalState.status,
+    proposalState.message,
+    submittedProposalTerm,
+  ])
+
+
+
 
   useEffect(() => {
     const currentTerm = query.trim()
@@ -149,6 +471,8 @@ export function PersonSkillAddForm({
       setLoading(false)
       return
     }
+
+    void loadPendingProposalReferences()
 
     const controller = new AbortController()
 
@@ -224,12 +548,98 @@ export function PersonSkillAddForm({
     query,
     selectedSkill,
     activeSkillIdSet,
+    loadPendingProposalReferences,
   ])
+
+  function clearActionFeedback() {
+    setAddFeedbackVisible(false)
+    setProposalFeedbackVisible(false)
+  }
+
+  function selectSkill(
+    skill: SkillSearchResult
+  ) {
+    setSelectedSkill(skill)
+    setQuery(skill.display_name)
+    setResults([])
+    setHasSearched(false)
+    setErrorMessage(null)
+    clearActionFeedback()
+  }
+
+  async function loadSkillReferenceItems() {
+    if (
+      referenceLoaded ||
+      referenceLoading
+    ) {
+      return
+    }
+
+    setReferenceLoading(true)
+    setReferenceErrorMessage(null)
+
+    try {
+      const searchParams =
+        new URLSearchParams()
+
+      searchParams.set('mode', 'reference')
+      searchParams.set(
+        'application',
+        'person'
+      )
+
+      const response = await fetch(
+        `/api/panel/habilidades?${searchParams.toString()}`,
+        {
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          'No se pudo cargar la lista.'
+        )
+      }
+
+      const data =
+        (await response.json()) as SkillSearchResult[]
+
+      setReferenceSkills(
+        data.filter(
+          (skill) =>
+            skill.applies_to_person
+        )
+      )
+      setReferenceLoaded(true)
+    } catch {
+      setReferenceSkills([])
+      setReferenceErrorMessage(
+        'No se pudo cargar la lista de habilidades. Intentá nuevamente.'
+      )
+    } finally {
+      setReferenceLoading(false)
+    }
+  }
 
   return (
     <form
       ref={formRef}
       action={formAction}
+      onSubmit={(event) => {
+        const submitter =
+          (
+            event.nativeEvent as SubmitEvent
+          ).submitter
+
+        setLastAction(
+          submitter instanceof
+            HTMLButtonElement &&
+            submitter.dataset.action ===
+              'proposal'
+            ? 'proposal'
+            : 'add'
+        )
+      }}
       className="mt-4 grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:gap-5"
     >
       <div>
@@ -242,17 +652,23 @@ export function PersonSkillAddForm({
         </p>
       </div>
 
-      {state.status !== 'idle' &&
-      state.message ? (
+      {currentState.status !== 'idle' &&
+      currentStateMessage ? (
         <div
-          role="alert"
+          role={
+            proposalDuplicateNotice
+              ? 'status'
+              : 'alert'
+          }
           className={
-            state.status === 'success'
+            proposalDuplicateNotice
+              ? 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800'
+              : currentState.status === 'success'
               ? 'rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800'
               : 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'
           }
         >
-          {state.message}
+          {currentStateMessage}
         </div>
       ) : null}
 
@@ -264,68 +680,160 @@ export function PersonSkillAddForm({
           Habilidad
         </label>
 
-        <div className="relative">
-          <input
-            id={inputId}
-            value={query}
-            onChange={(event) => {
-              setSelectedSkill(null)
-              setQuery(event.target.value)
-            }}
-            placeholder="Ej.: soldadura, programación..."
-            autoComplete="off"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={searchIsOpen}
-            aria-controls={resultsId}
-            aria-busy={loading}
-            className={fieldClass(
-              Boolean(state.fieldErrors.skillId)
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div className="relative">
+            <input
+              id={inputId}
+              value={query}
+              onChange={(event) => {
+                setSelectedSkill(null)
+                setQuery(event.target.value)
+                clearActionFeedback()
+                setLastAction('add')
+              }}
+              placeholder="Ej.: soldadura, programación..."
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={searchIsOpen}
+              aria-controls={resultsId}
+              aria-busy={loading}
+              className={fieldClass(
+                Boolean(
+                  state.fieldErrors.skillId ||
+                    proposalNameFieldError
+                )
+              )}
+            />
+
+            {searchIsOpen ? (
+              <div
+                id={resultsId}
+                className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+              >
+                {loading ? (
+                  <p className="px-4 py-3 text-sm text-slate-500">
+                    Buscando habilidades...
+                  </p>
+                ) : errorMessage ? (
+                  <p className="px-4 py-3 text-sm text-red-600">
+                    {errorMessage}
+                  </p>
+                ) : results.length > 0 ? (
+                  results.map((skill) => (
+                    <button
+                      key={skill.id}
+                      type="button"
+                      onClick={() =>
+                        selectSkill(skill)
+                      }
+                      className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                    >
+                      <span className="block break-words text-sm font-semibold text-slate-900">
+                        {skill.display_name}
+                      </span>
+
+                      <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
+                        {skillMetadata(skill)}
+                      </span>
+                    </button>
+                  ))
+                ) : hasSearched &&
+                  !handledProposalMessage &&
+                  !pendingProposalLookupMessage ? (
+                  <p className="px-4 py-3 text-sm text-slate-500">
+                    No se encontraron habilidades disponibles.
+                  </p>
+                ) : null}
+
+                {!loading &&
+                !errorMessage &&
+                handledProposalMessage ? (
+                  <p className="border-t border-slate-100 px-4 py-3 text-sm text-amber-800">
+                    {handledProposalMessage}
+                  </p>
+                ) : null}
+
+                {!loading &&
+                !errorMessage &&
+                pendingProposalLookupMessage ? (
+                  <p className="border-t border-slate-100 px-4 py-3 text-sm text-amber-800">
+                    {pendingProposalLookupMessage}
+                  </p>
+                ) : null}
+
+                {showProposalAction ? (
+                  <div className="border-t border-slate-100 p-3">
+                    <button
+                      type="submit"
+                      formAction={proposalFormAction}
+                      data-action="proposal"
+                      onClick={() => {
+                        setLastAction('proposal')
+                        clearActionFeedback()
+                        setSubmittedProposalTerm(term)
+                      }}
+                      disabled={
+                        proposalPending ||
+                        term.length <
+                          MINIMUM_QUERY_LENGTH
+                      }
+                      className="min-h-11 w-full rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-left text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {proposalPending
+                        ? 'Proponiendo...'
+                        : `+ Proponer "${term}" como nueva habilidad`}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <ReferenceListDialog
+            buttonClassName="mt-2"
+            title="Habilidades"
+            description="Consultá habilidades activas aplicables a personas y seleccioná una sin guardarla todavía."
+            items={availableReferenceSkills}
+            loading={referenceLoading}
+            errorMessage={
+              referenceErrorMessage
+            }
+            searchPlaceholder="Filtrar por nombre, categoría o descripción..."
+            emptyMessage={
+              referenceLoaded
+                ? 'No hay habilidades disponibles para esta persona.'
+                : 'No se cargó la lista de habilidades.'
+            }
+            getItemKey={(skill) => skill.id}
+            getItemSearchText={(skill) =>
+              [
+                skill.display_name,
+                skill.search_name,
+                skill.category_name ?? '',
+                skill.description ?? '',
+              ].join(' ')
+            }
+            renderItem={(skill) => (
+              <>
+                <span className="block break-words text-sm font-semibold text-slate-950">
+                  {skill.display_name}
+                </span>
+
+                <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
+                  {skillMetadata(skill)}
+                </span>
+
+                {skill.description ? (
+                  <span className="mt-2 block break-words text-xs leading-5 text-slate-500">
+                    {skill.description}
+                  </span>
+                ) : null}
+              </>
             )}
+            onOpen={loadSkillReferenceItems}
+            onSelect={selectSkill}
           />
-
-          {searchIsOpen ? (
-            <div
-              id={resultsId}
-              className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-            >
-              {loading ? (
-                <p className="px-4 py-3 text-sm text-slate-500">
-                  Buscando habilidades...
-                </p>
-              ) : errorMessage ? (
-                <p className="px-4 py-3 text-sm text-red-600">
-                  {errorMessage}
-                </p>
-              ) : results.length > 0 ? (
-                results.map((skill) => (
-                  <button
-                    key={skill.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSkill(skill)
-                      setQuery(skill.display_name)
-                      setResults([])
-                      setHasSearched(false)
-                    }}
-                    className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
-                  >
-                    <span className="block break-words text-sm font-semibold text-slate-900">
-                      {skill.display_name}
-                    </span>
-
-                    <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
-                      {skillMetadata(skill)}
-                    </span>
-                  </button>
-                ))
-              ) : hasSearched ? (
-                <p className="px-4 py-3 text-sm text-slate-500">
-                  No se encontraron habilidades disponibles.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </div>
 
         <input
@@ -340,6 +848,12 @@ export function PersonSkillAddForm({
           value={selectedSkill?.display_name ?? ''}
         />
 
+        <input
+          type="hidden"
+          name="proposed_name"
+          value={term}
+        />
+
         {selectedSkill ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="inline-flex min-h-11 max-w-full items-center break-words rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
@@ -351,6 +865,7 @@ export function PersonSkillAddForm({
               onClick={() => {
                 setSelectedSkill(null)
                 setQuery('')
+                clearActionFeedback()
               }}
               className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold text-[#2F5D8C] hover:text-[#1E3A5F]"
             >
@@ -358,13 +873,31 @@ export function PersonSkillAddForm({
             </button>
           </div>
         ) : null}
-
         <FieldError
-          message={state.fieldErrors.skillId}
+          message={
+            state.fieldErrors.skillId ??
+            proposalNameFieldError
+          }
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {!selectedSkill ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-600">
+          Seleccioná una habilidad existente para completar nivel,
+          experiencia, observaciones y evidencia. Si la habilidad no
+          existe, podés proponerla para revisión del catálogo.
+        </div>
+      ) : null}
+
+      <fieldset
+        disabled={!selectedSkill}
+        className={
+          selectedSkill
+            ? 'grid gap-4 sm:gap-5'
+            : 'grid gap-4 opacity-50 sm:gap-5'
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-2">
         <label
           htmlFor={proficiencyId}
           className="block"
@@ -528,6 +1061,11 @@ export function PersonSkillAddForm({
       <div className="flex justify-end">
         <button
           type="submit"
+          data-action="add"
+          onClick={() => {
+            setLastAction('add')
+            clearActionFeedback()
+          }}
           disabled={pending || !selectedSkill}
           className="min-h-11 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
@@ -536,6 +1074,7 @@ export function PersonSkillAddForm({
             : 'Agregar habilidad'}
         </button>
       </div>
+    </fieldset>
     </form>
   )
 }

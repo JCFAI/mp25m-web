@@ -10,6 +10,7 @@ import {
   resolvePersonSkill,
   updatePersonSkill,
 } from '../../../../lib/skills/person-manage'
+import { proposeSkill } from '../../../../lib/skills/proposals-manage'
 import { createClient } from '../../../../lib/supabase/server'
 
 export type PersonSkillActionState = {
@@ -22,6 +23,7 @@ export type PersonSkillActionState = {
     experienceNotes?: string
     notes?: string
     evidenceText?: string
+    proposedName?: string
     reason?: string
   }
 }
@@ -278,6 +280,60 @@ function mapPersonSkillError(error: unknown) {
   )
 }
 
+function mapSkillProposalError(
+  error: unknown
+) {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : ''
+
+  const [, equivalentSkillName] =
+    detail.match(
+      /Equivalent skill already exists:\s*(.+)$/i
+    ) ?? []
+
+  if (equivalentSkillName) {
+    return failure(
+      `Ya existe una habilidad equivalente: "${equivalentSkillName}". Seleccionala desde el catálogo.`,
+      {
+        proposedName:
+          'Buscá la habilidad equivalente en el catálogo.',
+      }
+    )
+  }
+
+  if (/pending skill proposal/i.test(detail)) {
+    return failure(
+      'Ya existe una propuesta pendiente para esa habilidad.',
+      {
+        proposedName:
+          'Revisá las propuestas pendientes del catálogo.',
+      }
+    )
+  }
+
+  if (/proposal name|invalid skill proposal/i.test(detail)) {
+    return failure(
+      'La habilidad propuesta debe tener entre 2 y 200 caracteres.',
+      {
+        proposedName:
+          'Ingresá un nombre claro para la habilidad propuesta.',
+      }
+    )
+  }
+
+  if (/cannot manage|permission|not allowed/i.test(detail)) {
+    return failure(
+      'Tu usuario no tiene permisos para proponer habilidades del catálogo.'
+    )
+  }
+
+  return failure(
+    'No se pudo registrar la propuesta. No se creó ninguna habilidad ni relación.'
+  )
+}
+
 export async function addPersonSkillAction(
   personId: string,
   personName: string,
@@ -340,6 +396,65 @@ export async function addPersonSkillAction(
     readablePersonName
       ? `Se agregó "${readableSkillName}" a ${readablePersonName}. Quedó pendiente de validación.`
       : `Se agregó "${readableSkillName}". Quedó pendiente de validación.`
+  )
+}
+
+export async function proposePersonSkillAction(
+  personId: string,
+  _previousState: PersonSkillActionState,
+  formData: FormData
+): Promise<PersonSkillActionState> {
+  const access = await getCurrentAccess()
+
+  const proposedName =
+    textField(formData, 'proposed_name')
+
+  const fieldErrors:
+    PersonSkillActionState['fieldErrors'] = {}
+
+  if (!UUID_PATTERN.test(personId)) {
+    return failure(
+      'La persona seleccionada no es válida.'
+    )
+  }
+
+  if (
+    proposedName.length < 2 ||
+    proposedName.length > 200
+  ) {
+    fieldErrors.proposedName =
+      'Ingresá un nombre de habilidad entre 2 y 200 caracteres.'
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return failure(
+      'Hay datos que necesitan corrección. Tus datos permanecen cargados.',
+      fieldErrors
+    )
+  }
+
+  try {
+    await proposeSkill(access, {
+      proposedName,
+      suggestedAppliesToPerson: true,
+      suggestedAppliesToOrganization: false,
+      originKind: 'person',
+      originId: personId,
+    })
+  } catch (error) {
+    console.error(
+      '[MP25M] Skill proposal from person failed:',
+      error
+    )
+
+    return mapSkillProposalError(error)
+  }
+
+  revalidatePath('/panel/habilidades')
+  revalidatePath('/panel/habilidades/propuestas')
+
+  return success(
+    `Se propuso "${proposedName}" como nueva habilidad. Quedó pendiente de revisión del catálogo.`
   )
 }
 

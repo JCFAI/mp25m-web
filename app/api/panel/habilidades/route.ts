@@ -4,6 +4,8 @@ import {
 } from 'next/server'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canManageSkillCatalog } from '../../../../lib/skills/governance'
+import { listPendingSkillProposalReferenceOptions } from '../../../../lib/skills/proposals'
 import {
   listSkillReferenceOptions,
   searchSkills,
@@ -53,6 +55,24 @@ export async function GET(request: NextRequest) {
 
   const mode =
     request.nextUrl.searchParams.get('mode')
+
+  if (mode === 'pending-proposals') {
+    if (!canManageSkillCatalog(access)) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const results =
+      await listPendingSkillProposalReferenceOptions()
+
+    return NextResponse.json(results, {
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    })
+  }
 
   const results =
     mode === 'reference'

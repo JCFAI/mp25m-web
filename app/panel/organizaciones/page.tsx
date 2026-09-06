@@ -8,6 +8,8 @@ import {
 } from '../../../lib/organizations/manage'
 import { createClient } from '../../../lib/supabase/server'
 import { OrganizationSearch } from './organization-search'
+import { canManageOrganizationActivities } from '../../../lib/organizations/activities-manage'
+import { countPendingActivityProposals } from '../../../lib/organizations/activity-proposals'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +40,11 @@ export default async function OrganizationsPage() {
 
   const organizationTypes =
     await listOrganizationTypeOptions()
+
+  const canReviewActivities = canManageOrganizationActivities(access)
+  const pendingActivities = canReviewActivities
+    ? await countPendingActivityProposals(access)
+    : 0
 
   return (
     <div className="space-y-5 sm:space-y-7">
@@ -70,6 +77,16 @@ export default async function OrganizationsPage() {
           ) : null}
         </div>
       </section>
+
+      {canReviewActivities && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <h2 className="font-semibold text-slate-900">Revisión del catálogo de actividades</h2>
+          <p className="mt-1 text-sm text-slate-600">Hay {pendingActivities} propuestas pendientes.</p>
+          <Link href="/panel/actividades/propuestas" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#2F5D8C]">
+            Revisar propuestas
+          </Link>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <OrganizationSearch

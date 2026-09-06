@@ -60,7 +60,7 @@ export function canManageOrganizationActivities(
   )
 }
 
-function getActorInternalUserId(
+export function getOrganizationActivityActorId(
   access: InternalAccess[]
 ) {
   const organizationActivityAccess =
@@ -135,7 +135,7 @@ export async function addOrganizationActivity(
   input: AddOrganizationActivityInput
 ): Promise<AddOrganizationActivityResult> {
   const actorInternalUserId =
-    getActorInternalUserId(access)
+    getOrganizationActivityActorId(access)
 
   const organizationId =
     input.organizationId.trim()
@@ -189,7 +189,7 @@ export async function proposeOrganizationActivity(
   input: ProposeOrganizationActivityInput
 ): Promise<string> {
   const actorInternalUserId =
-    getActorInternalUserId(access)
+    getOrganizationActivityActorId(access)
 
   const organizationId =
     input.organizationId.trim()

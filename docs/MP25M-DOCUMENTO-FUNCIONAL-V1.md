@@ -1,5 +1,7 @@
 # MP25M - Documento Funcional V1
 
+> Alineación 7.0: este documento conserva la visión general y decisiones funcionales de largo plazo. No todo lo descrito está implementado. La secuencia histórica de incrementos evolucionó; la sección 22 refleja el estado real hasta el Incremento 6 y la nueva etapa 7. El detalle acordado está en la [especificación funcional del Incremento 7](MP25M-ESPECIFICACION-FUNCIONAL-INCREMENTO-7.md) y su [diseño técnico previsto](MP25M-DISENO-TECNICO-INCREMENTO-7.md). 7.0 sólo alinea documentación, etiquetas visibles y estado del panel.
+
 ## 1. Vision del sistema
 
 El Sistema MP25M se define como un sistema operativo de articulacion productiva para el Movimiento Productivo 25 de Mayo. No debe entenderse solamente como un padron de personas, un mapa de habilidades o una base de datos interna, sino como una herramienta para comprender, conectar, activar y medir capacidades productivas distribuidas en el territorio.
@@ -13,6 +15,8 @@ detectar -> analizar -> relacionar -> articular -> acordar -> ejecutar -> medir 
 ```
 
 Cada ciclo debe dejar registro de que se detecto, quien lo registro, con que evidencia, que decisiones se tomaron, quienes participaron, que resultado tuvo y que aprendizaje queda disponible para proximas acciones.
+
+La pregunta rectora es: **¿Qué podemos producir, con quiénes, con qué ventajas, para qué mercados y qué nos falta para poder hacerlo?**
 
 ## 2. Objetivos
 
@@ -36,10 +40,10 @@ La primera version funcional no debe esperar a que esten completos todos los mod
 La vertical prioritaria del MVP sera:
 
 ```text
-oportunidad manual -> requisitos -> comparacion con capacidades existentes -> cobertura y brechas -> responsable -> articulacion -> seguimiento -> resultado
+oportunidad manual -> requerimientos -> comparacion con capacidades existentes -> cobertura y brechas -> responsable -> articulacion -> seguimiento -> resultado
 ```
 
-El Radar de Oportunidades Productivas sera parte del MVP desde el inicio, pero con carga manual y validacion humana. Organizaciones, recursos productivos, necesidades, ofertas y capacidades ampliadas se incorporaran incrementalmente alrededor de esta vertical.
+La planificación original situaba el Radar de Oportunidades Productivas desde el inicio del MVP mediante carga manual y validación humana. La evolución real implementó primero el registro manual de oportunidades y las capacidades de la red. El Incremento 7 construirá su núcleo de análisis; el Radar externo se mantiene como extensión futura, sin implementarse en 7.0. Recursos productivos, necesidades y ofertas se incorporarán incrementalmente alrededor de esta vertical.
 
 No forman parte del MVP inicial:
 
@@ -74,7 +78,7 @@ El backoffice interno requerira autenticacion. El formulario de actualizacion me
 |---|---|
 | Administrador | Configuracion general, usuarios, permisos, catalogos y acceso operativo completo. Debe operar con auditoria estricta. |
 | Validador | Revision y validacion dentro de su alcance territorial, tematico o funcional. Puede aprobar, rechazar o pedir correcciones. |
-| Articulador | Gestion de oportunidades y articulaciones asignadas. Puede cargar requisitos, analizar cobertura, convocar, registrar seguimiento y resultados. |
+| Articulador | Gestion de oportunidades y articulaciones asignadas. Puede cargar requerimientos, analizar cobertura, convocar, registrar seguimiento y resultados. |
 | Referente de nodo | Acceso a informacion operativa correspondiente a su nodo, sus integrantes, capacidades, oportunidades vinculadas y acciones pendientes. |
 | Participante | Perfil propio y funciones internas habilitadas, como responder convocatorias o declarar capacidades, segun permisos y consentimiento. |
 | Autoridad/Analista | Indicadores e informacion agregada para seguimiento institucional. No tiene acceso automatico a contactos privados. |
@@ -178,17 +182,17 @@ Representa una demanda interna o externa: trabajo requerido, insumo, capacitacio
 
 Representa una posibilidad de accion productiva, comercial, laboral, institucional, formativa, solidaria o estrategica. Puede ser paga, gratuita, de intercambio o a definir. Debe tener responsable, fuente, estado, proxima accion y seguimiento.
 
-### Requisito de oportunidad
+### Requerimiento de oportunidad
 
-Describe una condicion necesaria u opcional para evaluar una oportunidad: capacidad, recurso, ubicacion, certificacion, idioma, escala, disponibilidad, plazo, documentacion, contacto, financiamiento o condicion administrativa.
+Condición atómica, trazable y evaluable que debe o conviene satisfacerse para responder, presentar, ejecutar o concretar una oportunidad. Puede referirse a capacidad, recurso, ubicación, certificación, idioma, escala, disponibilidad, plazo, documentación, contacto, financiamiento o condición administrativa. El nuevo modelo usa siempre Requerimiento; conserva identidad estable y revisiones inmutables, con nueva validación ante cambios semánticos.
 
 ### Coincidencia
 
-Registra una relacion entre un requisito y una persona, organizacion, nodo, capacidad o recurso que podria cubrirlo total o parcialmente.
+Es una hipótesis analítica de contribución a un requerimiento. En el Incremento 7 se consideran personas, organizaciones y candidatos provisionales pertinentes, con uno o varios fundamentos. No asigna al actor ni confirma disponibilidad o cobertura. Nodos y recursos pueden aportar contexto; futuras extensiones no se implementan en 7.0.
 
 ### Brecha
 
-Registra un requisito faltante o parcialmente cubierto. Debe poder generar convocatoria interna, busqueda en otros nodos, busqueda de organizacion aliada, incorporacion de proveedor o especialista externo, actividad de seguimiento y reanalisis de cobertura.
+Registra un faltante o insuficiencia relevante sobre el cual se decide actuar. Se abre explícitamente: un requerimiento faltante no genera una brecha automática. Puede motivar convocatorias, búsquedas internas o externas, seguimiento y reanálisis. Resolverla no cambia automáticamente la cobertura.
 
 ### Articulacion
 
@@ -197,6 +201,20 @@ Representa el proceso de conectar personas, nodos, organizaciones, recursos y op
 ### Proyecto
 
 Representa una oportunidad acordada y en ejecucion. Incluye objetivos, alcance, responsables, participantes, cronograma, presupuesto, entregables, riesgos, ingresos, contribuciones y resultados.
+
+**Oportunidad ≠ Articulación ≠ Proyecto.** La ruta actual `/panel/oportunidades` corresponde a oportunidades. La articulación es el proceso operativo posterior al análisis; el proyecto corresponde al acuerdo que entra en ejecución. Ningún análisis crea esas relaciones automáticamente.
+
+### Actividad canónica
+
+Describe lo que realiza una organización en el catálogo de actividades. No equivale a una habilidad/capacidad ni debe confundirse con oportunidad, proyecto o actividad de seguimiento.
+
+### Evaluación de cobertura
+
+Conclusión explicable sobre cuánto puede satisfacerse un requerimiento, con verificaciones, evidencia, confianza, responsable, alcance y vigencia. Cubierto con confianza baja no es una conclusión admisible. Las capacidades de varios actores no son automáticamente sumables: la combinación se evalúa. Cobertura analítica no implica compromiso operativo.
+
+### Trayectoria productiva
+
+Historial verificable de participación de una persona u organización en oportunidades, articulaciones y proyectos, incluyendo su rol, contribución, resultados y evidencia. La experiencia comprobable aporta fundamentos para coincidencias y cobertura, pero no demuestra disponibilidad actual ni asigna participación automática. Los resultados deben retroalimentar el mapa de capacidades y el futuro Radar conservando quién hizo qué, en qué contexto, con qué evidencia y resultado.
 
 ### Actividad o evento
 
@@ -216,17 +234,19 @@ Registra documentos, enlaces, referencias, comprobantes, reuniones, verificacion
 
 ## 9. Modelo funcional minimo del MVP
 
+Estado alineado con el cierre del Incremento 6. Las entidades marcadas como nuevas siguen siendo diseño futuro; los subincrementos 7A–7G no se implementan en 7.0.
+
 | Entidad | Estado para el MVP | Observacion |
 |---|---|---|
 | Personas | Existente y ampliable | Ya existen perfiles, contactos, nodos, habilidades, vectores y consentimientos. |
-| Organizaciones | Nueva o parcial | Se incorpora primero lo minimo para fuente, cliente, aliado o entidad relacionada. |
+| Organizaciones | Implementado y ampliable | Directorio, alta canónica, validación y relaciones territoriales; capacidades y actividades incorporadas hasta el Incremento 6. |
 | Nodos | Existente y ampliable | Se usan para alcance territorial, referentes y busqueda de capacidades. |
-| Capacidades | Parcial | Comienzan desde habilidades existentes y se amplian con disponibilidad, alcance y evidencia. |
-| Recursos productivos | Nuevo | Se agregan incrementalmente cuando un requisito lo demande. |
+| Capacidades | Implementado y ampliable | Habilidades personales, capacidades organizacionales, mapa por nodo y gobernanza de catálogos. Capacidad registrada no demuestra disponibilidad. |
+| Recursos productivos | Nuevo | Se agregan incrementalmente cuando un requerimiento lo demande. |
 | Necesidades y ofertas | Nuevo | Se amplian luego de la vertical de oportunidad manual. |
-| Oportunidades | Nuevo | Entidad central del MVP. |
-| Requisitos de oportunidades | Nuevo | Base del analisis explicable. |
-| Coincidencias | Nuevo | Relacionan requisitos con capacidades existentes. |
+| Oportunidades | Implementado y ampliable | Registro manual, actores de origen, responsable y seguimiento; el análisis de requerimientos queda para el Incremento 7. |
+| Requerimientos de oportunidades | Nuevo | Base del analisis explicable. |
+| Coincidencias | Nuevo | Relacionan requerimientos con capacidades existentes. |
 | Brechas | Nuevo | Identifican faltantes y acciones para resolverlos. |
 | Articulaciones | Nuevo | Gestionan la conexion operativa posterior al analisis. |
 | Proyectos | Nuevo | Nacen cuando una oportunidad se acuerda y requiere ejecucion. |
@@ -281,7 +301,25 @@ Debe administrar catalogos, estados, permisos, validaciones, fuentes, trazabilid
 
 ## 11. Observatorio y Radar de Oportunidades Productivas
 
-Este modulo debe ser central desde el MVP. Su funcion inicial sera registrar manualmente, clasificar, validar, analizar y activar oportunidades para el MP25M.
+El Observatorio y Radar conserva su papel central en la visión del MVP. Hoy existe el registro manual de oportunidades; el Incremento 7 se concentra en su análisis. La detección externa automatizada será futura y producirá primero señales o hallazgos externos para revisión humana y clasificación. Una señal aceptada como oportunidad podrá materializarse como oportunidad candidata y, luego de revisión/aceptación, como oportunidad MP25M, conservando su origen y recorriendo el mismo núcleo 7A–7F que una oportunidad manual. 7.0 no implementa el Radar.
+
+### Radar amplio y Radar dirigido: visión futura
+
+El **Radar amplio** parte del mapa general de capacidades y busca señales externas potencialmente relevantes para la red. El **Radar dirigido** parte de un perfil definido manualmente con actores, capacidades, combinaciones de capacidades, temas, mercados u objetivos seleccionados. Ambos producirán señales gobernadas y explicables, nunca oportunidades operativas, articulaciones, proyectos o asignaciones directamente.
+
+**Perfil de búsqueda productiva: intención de búsqueda definida manualmente a partir de actores, capacidades, combinaciones de capacidades, temas, mercados u objetivos de interés, utilizada para detectar señales externas potencialmente relevantes para el MP25M.**
+
+Tres entradas combinables: **capacidades → mercado**, **actores → oportunidades** e **interés → oportunidades**. El perfil podrá expresar habilidades, actividades, sectores, tecnologías, territorios, países/regiones, modalidad presencial/remota/exportable y preferencias económicas **rentada, no rentada o indistinta**, sin fijar una taxonomía exhaustiva. La búsqueda podrá ser puntual; un perfil guardado reutilizable, su persistencia y monitoreo automático quedan fuera del Incremento 7.
+
+**Señal / hallazgo externo:** información externa detectada por el Radar que podría resultar relevante para el MP25M y que requiere revisión humana antes de generar cualquier entidad operativa. Su clasificación podrá resultar en oportunidad candidata, actor externo de interés, fuente relevante, tema/mercado a seguir, duplicado o irrelevante. No todo hallazgo es una oportunidad.
+
+El circuito previsto es **perfil de búsqueda / Radar amplio → Radar → señal o hallazgo externo → revisión humana → clasificación**. Sólo la rama aceptada como oportunidad continúa por **oportunidad candidata → revisión/aceptación → oportunidad MP25M → mismo núcleo 7A–7F**.
+
+Un actor utilizado como semilla de una búsqueda del Radar no queda asignado, asociado ni comprometido con las oportunidades que esa búsqueda descubra. Actor semilla no equivale a coincidencia aceptada, actor asignado ni participante de articulación o proyecto; deberá pasar por el análisis normal 7B.
+
+Cada hallazgo deberá explicar por qué apareció, conservando búsqueda/perfil, criterios, actores y capacidades semilla, temas/mercados, señales de relevancia, fecha y fuente externa. La trayectoria productiva comprobada, combinaciones de actores que trabajaron juntos, contribuciones y resultados podrán orientar perfiles futuros, sin inferir disponibilidad actual ni asignación automática.
+
+7G sólo preserva compatibilidad y procedencia. No se implementan ahora búsquedas web automáticas, scraping, APIs externas, persistencia de perfiles, monitoreo periódico, alertas recurrentes, búsqueda continua, IA, ranking semántico, generación automática de requerimientos, creación automática de actores/oportunidades/articulaciones/proyectos ni contacto automático con actores externos. El detalle funcional y los puntos de extensión técnicos se documentan en los documentos del Incremento 7; el roadmap no cambia.
 
 Debe permitir registrar oportunidades provenientes de:
 
@@ -306,7 +344,7 @@ Cada oportunidad debe registrar:
 - Modalidad: paga, gratuita, intercambio o a definir.
 - Moneda y valor estimado cuando corresponda.
 - Fecha de deteccion y vencimiento.
-- Requisitos tecnicos, productivos, comerciales y administrativos.
+- Requerimientos tecnicos, productivos, comerciales y administrativos.
 - Volumen, plazo y ubicacion.
 - Trabajo presencial, remoto o exportable.
 - Contactos institucionales y responsables.
@@ -327,38 +365,43 @@ El sistema no debe usar un unico puntaje general para decidir si una oportunidad
 - Riesgo.
 - Confianza de la informacion.
 
-Para cobertura, cada requisito debe indicar:
+Para cobertura, cada requerimiento debe indicar:
 
-| Campo del requisito | Descripcion |
+| Campo del requerimiento | Descripcion |
 |---|---|
-| Obligatorio u opcional | Define si el requisito bloquea la oportunidad o solo mejora la propuesta. |
+| Obligatorio u opcional | Define si el requerimiento bloquea la oportunidad o solo mejora la propuesta. |
 | Peso explicito | Importancia relativa dentro de la cobertura productiva. |
-| Estado | Satisfecho, parcial, faltante o no evaluado. |
+| Estado | Cubierto, Parcialmente cubierto, Faltante o No evaluado. |
 | Capacidad o recurso relacionado | Habilidad, capacidad, recurso, certificacion, contacto o condicion vinculada. |
 | Actor compatible | Persona, organizacion o nodo que podria cubrirlo. |
 | Evidencia | Dato, referencia, documento, experiencia o validacion que justifica la coincidencia. |
 | Observaciones | Aclaraciones, restricciones o dudas del analisis. |
 
-Los requisitos no evaluados deben afectar la completitud del analisis y no ocultarse. Todo requisito obligatorio faltante debe destacarse independientemente del porcentaje de cobertura.
+Los requerimientos no evaluados deben afectar la completitud del analisis y no ocultarse. Todo requerimiento obligatorio faltante debe destacarse independientemente del porcentaje de cobertura.
 
-Si se muestra un porcentaje de cobertura productiva, la formula debe ser visible. Una formula inicial posible es:
+Obligatorio + faltante representa un bloqueante confirmado; obligatorio + parcial, cobertura crítica incompleta; obligatorio + no evaluado, incertidumbre crítica. Se conservan evaluaciones históricas y se señalan conclusiones que requieren revisión sin reescribir el pasado.
 
-```text
-cobertura productiva = suma de pesos satisfechos + mitad de pesos parciales / suma de pesos evaluables
-```
-
-Los requisitos no evaluados no deben inflar la cobertura; deben mostrarse en completitud del analisis. La completitud puede calcularse como:
+La fórmula de cobertura productiva es una decisión funcional acordada y debe ser visible:
 
 ```text
-completitud = requisitos evaluados / requisitos totales
+cobertura productiva = Σ(peso × valor de cobertura) / Σ(pesos de los requerimientos activos con evaluación confirmada vigente)
+Cubierto = 1; Parcialmente cubierto = 0,5; Faltante = 0
 ```
+
+Los requerimientos no evaluados no forman parte del denominador de cobertura; su ausencia se refleja mediante completitud. Las capas `network_mp25m` y `expanded_argentina` usan el mismo universo de requerimientos evaluados y el mismo denominador para que sus porcentajes sean comparables. La cobertura ampliada Argentina representa la cobertura posible utilizando la red MP25M más contribuciones argentinas externas evaluadas; encontrar un actor no implica compromiso. 7D implementará y verificará esta regla, cuya definición funcional ya está acordada. La completitud se calcula separadamente como:
+
+```text
+completitud = requerimientos activos con evaluación confirmada vigente / requerimientos activos identificados
+```
+
+Si no existe ningún requerimiento con evaluación confirmada vigente, todavía no existe cobertura calculable: no se interpreta como 0 %. La completitud debe mostrar la ausencia de análisis; si tampoco hay requerimientos identificados, se explicita la ausencia de universo sin afirmar completitud plena.
 
 El resultado debe mostrar:
 
-- Requisitos satisfechos.
-- Requisitos parcialmente satisfechos.
-- Requisitos faltantes.
-- Requisitos no evaluados.
+- Requerimientos cubiertos.
+- Requerimientos parcialmente cubiertos.
+- Requerimientos faltantes.
+- Requerimientos no evaluados.
 - Personas, organizaciones o nodos compatibles.
 - Posibilidad de buscar capacidades faltantes.
 - Justificacion del resultado.
@@ -375,7 +418,7 @@ Una brecha debe poder generar acciones concretas:
 - Actividad de seguimiento.
 - Reanalisis de cobertura.
 
-Cada accion generada desde una brecha debe mantener vinculo con el requisito original para que el analisis pueda recalcularse cuando se incorpore nueva informacion.
+Cada accion generada desde una brecha debe mantener vinculo con el requerimiento original para que el analisis pueda recalcularse cuando se incorpore nueva informacion.
 
 ## 14. Estados funcionales
 
@@ -389,7 +432,7 @@ Compatible y Requiere completar capacidades son resultados del analisis, no esta
 | Pendiente de validacion | Requiere revision de fuente, datos minimos y visibilidad. |
 | Rechazada | No supera validacion o no corresponde al MP25M. |
 | Activa | Validada y disponible para analisis o gestion. |
-| En analisis | Se estan cargando requisitos, cobertura, brechas y evaluacion. |
+| En analisis | Se estan cargando requerimientos, cobertura, brechas y evaluacion. |
 | En articulacion | Hay gestion activa con personas, nodos u organizaciones. |
 | Propuesta presentada | Se presento una propuesta o respuesta formal. |
 | Acordada | La oportunidad fue aceptada y puede derivar en proyecto. |
@@ -523,7 +566,7 @@ Los indicadores minimos son:
 - Oportunidades activas.
 - Porcentaje de oportunidades con analisis iniciado.
 - Completitud promedio del analisis.
-- Requisitos satisfechos, parciales, faltantes y no evaluados.
+- Requerimientos cubiertos, parcialmente cubiertos, faltantes y no evaluados.
 - Coincidencias encontradas.
 - Brechas abiertas y brechas resueltas.
 - Articulaciones iniciadas.
@@ -557,18 +600,19 @@ El acceso a cada seccion debe depender del rol, permisos, territorio y visibilid
 
 ## 22. Hoja de ruta corregida
 
-| Incremento | Alcance |
-|---|---|
-| Incremento 1 | Autenticacion, roles y estructura del backoffice. |
-| Incremento 2 | Oportunidad manual, requisitos y responsable. |
-| Incremento 3 | Capacidades relacionadas, cobertura y brechas. |
-| Incremento 4 | Articulaciones, actividades y seguimiento. |
-| Incremento 5 | Resultados, analisis economico e indicadores. |
-| Incremento 6 | Organizaciones, recursos y necesidades/ofertas ampliadas. |
-| Incremento 7 | Fuentes externas, alertas y automatizacion. |
-| Incremento 8 | Integracion futura y limitada con ClubSmart. |
+La numeración original era planificación histórica, no evidencia de entregas. La secuencia real evolucionó: no se implementaron requerimientos/cobertura en los antiguos incrementos 2–3 ni módulos propios de articulaciones/proyectos en los siguientes. Se conservan esas decisiones funcionales válidas como alcance futuro, pero la tabla siguiente refleja la secuencia efectivamente implementada.
 
-Esta hoja de ruta evita exigir todos los modulos antes del Radar. La prioridad es construir una vertical util, verificable y ampliable.
+| Incremento real | Alcance y estado |
+|---|---|
+| Incremento 1 | Implementado: autenticación, roles/ámbitos y estructura del backoffice. |
+| Incremento 2 | Implementado: oportunidades manuales, actores de origen/candidatos, responsable, edición y seguimiento, con evolución del directorio de personas. |
+| Incremento 3 | Implementado: directorio y fichas de nodos, composición y relaciones territoriales. |
+| Incremento 4 | Implementado: mapa de capacidades de nodos. |
+| Incremento 5 | Implementado: directorio, fichas, alta y validación de organizaciones y relaciones territoriales. |
+| Incremento 6 | Implementado: directorio de habilidades, gestión de habilidades personales, capacidades y actividades de organizaciones, gobernanza de catálogos y propuestas. |
+| Incremento 7 | Previsto: análisis productivo de oportunidades — requerimientos, coincidencias, cobertura, brechas y preparación para Radar. 7.0 sólo alinea documentación/nomenclatura; 7A–7G se desarrollarán después. |
+
+Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; articulaciones; proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El orden exacto 7.0 → 7G se registra en el diseño técnico del Incremento 7.
 
 ## 23. Decisiones pendientes
 
@@ -587,6 +631,8 @@ Las siguientes decisiones siguen requiriendo definicion institucional:
 ## 24. Criterios transversales
 
 El sistema debe mantener estos criterios en todos sus modulos:
+
+Para el análisis del Incremento 7 rigen además diez invariantes: sugerencia ≠ decisión; coincidencia ≠ asignación; capacidad registrada ≠ disponibilidad; cobertura analítica ≠ compromiso operativo; requerimiento faltante ≠ brecha abierta; brecha resuelta ≠ requerimiento automáticamente cubierto; actor externo ≠ integrante del MP25M; resultado histórico ≠ estado actual; dato ≠ inferencia ≠ hipótesis; ningún análisis crea relaciones operativas implícitas.
 
 - Trazabilidad de datos, acciones y decisiones.
 - Consentimiento explicito para usos sensibles de informacion.

@@ -41,7 +41,7 @@ export default async function NodesPage() {
 
         <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-600 md:mt-3 md:text-blue-50">
           Consultá la composición confirmada, las
-          capacidades relevadas y las articulaciones
+          capacidades relevadas y las oportunidades
           vinculadas con cada nodo.
         </p>
       </section>

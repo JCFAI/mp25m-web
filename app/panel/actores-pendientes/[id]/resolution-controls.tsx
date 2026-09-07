@@ -184,13 +184,13 @@ export function ResolutionControls({
 
   const decisionHelp =
     decision === 'existing'
-      ? 'La articulación dejará de apuntar al registro provisorio y quedará vinculada con esta persona canónica. Los nodos informados para el candidato no se convertirán en pertenencias confirmadas.'
+      ? 'La oportunidad dejará de apuntar al registro provisorio y quedará vinculada con esta persona canónica. Los nodos informados para el candidato no se convertirán en pertenencias confirmadas.'
       : decision === 'new'
         ? strongMatchExists
           ? 'Existe al menos una coincidencia nominal fuerte. Si sabés que se trata de otra persona, explicá por qué antes de crear un nuevo registro canónico.'
           : 'Se creará una nueva persona canónica a partir de los datos informados. Los nodos del candidato conservarán carácter de procedencia y no se confirmarán automáticamente.'
         : decision === 'reject'
-          ? 'El candidato dejará de ser un actor de origen de la articulación. La decisión quedará registrada en la auditoría.'
+          ? 'El candidato dejará de ser un actor de origen de la oportunidad. La decisión quedará registrada en la auditoría.'
           : ''
 
   const submitLabel =
@@ -460,7 +460,7 @@ export function ResolutionControls({
                     : decision ===
                         'new'
                       ? 'Si existe una coincidencia fuerte, explicá por qué sabés que se trata de otra persona.'
-                      : 'Explicá por qué este registro no corresponde como actor de la articulación.'
+                      : 'Explicá por qué este registro no corresponde como actor de la oportunidad.'
                 }
                 className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-blue-100"
               />

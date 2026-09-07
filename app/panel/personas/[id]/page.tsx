@@ -513,17 +513,17 @@ export default async function PersonProfilePage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">
-          Articulaciones
+          Oportunidades
         </h2>
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          Articulaciones en las que la persona figura como actor de origen.
+          Oportunidades en las que la persona figura como actor de origen.
         </p>
 
         <div className="mt-5 space-y-3">
           {articulations.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              Articulaciones pendientes de registrar.
+              No hay oportunidades vinculadas con esta persona.
             </div>
           ) : (
             articulations.map(
@@ -547,7 +547,7 @@ export default async function PersonProfilePage({
                     </div>
 
                     <span className="text-sm font-medium text-[#2F5D8C]">
-                      Ver articulación →
+                      Ver oportunidad →
                     </span>
                   </div>
 

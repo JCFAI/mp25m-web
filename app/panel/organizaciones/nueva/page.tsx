@@ -60,7 +60,7 @@ export default async function NewOrganizationPage() {
         <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-600 md:mt-3 md:text-blue-50">
           El alta crea únicamente la identidad canónica
           de la organización. La presencia territorial,
-          las capacidades y las articulaciones se
+          las capacidades y las oportunidades se
           administran por separado.
         </p>
       </section>

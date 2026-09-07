@@ -92,7 +92,7 @@ export async function updateOpportunityStatusAction(
       return {
         status: 'error',
         message:
-          'La articulación ya se encuentra en ese estado.',
+          'La oportunidad ya se encuentra en ese estado.',
       }
     }
 
@@ -258,7 +258,7 @@ export async function updateOpportunityAssigneeAction(
     return {
       status: 'error',
       message:
-        'La articulación ya tiene ese responsable.',
+        'La oportunidad ya tiene ese responsable.',
     }
   }
 
@@ -293,6 +293,6 @@ export async function updateOpportunityAssigneeAction(
     message:
       assigneeId
         ? 'El responsable fue actualizado correctamente.'
-        : 'La articulación quedó sin responsable.',
+        : 'La oportunidad quedó sin responsable.',
   }
 }

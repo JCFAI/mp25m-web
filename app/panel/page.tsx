@@ -9,16 +9,16 @@ type PanelModule = {
 
 const modules: PanelModule[] = [
   {
-    name: 'Articulaciones',
+    name: 'Oportunidades',
     description:
-      'Registro, an\u00e1lisis y seguimiento de articulaciones productivas, sus oportunidades y necesidades.',
+      'Registro y seguimiento de oportunidades productivas como base para su análisis.',
     status: 'active',
     href: '/panel/oportunidades',
   },
   {
     name: 'Personas',
     description:
-      'Directorio de personas, sus participaciones territoriales, habilidades y articulaciones.',
+      'Directorio de personas, sus participaciones territoriales, habilidades y oportunidades.',
     status: 'active',
     href: '/panel/personas',
   },
@@ -42,6 +42,12 @@ const modules: PanelModule[] = [
       'Directorio de habilidades personales y capacidades productivas u organizacionales relevadas.',
     status: 'active',
     href: '/panel/habilidades',
+  },
+  {
+    name: 'Articulaciones',
+    description:
+      'Proceso futuro de conexión operativa de actores y recursos para concretar oportunidades.',
+    status: 'planned',
   },
   {
     name: 'Proyectos',
@@ -208,16 +214,16 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 6
+              Incremento 7
             </span>
           </div>
 
           <h2 className="mt-4 text-base font-semibold text-[#1E3A5F] sm:mt-5 sm:text-lg">
-            Habilidades y capacidades
+            Análisis productivo de oportunidades
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            {'El sistema integra personas, nodos, organizaciones y el catálogo común de capacidades.'}
+            {'La nueva etapa incorporará requerimientos, coincidencias, cobertura y brechas sobre las capacidades ya registradas.'}
           </p>
         </article>
       </section>

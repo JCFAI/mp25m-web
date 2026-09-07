@@ -64,7 +64,7 @@ export function PanelNavigation() {
           }
           className={activeClass(opportunitiesActive)}
         >
-          <span>Articulaciones</span>
+          <span>Oportunidades</span>
 
           {opportunitiesActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />

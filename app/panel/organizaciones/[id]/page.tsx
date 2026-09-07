@@ -613,7 +613,7 @@ export default async function OrganizationProfilePage({
             {organization.articulation_count}
           </p>
           <p className="mt-1 text-xs leading-4 text-slate-500 sm:text-sm sm:leading-5">
-            Articulaciones
+            Oportunidades
           </p>
         </article>
       </section>
@@ -1021,7 +1021,7 @@ export default async function OrganizationProfilePage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="break-words text-lg font-semibold text-slate-950">
-          Articulaciones
+          Oportunidades
         </h2>
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -1032,7 +1032,7 @@ export default async function OrganizationProfilePage({
         <div className="mt-4 space-y-3 sm:mt-5">
           {articulations.length === 0 ? (
             <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
-              Articulaciones pendientes de registrar.
+              No hay oportunidades vinculadas con esta organización.
             </div>
           ) : (
             articulations.map((articulation) => (
@@ -1055,7 +1055,7 @@ export default async function OrganizationProfilePage({
                   </div>
 
                   <span className="inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-[#2F5D8C]">
-                    Ver articulación →
+                    Ver oportunidad →
                   </span>
                 </div>
 

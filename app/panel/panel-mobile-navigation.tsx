@@ -21,8 +21,8 @@ const navigationItems = [
   },
   {
     href: '/panel/oportunidades',
-    label: 'Articulaciones',
-    marker: 'A',
+    label: 'Oportunidades',
+    marker: 'O',
   },
   {
     href: '/panel/personas',

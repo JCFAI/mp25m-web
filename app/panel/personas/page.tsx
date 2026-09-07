@@ -42,7 +42,7 @@ export default async function PeoplePage() {
         <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-50">
           Accedé al registro canónico de cada persona,
           sus participaciones territoriales, habilidades
-          y articulaciones.
+          y oportunidades.
         </p>
       </section>
 

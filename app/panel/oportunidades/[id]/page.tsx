@@ -12,6 +12,11 @@ import { createClient } from '../../../../lib/supabase/server'
 import { OpportunityAssigneeForm } from './assignee-form'
 import { OpportunityFollowupForm } from './followup-form'
 import { OpportunityStatusForm } from './status-form'
+import {
+  listOpportunityRequirements,
+  requirementTypeLabels,
+  requirementValidationLabels,
+} from '../../../../lib/opportunities/requirements'
 
 export const dynamic = 'force-dynamic'
 
@@ -721,6 +726,10 @@ export default async function OpportunityDetailPage({
   const canManage =
     canManageOpportunity(access)
 
+  const requirements = access.length > 0
+    ? await listOpportunityRequirements(id)
+    : []
+
   const {
     opportunity,
     origins,
@@ -784,6 +793,49 @@ export default async function OpportunityDetailPage({
             ) : null}
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
+          Análisis productivo
+        </p>
+        <h2 className="mt-2 text-lg font-semibold text-slate-950">
+          Requerimientos <span className="text-sm font-normal text-slate-500">({requirements.length})</span>
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Los requerimientos describen las condiciones que deberán analizarse para determinar si la oportunidad puede ser abordada.
+        </p>
+        {requirements.length === 0 ? (
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+            Todavía no hay requerimientos registrados para esta oportunidad.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {requirements.map((requirement) => (
+              <article key={requirement.requirement_id} className="min-w-0 rounded-xl border border-slate-200 p-4">
+                <h3 className="break-words font-semibold text-slate-900">
+                  {requirement.name ?? 'Requerimiento sin revisión registrada'}
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-700">
+                  <span className="rounded-full bg-slate-100 px-2 py-1">
+                    {requirement.record_status === 'withdrawn' ? 'Retirado' : 'Activo'}
+                  </span>
+                  {requirement.is_mandatory !== null && <span className="rounded-full bg-sky-50 px-2 py-1">{requirement.is_mandatory ? 'Obligatorio' : 'Opcional'}</span>}
+                  {requirement.validation_status && <span className="rounded-full bg-slate-100 px-2 py-1">{requirementValidationLabels[requirement.validation_status]}</span>}
+                  {requirement.revision_no !== null && <span className="px-2 py-1">Revisión actual: {requirement.revision_no}</span>}
+                </div>
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  {requirement.requirement_type && <div><dt className="text-slate-500">Tipo</dt><dd>{requirementTypeLabels[requirement.requirement_type]}</dd></div>}
+                  {requirement.weight !== null && <div><dt className="text-slate-500">Peso relativo</dt><dd>{requirement.weight} de 5</dd></div>}
+                  {requirement.description && <div className="sm:col-span-2"><dt className="text-slate-500">Descripción</dt><dd className="whitespace-pre-wrap break-words">{requirement.description}</dd></div>}
+                  {requirement.satisfaction_criteria && <div className="sm:col-span-2"><dt className="text-slate-500">Criterio de satisfacción</dt><dd className="whitespace-pre-wrap break-words">{requirement.satisfaction_criteria}</dd></div>}
+                  {requirement.skill_name && <div><dt className="text-slate-500">Habilidad / capacidad canónica</dt><dd className="break-words">{requirement.skill_name}</dd></div>}
+                  {requirement.activity_name && <div><dt className="text-slate-500">Actividad canónica</dt><dd className="break-words">{requirement.activity_name}</dd></div>}
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">

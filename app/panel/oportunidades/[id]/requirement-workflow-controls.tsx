@@ -219,6 +219,44 @@ export function OpportunityRequirementWorkflowControls({
       {showValidation ? (
         <form
           action={resolveFormAction}
+          onSubmit={(event) => {
+            const nativeEvent =
+              event.nativeEvent
+
+            const submitter =
+              nativeEvent instanceof SubmitEvent
+                ? nativeEvent.submitter
+                : null
+
+            if (
+              !(submitter instanceof HTMLButtonElement) ||
+              submitter.value !== 'rejected' ||
+              validationReason.trim().length >= 3
+            ) {
+              return
+            }
+
+            event.preventDefault()
+
+            const field =
+              event.currentTarget.elements.namedItem(
+                'reason'
+              )
+
+            if (
+              field instanceof
+              HTMLTextAreaElement
+            ) {
+              field.setCustomValidity(
+                validationReason.trim().length === 0
+                  ? 'Ingresá el motivo del rechazo.'
+                  : 'El motivo del rechazo debe tener al menos 3 caracteres.'
+              )
+
+              field.reportValidity()
+              field.focus()
+            }
+          }}
           className="rounded-xl border border-amber-200 bg-amber-50 p-4"
         >
           <p className="text-sm font-semibold text-amber-900">
@@ -234,11 +272,30 @@ export function OpportunityRequirementWorkflowControls({
             rows={2}
             maxLength={2000}
             value={validationReason}
-            onChange={(event) =>
+            onChange={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+
               setValidationReason(
                 event.target.value
               )
-            }
+            }}
+            onInvalid={(event) => {
+              const field =
+                event.currentTarget
+
+              if (field.validity.tooShort) {
+                field.setCustomValidity(
+                  'El comentario o motivo debe tener al menos 3 caracteres.'
+                )
+              }
+            }}
+            onInput={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+            }}
             className="mt-3 w-full resize-y rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
             placeholder="Comentario de validación o motivo del rechazo..."
           />
@@ -260,10 +317,7 @@ export function OpportunityRequirementWorkflowControls({
               type="submit"
               name="resolution"
               value="rejected"
-              disabled={
-                resolvePending ||
-                validationReason.trim().length < 3
-              }
+              disabled={resolvePending}
               className="rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Rechazar
@@ -279,6 +333,35 @@ export function OpportunityRequirementWorkflowControls({
       {showWithdraw ? (
         <form
           action={withdrawFormAction}
+          onSubmit={(event) => {
+            const reason =
+              lifecycleReason.trim()
+
+            if (reason.length >= 3) {
+              return
+            }
+
+            event.preventDefault()
+
+            const field =
+              event.currentTarget.elements.namedItem(
+                'reason'
+              )
+
+            if (
+              field instanceof
+              HTMLTextAreaElement
+            ) {
+              field.setCustomValidity(
+                reason.length === 0
+                  ? 'Ingresá el motivo del retiro.'
+                  : 'El motivo del retiro debe tener al menos 3 caracteres.'
+              )
+
+              field.reportValidity()
+              field.focus()
+            }
+          }}
           className="rounded-xl border border-slate-200 bg-slate-50 p-4"
         >
           <p className="text-sm font-semibold text-slate-800">
@@ -291,26 +374,47 @@ export function OpportunityRequirementWorkflowControls({
 
           <textarea
             name="reason"
-            required
-            minLength={3}
             maxLength={2000}
             rows={2}
             value={lifecycleReason}
-            onChange={(event) =>
+            onChange={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+
               setLifecycleReason(
                 event.target.value
               )
-            }
+            }}
+            onInvalid={(event) => {
+              const field =
+                event.currentTarget
+
+              if (field.validity.valueMissing) {
+                field.setCustomValidity(
+                  'Ingresá el motivo del retiro.'
+                )
+                return
+              }
+
+              if (field.validity.tooShort) {
+                field.setCustomValidity(
+                  'El motivo del retiro debe tener al menos 3 caracteres.'
+                )
+              }
+            }}
+            onInput={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+            }}
             className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
             placeholder="Motivo del retiro..."
           />
 
           <button
             type="submit"
-            disabled={
-              withdrawPending ||
-              lifecycleReason.trim().length < 3
-            }
+            disabled={withdrawPending}
             className="mt-3 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {withdrawPending
@@ -327,6 +431,35 @@ export function OpportunityRequirementWorkflowControls({
       {showReactivate ? (
         <form
           action={reactivateFormAction}
+          onSubmit={(event) => {
+            const reason =
+              lifecycleReason.trim()
+
+            if (reason.length >= 3) {
+              return
+            }
+
+            event.preventDefault()
+
+            const field =
+              event.currentTarget.elements.namedItem(
+                'reason'
+              )
+
+            if (
+              field instanceof
+              HTMLTextAreaElement
+            ) {
+              field.setCustomValidity(
+                reason.length === 0
+                  ? 'Ingresá el motivo de la reactivación.'
+                  : 'El motivo de la reactivación debe tener al menos 3 caracteres.'
+              )
+
+              field.reportValidity()
+              field.focus()
+            }
+          }}
           className="rounded-xl border border-sky-200 bg-sky-50 p-4"
         >
           <p className="text-sm font-semibold text-sky-900">
@@ -339,26 +472,47 @@ export function OpportunityRequirementWorkflowControls({
 
           <textarea
             name="reason"
-            required
-            minLength={3}
             maxLength={2000}
             rows={2}
             value={lifecycleReason}
-            onChange={(event) =>
+            onChange={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+
               setLifecycleReason(
                 event.target.value
               )
-            }
+            }}
+            onInvalid={(event) => {
+              const field =
+                event.currentTarget
+
+              if (field.validity.valueMissing) {
+                field.setCustomValidity(
+                  'Ingresá el motivo de la reactivación.'
+                )
+                return
+              }
+
+              if (field.validity.tooShort) {
+                field.setCustomValidity(
+                  'El motivo de la reactivación debe tener al menos 3 caracteres.'
+                )
+              }
+            }}
+            onInput={(event) => {
+              event.currentTarget.setCustomValidity(
+                ''
+              )
+            }}
             className="mt-3 w-full resize-y rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
             placeholder="Motivo de la reactivación..."
           />
 
           <button
             type="submit"
-            disabled={
-              reactivatePending ||
-              lifecycleReason.trim().length < 3
-            }
+            disabled={reactivatePending}
             className="mt-3 rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {reactivatePending

@@ -70,6 +70,32 @@ export function OpportunityStatusForm({
   return (
     <form
       action={formAction}
+      onSubmit={(event) => {
+        if (
+          selectedStatus !== currentStatus
+        ) {
+          return
+        }
+
+        event.preventDefault()
+
+        const field =
+          event.currentTarget.elements.namedItem(
+            'status'
+          )
+
+        if (
+          field instanceof
+          HTMLSelectElement
+        ) {
+          field.setCustomValidity(
+            'Seleccioná un estado distinto al actual.'
+          )
+
+          field.reportValidity()
+          field.focus()
+        }
+      }}
       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
     >
       <h2 className="text-lg font-semibold text-slate-950">
@@ -100,11 +126,15 @@ export function OpportunityStatusForm({
         <select
           name="status"
           value={selectedStatus}
-          onChange={(event) =>
+          onChange={(event) => {
+            event.currentTarget.setCustomValidity(
+              ''
+            )
+
             setSelectedStatus(
               event.target.value as Status
             )
-          }
+          }}
           className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
         >
           {(
@@ -141,10 +171,7 @@ export function OpportunityStatusForm({
 
       <button
         type="submit"
-        disabled={
-          pending ||
-          selectedStatus === currentStatus
-        }
+        disabled={pending}
         className="mt-4 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending

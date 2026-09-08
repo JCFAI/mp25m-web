@@ -136,6 +136,32 @@ export function OpportunityFollowupForm({
           onChange={(event) =>
             setBody(event.target.value)
           }
+          onInvalid={(event) => {
+            const field =
+              event.currentTarget
+
+            if (
+              field.validity.valueMissing
+            ) {
+              field.setCustomValidity(
+                'Ingresá el detalle de la novedad.'
+              )
+              return
+            }
+
+            if (
+              field.validity.tooShort
+            ) {
+              field.setCustomValidity(
+                'El detalle debe tener al menos 3 caracteres.'
+              )
+            }
+          }}
+          onInput={(event) => {
+            event.currentTarget.setCustomValidity(
+              ''
+            )
+          }}
           className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#2F5D8C]"
           placeholder="Ej.: Se habló con el comedor. Confirmaron que pueden recibir la entrega el jueves por la mañana."
         />

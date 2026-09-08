@@ -67,6 +67,33 @@ export function OpportunityAssigneeForm({
   return (
     <form
       action={formAction}
+      onSubmit={(event) => {
+        if (
+          assigneeId !==
+            (currentAssigneeId ?? '')
+        ) {
+          return
+        }
+
+        event.preventDefault()
+
+        const field =
+          event.currentTarget.elements.namedItem(
+            'assignee_id'
+          )
+
+        if (
+          field instanceof
+          HTMLSelectElement
+        ) {
+          field.setCustomValidity(
+            'Seleccioná un responsable distinto al actual.'
+          )
+
+          field.reportValidity()
+          field.focus()
+        }
+      }}
       className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
     >
       <h2 className="text-lg font-semibold text-slate-950">
@@ -97,11 +124,15 @@ export function OpportunityAssigneeForm({
         <select
           name="assignee_id"
           value={assigneeId}
-          onChange={(event) =>
+          onChange={(event) => {
+            event.currentTarget.setCustomValidity(
+              ''
+            )
+
             setAssigneeId(
               event.target.value
             )
-          }
+          }}
           className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2F5D8C]"
         >
           <option value="">
@@ -140,11 +171,7 @@ export function OpportunityAssigneeForm({
 
       <button
         type="submit"
-        disabled={
-          pending ||
-          assigneeId ===
-            (currentAssigneeId ?? '')
-        }
+        disabled={pending}
         className="mt-4 w-full rounded-xl bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14263D] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending

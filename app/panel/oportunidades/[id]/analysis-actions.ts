@@ -9,8 +9,10 @@ import {
 } from '../../../../lib/auth/internal-access'
 import {
   assessOpportunityRequirementMatch,
+  addOpportunityRequirementMatchFoundation,
   evaluateOpportunityRequirementCoverage,
   OpportunityAnalysisRpcError,
+  type FoundationRelationKind,
   type MatchAssessmentKind,
   type RequirementCoverageStatus,
 } from '../../../../lib/opportunities/analysis'
@@ -32,6 +34,26 @@ const coverageStatuses = new Set<RequirementCoverageStatus>([
   'covered',
   'partial',
   'missing',
+])
+
+const foundationRelationKinds = new Set<FoundationRelationKind>([
+  'direct',
+  'related',
+  'contextual',
+])
+
+const foundationSourceRecordTypes = new Set([
+  'person_skill',
+  'person_skill_evidence',
+  'person_profile',
+  'organization_capability',
+  'organization_capability_evidence',
+  'organization_activity',
+  'actor_evidence_fragment',
+  'node_participation',
+  'organization_node',
+  'actor_candidate',
+  'actor_candidate_node',
 ])
 
 async function resolveCurrentAccess(): Promise<InternalAccess[]> {
@@ -77,13 +99,22 @@ function analysisErrorMessage(error: unknown, fallback: string) {
     }
 
     if (error.code === '42501') {
-      return 'Tu acceso actual no permite realizar esta evaluación.'
+      return 'Tu acceso actual no permite realizar esta operación de análisis.'
     }
 
     const translated: Array<[string, string]> = [
       ['Substantive match assessments require at least one frozen foundation', 'Seleccioná al menos un fundamento de este match.'],
       ['Every selected foundation must belong to the assessed match', 'Todos los fundamentos seleccionados deben pertenecer a este match.'],
       ['Unresolved candidates may only be assessed as insufficient_evidence', 'Un actor pendiente sólo puede evaluarse como evidencia insuficiente.'],
+      ['This evidence is already a foundation of the match', 'Esta evidencia ya fue agregada como fundamento del match.'],
+      ['Direct added evidence requires exact canonical skill or activity equality', 'La relación directa requiere una coincidencia canónica exacta con la habilidad o actividad requerida.'],
+      ['Unresolved candidate added evidence may only be contextual', 'Un candidato no resuelto sólo admite evidencia contextual.'],
+      ['Resolved or inactive actor candidates cannot receive new foundations', 'Este candidato ya no está operativo para agregar evidencia.'],
+      ['Evidence is not a current searchable record of the matched actor', 'La evidencia seleccionada ya no está disponible para este actor. Recargá la búsqueda.'],
+      ['Only accepted_for_analysis matches may receive added evidence', 'Sólo los matches aceptados para análisis pueden recibir evidencia adicional.'],
+      ['Historical or withdrawn opportunity requirement matches are read-only', 'Los matches de revisiones históricas o retiradas son sólo de lectura.'],
+      ['Only validated current requirement matches may receive added evidence', 'Sólo los matches de la revisión actual validada pueden recibir evidencia adicional.'],
+      ['Internal user cannot add opportunity requirement match foundations', 'Tu acceso actual no permite agregar fundamentos a este match.'],
       ['Only accepted_for_analysis matches may be assessed', 'Sólo los matches aceptados para análisis pueden evaluarse.'],
       ['Historical opportunity requirement matches cannot be newly assessed', 'Los matches de revisiones históricas son sólo de lectura.'],
       ['Only validated current opportunity requirement matches may be assessed', 'Sólo pueden evaluarse matches de la revisión actual validada.'],
@@ -161,6 +192,52 @@ export async function assessOpportunityRequirementMatchAction(
     message: expectedAssessmentNo === null
       ? 'La evaluación fue registrada correctamente.'
       : 'La reevaluación fue registrada correctamente.',
+  }
+}
+
+export async function addOpportunityRequirementMatchFoundationAction(
+  opportunityId: string,
+  matchId: string,
+  _previousState: AnalysisActionState,
+  formData: FormData
+): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+
+  try {
+    const sourceRecordType = String(formData.get('source_record_type') ?? '').trim()
+    const sourceRecordId = String(formData.get('source_record_id') ?? '').trim()
+    const relationKind = String(formData.get('relation_kind') ?? '') as FoundationRelationKind
+
+    if (!foundationSourceRecordTypes.has(sourceRecordType)) {
+      throw new Error('Seleccioná una evidencia válida del resultado de búsqueda.')
+    }
+
+    if (!sourceRecordId || sourceRecordId.length > 500) {
+      throw new Error('Seleccioná una evidencia válida del resultado de búsqueda.')
+    }
+
+    if (!foundationRelationKinds.has(relationKind)) {
+      throw new Error('Elegí cómo se relaciona la evidencia con el requerimiento.')
+    }
+
+    await addOpportunityRequirementMatchFoundation(access, {
+      matchId,
+      sourceRecordType,
+      sourceRecordId,
+      relationKind,
+    })
+  } catch (error) {
+    console.error('[MP25M] Match foundation add failed:', error)
+    return {
+      status: 'error',
+      message: analysisErrorMessage(error, 'No se pudo agregar el fundamento. No se modificó ningún dato.'),
+    }
+  }
+
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return {
+    status: 'success',
+    message: 'La evidencia fue agregada como fundamento del match.',
   }
 }
 

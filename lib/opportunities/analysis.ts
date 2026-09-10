@@ -17,6 +17,11 @@ export type MatchActorKind =
   | 'organization'
   | 'candidate'
 
+export type FoundationRelationKind =
+  | 'direct'
+  | 'related'
+  | 'contextual'
+
 export type MatchAssessmentKind =
   | 'satisfies'
   | 'partially_satisfies'
@@ -178,6 +183,47 @@ export type OpportunityAnalysisCandidateState = {
   status: string
   resolved_person_id: string | null
   resolved_organization_id: string | null
+}
+
+export type ActorSearchEvidence = {
+  actor_kind: MatchActorKind
+  actor_id: string
+  evidence_kind: string
+  evidence_text: string
+  skill_id: string | null
+  skill_name: string | null
+  activity_id: string | null
+  activity_name: string | null
+  verification_status: string | null
+  node_name: string | null
+  source_name: string | null
+  source_locator: string | null
+  source_record_type: string
+  source_record_id: string
+  source_updated_at: string | null
+}
+
+export type MatchFoundationEvidenceSearchContext = {
+  match_id: string
+  opportunity_id: string
+  requirement_revision_id: string
+  actor_kind: MatchActorKind
+  actor_id: string
+  match_status: MatchStatus
+  requirement_record_status: string
+  validation_status: string
+  is_current_revision: boolean
+  required_skill_id: string | null
+  required_activity_id: string | null
+  candidate_state: OpportunityAnalysisCandidateState | null
+}
+
+export type AddOpportunityRequirementMatchFoundationResult = {
+  foundation_id: string
+  foundation_kind: string
+  relation_kind: FoundationRelationKind
+  source_record_type: string
+  source_record_id: string
 }
 
 export type OpportunityAnalysis = {
@@ -448,6 +494,148 @@ export function canOperateOpportunityRequirementEvaluation(
   return canFormulateOpportunityRequirement(access, opportunity)
 }
 
+function normalizeEvidenceSearchTerm(value: string) {
+  return value
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export async function getMatchFoundationEvidenceSearchContext(
+  opportunityId: string,
+  matchId: string
+): Promise<MatchFoundationEvidenceSearchContext | null> {
+  const supabase = createAdminClient()
+  const { data: match, error: matchError } = await supabase
+    .from('opportunity_requirement_match_list')
+    .select(`
+      match_id, opportunity_id, requirement_revision_id, actor_kind, actor_id,
+      status, requirement_record_status, validation_status, is_current_revision
+    `)
+    .eq('match_id', matchId)
+    .eq('opportunity_id', opportunityId)
+    .maybeSingle()
+
+  if (matchError) {
+    throw new Error(`Unable to load opportunity requirement match: ${matchError.message}`)
+  }
+
+  if (!match) return null
+
+  const { data: revision, error: revisionError } = await supabase
+    .from('opportunity_requirement_revision_list')
+    .select('skill_id, activity_id')
+    .eq('revision_id', match.requirement_revision_id)
+    .maybeSingle()
+
+  if (revisionError) {
+    throw new Error(`Unable to load opportunity requirement revision: ${revisionError.message}`)
+  }
+
+  if (!revision) return null
+
+  let candidateState: OpportunityAnalysisCandidateState | null = null
+  if (match.actor_kind === 'candidate') {
+    const { data, error } = await supabase
+      .from('actor_candidate_review')
+      .select('id, status, resolved_person_id, resolved_organization_id')
+      .eq('id', match.actor_id)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(`Unable to load candidate match state: ${error.message}`)
+    }
+
+    candidateState = data as OpportunityAnalysisCandidateState | null
+  }
+
+  return {
+    match_id: match.match_id,
+    opportunity_id: match.opportunity_id,
+    requirement_revision_id: match.requirement_revision_id,
+    actor_kind: match.actor_kind as MatchActorKind,
+    actor_id: match.actor_id,
+    match_status: match.status as MatchStatus,
+    requirement_record_status: match.requirement_record_status,
+    validation_status: match.validation_status,
+    is_current_revision: match.is_current_revision,
+    required_skill_id: revision.skill_id,
+    required_activity_id: revision.activity_id,
+    candidate_state: candidateState,
+  }
+}
+
+export async function searchActorEvidence(
+  input: {
+    actorKind: MatchActorKind
+    actorId: string
+    query: string
+  }
+): Promise<ActorSearchEvidence[]> {
+  const term = normalizeEvidenceSearchTerm(input.query)
+  if (term.length < 3) return []
+
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('actor_search_evidence')
+    .select(`
+      actor_kind, actor_id, evidence_kind, evidence_text,
+      skill_id, skill_name, activity_id, activity_name,
+      verification_status, node_name, source_name, source_locator,
+      source_record_type, source_record_id, source_updated_at
+    `)
+    .eq('actor_kind', input.actorKind)
+    .eq('actor_id', input.actorId)
+    .ilike('evidence_text', `%${term}%`)
+    .order('source_updated_at', { ascending: false, nullsFirst: false })
+    .order('source_record_type', { ascending: true })
+    .order('source_record_id', { ascending: true })
+    .limit(20)
+
+  if (error) {
+    throw new Error(`Unable to search actor evidence: ${error.message}`)
+  }
+
+  return (data ?? []) as ActorSearchEvidence[]
+}
+
+export async function listAlreadyAddedEvidenceIdentities(
+  matchId: string,
+  evidence: Pick<ActorSearchEvidence, 'source_record_type' | 'source_record_id'>[]
+) {
+  const identities = [...new Map(
+    evidence.map((item) => [
+      `${item.source_record_type}\u0000${item.source_record_id}`,
+      item,
+    ])
+  ).values()]
+
+  if (identities.length === 0) return new Set<string>()
+
+  const filters = identities.map(
+    (item) => `and(source_record_type.eq.${item.source_record_type},source_record_id.eq.${item.source_record_id})`
+  )
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('opportunity_requirement_match_foundation_list')
+    .select('source_record_type, source_record_id')
+    .eq('match_id', matchId)
+    .or(filters.join(','))
+
+  if (error) {
+    throw new Error(`Unable to load existing match foundations: ${error.message}`)
+  }
+
+  return new Set(
+    (data ?? [])
+      .filter(
+        (item) => item.source_record_type && item.source_record_id
+      )
+      .map(
+        (item) => `${item.source_record_type}\u0000${item.source_record_id}`
+      )
+  )
+}
+
 function getActorInternalUserId(access: InternalAccess[]) {
   const ids = [...new Set(access.map((item) => item.internal_user_id))]
   if (ids.length !== 1) throw new Error('Unable to resolve a unique internal user')
@@ -509,4 +697,29 @@ export async function evaluateOpportunityRequirementCoverage(
 
   if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
   return data
+}
+
+export async function addOpportunityRequirementMatchFoundation(
+  access: InternalAccess[],
+  input: {
+    matchId: string
+    sourceRecordType: string
+    sourceRecordId: string
+    relationKind: FoundationRelationKind
+  }
+) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc(
+    'add_opportunity_requirement_match_foundation',
+    {
+      p_actor_internal_user_id: getActorInternalUserId(access),
+      p_match_id: input.matchId,
+      p_source_record_type: input.sourceRecordType,
+      p_source_record_id: input.sourceRecordId,
+      p_relation_kind: input.relationKind,
+    }
+  )
+
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data as AddOpportunityRequirementMatchFoundationResult[]
 }

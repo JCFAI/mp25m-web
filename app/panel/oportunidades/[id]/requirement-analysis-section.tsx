@@ -8,6 +8,7 @@ import {
   type OpportunityRequirementMatch,
 } from '../../../../lib/opportunities/analysis'
 import { CoverageEvaluationForm } from './coverage-evaluation-form'
+import { MatchFoundationAddForm } from './match-foundation-add-form'
 import { MatchAssessmentForm } from './match-assessment-form'
 
 function formatDateTime(value: string) {
@@ -133,6 +134,13 @@ function MatchCard({
         <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600">
           Este candidato ya fue resuelto o dejó de estar operativo. El match es sólo de lectura y debe rematerializarse con la identidad canónica para continuar.
         </p>
+      ) : null}
+
+      {matchCanWrite ? (
+        <MatchFoundationAddForm
+          opportunityId={opportunityId}
+          matchId={match.match_id}
+        />
       ) : null}
 
       {matchCanWrite ? (

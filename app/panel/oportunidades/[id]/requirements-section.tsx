@@ -5,6 +5,11 @@ import type {
 } from '../../../../lib/auth/internal-access'
 
 import {
+  canOperateOpportunityRequirementEvaluation,
+  listOpportunityAnalysis,
+} from '../../../../lib/opportunities/analysis'
+
+import {
   canFormulateOpportunityRequirement,
   canManageOpportunityRequirementLifecycle,
   canValidateOpportunityRequirement,
@@ -21,6 +26,10 @@ import {
 import {
   OpportunityRequirementWorkflowControls,
 } from './requirement-workflow-controls'
+
+import {
+  RequirementAnalysisSection,
+} from './requirement-analysis-section'
 
 function formatDateTime(
   value: string
@@ -50,19 +59,35 @@ export async function OpportunityRequirementsSection({
   assignedToInternalUserId: string | null
   nodeIds: string[]
 }) {
-  const requirements =
-    access.length > 0
-      ? await listOpportunityRequirements(
+  const [
+    requirements,
+    requirementRevisions,
+    analysis,
+  ] = access.length > 0
+    ? await Promise.all([
+        listOpportunityRequirements(
           opportunityId
-        )
-      : []
-
-  const requirementRevisions =
-    access.length > 0
-      ? await listOpportunityRequirementRevisions(
+        ),
+        listOpportunityRequirementRevisions(
           opportunityId
-        )
-      : []
+        ),
+        listOpportunityAnalysis(
+          opportunityId
+        ),
+      ])
+    : [
+        [],
+        [],
+        {
+          matches: [],
+          foundations: [],
+          assessments: [],
+          assessmentFoundations: [],
+          coverageEvaluations: [],
+          coverageEvaluationMatches: [],
+          candidateStates: [],
+        },
+      ]
 
   const requirementPermissionContext = {
     assigned_to_internal_user_id:
@@ -85,6 +110,12 @@ export async function OpportunityRequirementsSection({
 
   const canLifecycleRequirements =
     canManageOpportunityRequirementLifecycle(
+      access,
+      requirementPermissionContext
+    )
+
+  const canOperateEvaluations =
+    canOperateOpportunityRequirementEvaluation(
       access,
       requirementPermissionContext
     )
@@ -354,6 +385,21 @@ export async function OpportunityRequirementsSection({
                     />
                   ) : null}
 
+                  {requirement.revision_id &&
+                  requirement.revision_no !== null ? (
+                    <RequirementAnalysisSection
+                      opportunityId={opportunityId}
+                      requirementRevisionId={requirement.revision_id}
+                      revisionNo={requirement.revision_no}
+                      analysis={analysis}
+                      canOperate={canOperateEvaluations}
+                      isOperational={
+                        requirement.record_status === 'active' &&
+                        requirement.validation_status === 'validated'
+                      }
+                    />
+                  ) : null}
+
                   {canCreateRevision &&
                   requirement.revision_id ? (
                     <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50">
@@ -450,6 +496,19 @@ export async function OpportunityRequirementsSection({
                                   revision.revision_created_at
                                 )}
                               </p>
+                            ) : null}
+
+                            {revision.revision_id &&
+                            revision.revision_no !== null &&
+                            revision.revision_id !== requirement.revision_id ? (
+                              <RequirementAnalysisSection
+                                opportunityId={opportunityId}
+                                requirementRevisionId={revision.revision_id}
+                                revisionNo={revision.revision_no}
+                                analysis={analysis}
+                                canOperate={canOperateEvaluations}
+                                isOperational={false}
+                              />
                             ) : null}
                           </div>
                         ))}

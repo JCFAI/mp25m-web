@@ -74,6 +74,16 @@ const actionLabels: Record<string, string> = {
     'Requerimiento retirado',
   'opportunity.requirement.reactivate':
     'Requerimiento reactivado',
+  'opportunity.requirement.match.foundation.add':
+    'Fundamento agregado al match',
+  'opportunity.requirement.match.assess':
+    'Match evaluado',
+  'opportunity.requirement.match.reassess':
+    'Match reevaluado',
+  'opportunity.requirement.coverage.evaluate':
+    'Cobertura del requerimiento evaluada',
+  'opportunity.requirement.coverage.reevaluate':
+    'Cobertura del requerimiento reevaluada',
 }
 
 function formatDate(value: string | null) {

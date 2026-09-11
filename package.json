@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "node scripts/run-local-next.mjs dev",
     "build": "next build",
+    "build:local": "node scripts/run-local-next.mjs build",
     "start": "next start",
     "lint": "next lint",
     "profile-link": "node scripts/create-profile-link.mjs"

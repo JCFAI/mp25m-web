@@ -377,6 +377,53 @@ set active = true,
     );
 
 
+with skill_seed(name) as (
+  values
+    ('Automatización industrial'),
+    ('Desarrollo de productos'),
+    ('Digitalización'),
+    ('Ingeniería de procesos'),
+    ('Ingeniería de productos'),
+    ('Seguridad industrial'),
+    ('Transformación digital'),
+    ('Distribución de alimentos'),
+    ('Fabricación de piezas'),
+    ('Metalmecánica'),
+    ('Consultoría'),
+    ('Gestión cooperativa'),
+    ('Gestión de procesos'),
+    ('Gestión de proyectos'),
+    ('Planificación'),
+    ('Capacitación'),
+    ('Articulación territorial'),
+    ('Desarrollo territorial'),
+    ('Construcción'),
+    ('Producción de alimentos agroecológicos'),
+    ('Producción granaria'),
+    ('Industrias culturales'),
+    ('Energía'),
+    ('Alimentos')
+)
+insert into mp25m.skills (
+  name,
+  normalized_name,
+  applies_to_person,
+  applies_to_organization,
+  active
+)
+select
+  skill_seed.name,
+  mp25m_private.normalize_text(skill_seed.name),
+  true,
+  false,
+  true
+from skill_seed
+on conflict (normalized_name) do update
+set
+  applies_to_person = true,
+  active = true;
+
+
 do $$
 declare
   v_skill_names text[] := array[

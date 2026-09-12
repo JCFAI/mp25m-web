@@ -48,6 +48,10 @@ const navigationItems = [
 
 const futureModules = [
   {
+    label: 'Articulaciones',
+    marker: 'A',
+  },
+  {
     label: 'Proyectos',
     marker: 'P',
   },

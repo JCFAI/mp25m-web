@@ -1,2 +1,5 @@
+[api]
+schemas = ["public", "graphql_public", "mp25m_api"]
+
 [functions.mp25m-profile-submit]
 verify_jwt = false

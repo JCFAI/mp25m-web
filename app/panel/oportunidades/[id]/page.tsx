@@ -12,6 +12,7 @@ import { createClient } from '../../../../lib/supabase/server'
 import { OpportunityAssigneeForm } from './assignee-form'
 import { OpportunityFollowupForm } from './followup-form'
 import { OpportunityStatusForm } from './status-form'
+import { OpportunityRequirementsSection } from './requirements-section'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,6 +60,30 @@ const actionLabels: Record<string, string> = {
     'Novedad registrada',
   'opportunity.assignee_change':
     'Responsable actualizado',
+  'opportunity.requirement.create':
+    'Requerimiento creado',
+  'opportunity.requirement.update':
+    'Nueva revisión de requerimiento',
+  'opportunity.requirement.submit_validation':
+    'Requerimiento enviado a validación',
+  'opportunity.requirement.validate':
+    'Requerimiento validado',
+  'opportunity.requirement.reject':
+    'Requerimiento rechazado',
+  'opportunity.requirement.withdraw':
+    'Requerimiento retirado',
+  'opportunity.requirement.reactivate':
+    'Requerimiento reactivado',
+  'opportunity.requirement.match.foundation.add':
+    'Fundamento agregado al match',
+  'opportunity.requirement.match.assess':
+    'Match evaluado',
+  'opportunity.requirement.match.reassess':
+    'Match reevaluado',
+  'opportunity.requirement.coverage.evaluate':
+    'Cobertura del requerimiento evaluada',
+  'opportunity.requirement.coverage.reevaluate':
+    'Cobertura del requerimiento reevaluada',
 }
 
 function formatDate(value: string | null) {
@@ -684,6 +709,18 @@ function HistoryDescription({
     )
   }
 
+  if (
+    event.action.startsWith(
+      'opportunity.requirement.'
+    )
+  ) {
+    return event.reason ? (
+      <p className="mt-2 text-sm italic text-slate-500">
+        “{event.reason}”
+      </p>
+    ) : null
+  }
+
   return null
 }
 
@@ -786,6 +823,16 @@ export default async function OpportunityDetailPage({
         </div>
       </section>
 
+      <OpportunityRequirementsSection
+        opportunityId={opportunity.id}
+        access={access}
+        assignedToInternalUserId={
+          opportunity.assigned_to_internal_user_id
+        }
+        nodeIds={
+          opportunity.node_ids ?? []
+        }
+      />
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <div className="space-y-5">
           <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

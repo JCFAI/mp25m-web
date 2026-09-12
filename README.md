@@ -13,13 +13,25 @@ El esquema `mp25m` está protegido con RLS y sin acceso directo desde `anon`/`au
 
 ## Ejecutar localmente
 
+Para trabajar con el stack local de Supabase:
+
 ```bash
-cp .env.example .env.local
 npm install
-npm run dev
+supabase start
+npm run dev:local
 ```
 
 Abrir `http://localhost:3000`.
+
+`dev:local` obtiene las credenciales del stack local en ejecución, las entrega sólo
+al proceso de Next.js y no usa ni modifica `.env.local`. El comando aborta si el
+endpoint no es exactamente `http://127.0.0.1:54321`.
+
+Para generar un build contra ese mismo stack local:
+
+```bash
+npm run build:local
+```
 
 ## Formulario
 

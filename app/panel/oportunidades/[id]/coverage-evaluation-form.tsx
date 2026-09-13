@@ -45,7 +45,8 @@ export function CoverageEvaluationForm({
     expectedEvaluationNo
   )
   const [state, formAction, pending] = useActionState(action, initialState)
-  const [coverageStatus, setCoverageStatus] = useState('')
+  const [networkCoverageStatus, setNetworkCoverageStatus] = useState('')
+  const [expandedCoverageStatus, setExpandedCoverageStatus] = useState('')
   const [rationale, setRationale] = useState('')
   const [selectedAssessmentIds, setSelectedAssessmentIds] = useState<string[]>([])
   const [assessmentError, setAssessmentError] = useState<string | null>(null)
@@ -57,7 +58,8 @@ export function CoverageEvaluationForm({
   useEffect(() => {
     setMessageDismissed(false)
     if (state.status === 'success') {
-      setCoverageStatus('')
+      setNetworkCoverageStatus('')
+      setExpandedCoverageStatus('')
       setRationale('')
       setSelectedAssessmentIds([])
       setAssessmentError(null)
@@ -79,9 +81,9 @@ export function CoverageEvaluationForm({
       onSubmit={(event) => {
         setAssessmentError(null)
 
-        if (!coverageStatus) {
+        if (!networkCoverageStatus || !expandedCoverageStatus) {
           event.preventDefault()
-          statusRef.current?.setCustomValidity('Elegí un estado de cobertura.')
+          statusRef.current?.setCustomValidity('Elegí ambos estados de cobertura.')
           statusRef.current?.reportValidity()
           statusRef.current?.focus()
           return
@@ -102,20 +104,27 @@ export function CoverageEvaluationForm({
         const selected = selectedAssessments()
         let message: string | null = null
 
-        if (coverageStatus === 'covered') {
+        const coverageValue = { missing: 0, partial: 1, covered: 2 }
+        if (coverageValue[expandedCoverageStatus as keyof typeof coverageValue] < coverageValue[networkCoverageStatus as keyof typeof coverageValue]) {
+          event.preventDefault()
+          setAssessmentError('La cobertura ampliada no puede ser menor que la cobertura de la red MP25M.')
+          return
+        }
+
+        if (expandedCoverageStatus === 'covered') {
           const satisfiesCount = selected.filter((item) => item.assessment_kind === 'satisfies').length
           const partialCount = selected.filter((item) => item.assessment_kind === 'partially_satisfies').length
           if (satisfiesCount === 0 && partialCount < 2) {
             message = 'Cubierto requiere una evaluación “Satisface” o al menos dos “Satisface parcialmente”.'
           }
-        } else if (coverageStatus === 'partial') {
+        } else if (expandedCoverageStatus === 'partial') {
           if (selected.some((item) => item.assessment_kind === 'satisfies')) {
             message = 'Parcial no puede incluir una evaluación “Satisface”.'
           } else if (!selected.some((item) => item.assessment_kind === 'partially_satisfies')) {
             message = 'Parcial requiere al menos una evaluación “Satisface parcialmente”.'
           }
         } else if (
-          coverageStatus === 'missing' &&
+          expandedCoverageStatus === 'missing' &&
           selected.some((item) => item.assessment_kind !== 'does_not_satisfy')
         ) {
           message = selected.some((item) => item.assessment_kind === 'insufficient_evidence')
@@ -136,14 +145,14 @@ export function CoverageEvaluationForm({
       </p>
 
       <label className="mt-4 block text-sm font-medium text-slate-700">
-        Estado de cobertura
+        Cobertura red MP25M
         <select
           ref={statusRef}
-          name="coverage_status"
-          value={coverageStatus}
+          name="network_coverage_status"
+          value={networkCoverageStatus}
           onChange={(event) => {
             event.currentTarget.setCustomValidity('')
-            setCoverageStatus(event.target.value)
+            setNetworkCoverageStatus(event.target.value)
             setAssessmentError(null)
             clearMessage()
           }}
@@ -157,10 +166,33 @@ export function CoverageEvaluationForm({
       </label>
 
       <div className="mt-3 rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-500">
+        <p><strong>Red MP25M:</strong> sólo considera contribuciones verificadas dentro de la red.</p>
         <p><strong>Cubierto:</strong> al menos un “Satisface” o dos “Satisface parcialmente”.</p>
         <p><strong>Parcial:</strong> al menos un “Satisface parcialmente” y ningún “Satisface”.</p>
         <p><strong>Faltante:</strong> puede declararse sin assessments; si se seleccionan, sólo pueden ser “No satisface”.</p>
       </div>
+
+      <label className="mt-4 block text-sm font-medium text-slate-700">
+        Cobertura ampliada Argentina
+        <select
+          name="expanded_coverage_status"
+          value={expandedCoverageStatus}
+          onChange={(event) => {
+            setExpandedCoverageStatus(event.target.value)
+            setAssessmentError(null)
+            clearMessage()
+          }}
+          className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+        >
+          <option value="">Elegir estado...</option>
+          <option value="covered">Cubierto</option>
+          <option value="partial">Parcial</option>
+          <option value="missing">Faltante</option>
+        </select>
+        <span className="mt-1 block text-xs leading-5 text-slate-500">
+          Incluye la red MP25M y sólo mejora con evidencia humana de actores argentinos externos. No puede ser menor que la capa de red.
+        </span>
+      </label>
 
       <label className="mt-4 block text-sm font-medium text-slate-700">
         Fundamento

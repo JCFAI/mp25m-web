@@ -236,8 +236,79 @@ export type OpportunityAnalysis = {
   candidateStates: OpportunityAnalysisCandidateState[]
 }
 
+export type OpportunityCoverageSummary = {
+  opportunity_id: string
+  active_requirement_count: number
+  evaluated_requirement_count: number
+  unevaluated_requirement_count: number
+  evaluated_weight_total: number
+  network_coverage_percent: number | null
+  expanded_coverage_percent: number | null
+  mandatory_missing_count: number
+  mandatory_partial_count: number
+  mandatory_unevaluated_count: number
+}
+
+export type OpportunityCoverageSnapshot = {
+  snapshot_id: string
+  opportunity_id: string
+  snapshot_no: number
+  formula_version: string
+  active_requirement_count: number
+  evaluated_requirement_count: number
+  network_coverage_percent: number | null
+  expanded_coverage_percent: number | null
+  created_at: string
+  created_by_display_name: string | null
+}
+
 const pageSize = 500
 const idChunkSize = 100
+
+export async function getOpportunityCoverageSummary(
+  opportunityId: string
+): Promise<OpportunityCoverageSummary | null> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('opportunity_coverage_summary_list')
+    .select(`
+      opportunity_id, active_requirement_count, evaluated_requirement_count,
+      unevaluated_requirement_count, evaluated_weight_total,
+      network_coverage_percent, expanded_coverage_percent,
+      mandatory_missing_count, mandatory_partial_count,
+      mandatory_unevaluated_count
+    `)
+    .eq('opportunity_id', opportunityId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load opportunity coverage summary: ${error.message}`)
+  }
+
+  return data as OpportunityCoverageSummary | null
+}
+
+export async function listOpportunityCoverageSnapshots(
+  opportunityId: string
+): Promise<OpportunityCoverageSnapshot[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('opportunity_coverage_snapshot_list')
+    .select(`
+      snapshot_id, opportunity_id, snapshot_no, formula_version,
+      active_requirement_count, evaluated_requirement_count,
+      network_coverage_percent, expanded_coverage_percent,
+      created_at, created_by_display_name
+    `)
+    .eq('opportunity_id', opportunityId)
+    .order('snapshot_no', { ascending: false })
+
+  if (error) {
+    throw new Error(`Unable to load opportunity coverage snapshots: ${error.message}`)
+  }
+
+  return (data ?? []) as OpportunityCoverageSnapshot[]
+}
 
 async function listMatches(opportunityId: string) {
   const supabase = createAdminClient()
@@ -680,19 +751,35 @@ export async function evaluateOpportunityRequirementCoverage(
   input: {
     requirementRevisionId: string
     expectedEvaluationNo: number | null
-    coverageStatus: RequirementCoverageStatus
+    networkCoverageStatus: RequirementCoverageStatus
+    expandedCoverageStatus: RequirementCoverageStatus
     rationale: string
     matchAssessmentIds: string[]
   }
 ) {
   const supabase = createAdminClient()
-  const { data, error } = await supabase.rpc('evaluate_opportunity_requirement_coverage', {
+  const { data, error } = await supabase.rpc('evaluate_opportunity_requirement_coverage_layers', {
     p_actor_internal_user_id: getActorInternalUserId(access),
     p_requirement_revision_id: input.requirementRevisionId,
     p_expected_evaluation_no: input.expectedEvaluationNo,
-    p_coverage_status: input.coverageStatus,
+    p_network_coverage_status: input.networkCoverageStatus,
+    p_expanded_coverage_status: input.expandedCoverageStatus,
     p_rationale: input.rationale,
     p_match_assessment_ids: input.matchAssessmentIds,
+  })
+
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data
+}
+
+export async function createOpportunityCoverageSnapshot(
+  access: InternalAccess[],
+  opportunityId: string
+) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc('create_opportunity_coverage_snapshot', {
+    p_actor_internal_user_id: getActorInternalUserId(access),
+    p_opportunity_id: opportunityId,
   })
 
   if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)

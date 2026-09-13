@@ -10,6 +10,7 @@ import {
 import {
   assessOpportunityRequirementMatch,
   addOpportunityRequirementMatchFoundation,
+  createOpportunityCoverageSnapshot,
   evaluateOpportunityRequirementCoverage,
   OpportunityAnalysisRpcError,
   type FoundationRelationKind,
@@ -129,6 +130,7 @@ function analysisErrorMessage(error: unknown, fallback: string) {
       ['Historical opportunity requirement revisions cannot receive new coverage evaluations', 'Las revisiones históricas son sólo de lectura.'],
       ['Only validated current opportunity requirement revisions may receive coverage evaluations', 'Sólo la revisión actual validada puede recibir evaluaciones de cobertura.'],
       ['Withdrawn opportunity requirements cannot receive new coverage evaluations', 'Los requerimientos retirados son sólo de lectura.'],
+      ['Internal user cannot create this opportunity coverage snapshot', 'Tu acceso actual no permite crear un snapshot de cobertura.'],
     ]
 
     const match = translated.find(([source]) => error.message.includes(source))
@@ -251,15 +253,34 @@ export async function evaluateOpportunityRequirementCoverageAction(
   const access = await resolveCurrentAccess()
 
   try {
-    const coverageStatus = String(formData.get('coverage_status') ?? '') as RequirementCoverageStatus
-    if (!coverageStatuses.has(coverageStatus)) {
-      throw new Error('Elegí un estado de cobertura.')
+    const networkCoverageStatus = String(
+      formData.get('network_coverage_status') ?? ''
+    ) as RequirementCoverageStatus
+    const expandedCoverageStatus = String(
+      formData.get('expanded_coverage_status') ?? ''
+    ) as RequirementCoverageStatus
+    if (
+      !coverageStatuses.has(networkCoverageStatus) ||
+      !coverageStatuses.has(expandedCoverageStatus)
+    ) {
+      throw new Error('Elegí ambos estados de cobertura.')
+    }
+
+    const coverageValue = {
+      missing: 0,
+      partial: 1,
+      covered: 2,
+    } satisfies Record<RequirementCoverageStatus, number>
+
+    if (coverageValue[expandedCoverageStatus] < coverageValue[networkCoverageStatus]) {
+      throw new Error('La cobertura ampliada no puede ser menor que la cobertura de la red MP25M.')
     }
 
     await evaluateOpportunityRequirementCoverage(access, {
       requirementRevisionId,
       expectedEvaluationNo,
-      coverageStatus,
+      networkCoverageStatus,
+      expandedCoverageStatus,
       rationale: requiredRationale(formData),
       matchAssessmentIds: uniqueTextValues(formData, 'match_assessment_ids'),
     })
@@ -277,5 +298,29 @@ export async function evaluateOpportunityRequirementCoverageAction(
     message: expectedEvaluationNo === null
       ? 'La cobertura fue registrada correctamente.'
       : 'La reevaluación de cobertura fue registrada correctamente.',
+  }
+}
+
+export async function createOpportunityCoverageSnapshotAction(
+  opportunityId: string,
+  _previousState: AnalysisActionState,
+  _formData: FormData
+): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+
+  try {
+    await createOpportunityCoverageSnapshot(access, opportunityId)
+  } catch (error) {
+    console.error('[MP25M] Opportunity coverage snapshot failed:', error)
+    return {
+      status: 'error',
+      message: analysisErrorMessage(error, 'No se pudo crear el snapshot. No se modificó ningún dato.'),
+    }
+  }
+
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return {
+    status: 'success',
+    message: 'El snapshot de cobertura fue creado correctamente.',
   }
 }

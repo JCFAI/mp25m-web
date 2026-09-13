@@ -6,6 +6,8 @@ import type {
 
 import {
   canOperateOpportunityRequirementEvaluation,
+  getOpportunityCoverageSummary,
+  listOpportunityCoverageSnapshots,
   listOpportunityAnalysis,
 } from '../../../../lib/opportunities/analysis'
 
@@ -30,6 +32,10 @@ import {
 import {
   RequirementAnalysisSection,
 } from './requirement-analysis-section'
+
+import {
+  OpportunityCoverageSummaryCard,
+} from './opportunity-coverage-summary'
 
 function formatDateTime(
   value: string
@@ -63,6 +69,8 @@ export async function OpportunityRequirementsSection({
     requirements,
     requirementRevisions,
     analysis,
+    coverageSummary,
+    coverageSnapshots,
   ] = access.length > 0
     ? await Promise.all([
         listOpportunityRequirements(
@@ -72,6 +80,12 @@ export async function OpportunityRequirementsSection({
           opportunityId
         ),
         listOpportunityAnalysis(
+          opportunityId
+        ),
+        getOpportunityCoverageSummary(
+          opportunityId
+        ),
+        listOpportunityCoverageSnapshots(
           opportunityId
         ),
       ])
@@ -87,6 +101,8 @@ export async function OpportunityRequirementsSection({
           coverageEvaluationMatches: [],
           candidateStates: [],
         },
+        null,
+        [],
       ]
 
   const requirementPermissionContext = {
@@ -169,6 +185,13 @@ export async function OpportunityRequirementsSection({
             cumplir el requerimiento.
           </p>
         </div>
+
+        <OpportunityCoverageSummaryCard
+          opportunityId={opportunityId}
+          summary={coverageSummary}
+          snapshots={coverageSnapshots}
+          canCreateSnapshot={canOperateEvaluations}
+        />
 
         {canFormulateRequirements ? (
           <details className="mt-5 rounded-2xl border border-[#C8D6E5] bg-slate-50">

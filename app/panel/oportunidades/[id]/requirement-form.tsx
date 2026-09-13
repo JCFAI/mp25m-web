@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useRouter } from 'next/navigation'
 
 import {
   createOpportunityRequirementAction,
@@ -231,6 +232,8 @@ export function OpportunityRequirementForm({
     initialActionState
   )
 
+  const router = useRouter()
+
   const canSearchCanonical =
     supportsSkillReference(
       requirementType
@@ -359,10 +362,11 @@ export function OpportunityRequirementForm({
   ])
 
   useEffect(() => {
-    if (
-      mode === 'create' &&
-      state.status === 'success'
-    ) {
+    if (state.status !== 'success') {
+      return
+    }
+
+    if (mode === 'create') {
       formRef.current?.reset()
 
       setRequirementType(
@@ -377,8 +381,11 @@ export function OpportunityRequirementForm({
       setCanonicalResults([])
       setCanonicalError(null)
     }
+
+    router.refresh()
   }, [
     mode,
+    router,
     state.status,
   ])
 

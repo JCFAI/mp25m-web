@@ -470,10 +470,6 @@ export async function createOpportunityRequirementAction(
     }
   }
 
-  revalidateOpportunity(
-    opportunityId
-  )
-
   return {
     status: 'success',
     message:

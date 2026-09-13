@@ -9,6 +9,11 @@
     "build:local": "node scripts/run-local-next.mjs build",
     "start": "next start",
     "lint": "next lint",
+    "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "test:e2e:ui": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test --ui",
+    "test:e2e:setup": "node scripts/create-local-e2e-user.mjs",
+    "test:e2e:measure": "node scripts/measure-opportunity-analysis.mjs",
+    "test:e2e:measure-rpc": "node scripts/measure-opportunity-requirement-rpc.mjs",
     "profile-link": "node scripts/create-profile-link.mjs"
   },
   "dependencies": {
@@ -20,6 +25,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",

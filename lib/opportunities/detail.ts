@@ -38,8 +38,27 @@ export type OpportunityHistoryEvent = {
   occurred_at: string
 }
 
+export type OpportunityProvenance = {
+  opportunity_id: string
+  origin_kind: 'manual' | 'opportunity_candidate'
+  detection_method: 'manual' | 'radar_broad' | 'radar_directed'
+  origin_entity_id: string | null
+  source_name: string | null
+  source_locator: string | null
+  source_excerpt: string | null
+  external_reference: string | null
+  issuer_organization_name: string | null
+  source_country_name: string | null
+  target_market: string | null
+  published_at: string | null
+  detected_at: string | null
+  expires_at: string | null
+  captured_at: string
+}
+
 export type OpportunityDetail = {
   opportunity: Opportunity
+  provenance: OpportunityProvenance | null
   origins: OpportunityOrigin[]
   history: OpportunityHistoryEvent[]
 }
@@ -113,9 +132,21 @@ export async function getOpportunityDetail(
   }
 
   const [
+    provenanceResult,
     originsResult,
     historyResult,
   ] = await Promise.all([
+    supabase
+      .from('opportunity_provenance_list')
+      .select(`
+        opportunity_id, origin_kind, detection_method, origin_entity_id,
+        source_name, source_locator, source_excerpt, external_reference,
+        issuer_organization_name, source_country_name, target_market,
+        published_at, detected_at, expires_at, captured_at
+      `)
+      .eq('opportunity_id', opportunityId)
+      .maybeSingle(),
+
     supabase
       .from('opportunity_origin_list')
       .select(`
@@ -161,6 +192,12 @@ export async function getOpportunityDetail(
   if (originsResult.error) {
     throw new Error(
       `Unable to load opportunity origins: ${originsResult.error.message}`
+    )
+  }
+
+  if (provenanceResult.error) {
+    throw new Error(
+      `Unable to load opportunity provenance: ${provenanceResult.error.message}`
     )
   }
 
@@ -238,6 +275,8 @@ export async function getOpportunityDetail(
         opportunity.node_names ?? []
       ).map(toNodeDisplayName),
     },
+
+    provenance: provenanceResult.data as OpportunityProvenance | null,
 
     origins,
 

@@ -11,11 +11,18 @@ import {
   assessOpportunityRequirementMatch,
   addOpportunityRequirementMatchFoundation,
   createOpportunityCoverageSnapshot,
+  createOpportunityGapAction,
   evaluateOpportunityRequirementCoverage,
+  openOpportunityGap,
+  transitionOpportunityGap,
+  transitionOpportunityGapAction as transitionOpportunityGapActionRecord,
   OpportunityAnalysisRpcError,
   type FoundationRelationKind,
   type MatchAssessmentKind,
   type RequirementCoverageStatus,
+  type OpportunityGapType,
+  type OpportunityGapStatus,
+  type OpportunityGapActionType,
 } from '../../../../lib/opportunities/analysis'
 import { createClient } from '../../../../lib/supabase/server'
 
@@ -36,6 +43,17 @@ const coverageStatuses = new Set<RequirementCoverageStatus>([
   'partial',
   'missing',
 ])
+
+const opportunityGapTypes = new Set<OpportunityGapType>([
+  'capacity', 'scale', 'availability', 'resource_equipment',
+  'certification_authorization', 'knowledge', 'articulation',
+  'financing', 'logistics', 'deadline', 'other',
+])
+
+const opportunityGapStatuses = new Set<OpportunityGapStatus>([
+  'open', 'in_treatment', 'blocked', 'resolved', 'closed_unresolved', 'cancelled',
+])
+const opportunityGapActionTypes = new Set<OpportunityGapActionType>(['search_mp25m', 'search_argentina', 'search_international', 'contact_actor', 'request_information', 'request_quote', 'verify_capacity', 'verify_availability', 'verify_certification', 'call_for_participants', 'develop_capacity', 'acquire_equipment', 'seek_financing', 'coordinate_meeting', 'reanalyze_requirement', 'other'])
 
 const foundationRelationKinds = new Set<FoundationRelationKind>([
   'direct',
@@ -131,6 +149,14 @@ function analysisErrorMessage(error: unknown, fallback: string) {
       ['Only validated current opportunity requirement revisions may receive coverage evaluations', 'Sólo la revisión actual validada puede recibir evaluaciones de cobertura.'],
       ['Withdrawn opportunity requirements cannot receive new coverage evaluations', 'Los requerimientos retirados son sólo de lectura.'],
       ['Internal user cannot create this opportunity coverage snapshot', 'Tu acceso actual no permite crear un snapshot de cobertura.'],
+      ['Opportunity gaps require a current partial or missing coverage conclusion', 'Sólo podés abrir una brecha cuando la cobertura actual sea parcial o faltante.'],
+      ['Only validated current opportunity requirement revisions may open gaps', 'Sólo podés abrir brechas sobre la revisión actual validada del requerimiento.'],
+      ['Internal user cannot open this opportunity gap', 'Tu acceso actual no permite abrir esta brecha.'],
+      ['Internal user cannot update this opportunity gap', 'Tu acceso actual no permite actualizar esta brecha.'],
+      ['Resolving or closing an opportunity gap requires a responsible user', 'Para resolver o cerrar una brecha tenés que indicar un responsable.'],
+      ['Internal user cannot create this opportunity gap action', 'Tu acceso actual no permite registrar acciones para esta brecha.'],
+      ['Internal user cannot update this opportunity gap action', 'Tu acceso actual no permite actualizar esta acción.'],
+      ['Opportunity gap action not found', 'La acción ya no está disponible. Recargá la página.'],
     ]
 
     const match = translated.find(([source]) => error.message.includes(source))
@@ -323,4 +349,91 @@ export async function createOpportunityCoverageSnapshotAction(
     status: 'success',
     message: 'El snapshot de cobertura fue creado correctamente.',
   }
+}
+
+export async function openOpportunityGapAction(
+  opportunityId: string,
+  _previousState: AnalysisActionState,
+  formData: FormData
+): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+  try {
+    const requirementRevisionId = String(formData.get('requirement_revision_id') ?? '').trim()
+    const coverageLayer = String(formData.get('coverage_layer') ?? '')
+    const gapType = String(formData.get('gap_type') ?? '') as OpportunityGapType
+    if (!requirementRevisionId) throw new Error('Elegí el requerimiento afectado.')
+    if (coverageLayer !== 'network_mp25m' && coverageLayer !== 'expanded_argentina') throw new Error('Elegí la capa de cobertura.')
+    if (!opportunityGapTypes.has(gapType)) throw new Error('Elegí el tipo de brecha.')
+    await openOpportunityGap(access, {
+      requirementRevisionId,
+      coverageLayer,
+      gapType,
+      rationale: requiredRationale(formData),
+      responsibleInternalUserId: String(formData.get('responsible_internal_user_id') ?? '').trim() || null,
+    })
+  } catch (error) {
+    console.error('[MP25M] Opportunity gap open failed:', error)
+    return { status: 'error', message: analysisErrorMessage(error, 'No se pudo abrir la brecha. No se modificó ningún dato.') }
+  }
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return { status: 'success', message: 'La brecha fue abierta correctamente.' }
+}
+
+export async function transitionOpportunityGapAction(
+  opportunityId: string,
+  gapId: string,
+  _previousState: AnalysisActionState,
+  formData: FormData
+): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+
+  try {
+    const status = String(formData.get('status') ?? '') as OpportunityGapStatus
+    const responsibleInternalUserId = String(formData.get('responsible_internal_user_id') ?? '').trim() || null
+    if (!opportunityGapStatuses.has(status)) throw new Error('Elegí un estado válido para la brecha.')
+    if ((status === 'resolved' || status === 'closed_unresolved') && !responsibleInternalUserId) {
+      throw new Error('Para resolver o cerrar una brecha tenés que indicar un responsable.')
+    }
+
+    await transitionOpportunityGap(access, {
+      gapId,
+      status,
+      rationale: requiredRationale(formData),
+      responsibleInternalUserId,
+    })
+  } catch (error) {
+    console.error('[MP25M] Opportunity gap transition failed:', error)
+    return { status: 'error', message: analysisErrorMessage(error, 'No se pudo actualizar la brecha. No se modificó ningún dato.') }
+  }
+
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return { status: 'success', message: 'La brecha fue actualizada correctamente.' }
+}
+
+export async function createOpportunityGapActionAction(opportunityId: string, gapId: string, _previousState: AnalysisActionState, formData: FormData): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+  try {
+    const actionType = String(formData.get('action_type') ?? '') as OpportunityGapActionType
+    if (!opportunityGapActionTypes.has(actionType)) throw new Error('Elegí una acción válida.')
+    await createOpportunityGapAction(access, { gapId, actionType, rationale: requiredRationale(formData), responsibleInternalUserId: String(formData.get('responsible_internal_user_id') ?? '').trim() || null })
+  } catch (error) {
+    console.error('[MP25M] Opportunity gap action create failed:', error)
+    return { status: 'error', message: analysisErrorMessage(error, 'No se pudo crear la acción. No se modificó ningún dato.') }
+  }
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return { status: 'success', message: 'La acción fue registrada como planificada.' }
+}
+
+export async function transitionOpportunityGapActionAction(opportunityId: string, actionId: string, _previousState: AnalysisActionState, formData: FormData): Promise<AnalysisActionState> {
+  const access = await resolveCurrentAccess()
+  try {
+    const status = String(formData.get('status') ?? '')
+    if (!['planned', 'in_progress', 'completed', 'cancelled'].includes(status)) throw new Error('Elegí un estado válido para la acción.')
+    await transitionOpportunityGapActionRecord(access, { actionId, status: status as 'planned' | 'in_progress' | 'completed' | 'cancelled', rationale: requiredRationale(formData), responsibleInternalUserId: String(formData.get('responsible_internal_user_id') ?? '').trim() || null })
+  } catch (error) {
+    console.error('[MP25M] Opportunity gap action transition failed:', error)
+    return { status: 'error', message: analysisErrorMessage(error, 'No se pudo actualizar la acción. No se modificó ningún dato.') }
+  }
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  return { status: 'success', message: 'La acción fue actualizada correctamente.' }
 }

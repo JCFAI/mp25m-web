@@ -262,6 +262,64 @@ export type OpportunityCoverageSnapshot = {
   created_by_display_name: string | null
 }
 
+export type OpportunityGapType =
+  | 'capacity' | 'scale' | 'availability' | 'resource_equipment'
+  | 'certification_authorization' | 'knowledge' | 'articulation'
+  | 'financing' | 'logistics' | 'deadline' | 'other'
+
+export type OpportunityGapStatus =
+  | 'open' | 'in_treatment' | 'blocked' | 'resolved'
+  | 'closed_unresolved' | 'cancelled'
+
+export type OpportunityGap = {
+  gap_id: string
+  opportunity_id: string
+  requirement_revision_id: string
+  requirement_id: string
+  requirement_name: string
+  coverage_layer: 'network_mp25m' | 'expanded_argentina'
+  gap_type: OpportunityGapType
+  status: OpportunityGapStatus
+  rationale: string
+  responsible_internal_user_id: string | null
+  responsible_display_name: string | null
+  opened_by_internal_user_id: string
+  opened_by_display_name: string
+  opened_at: string
+  updated_at: string
+  current_coverage_status: RequirementCoverageStatus | null
+}
+
+export type OpportunityGapActionType =
+  | 'search_mp25m' | 'search_argentina' | 'search_international' | 'contact_actor'
+  | 'request_information' | 'request_quote' | 'verify_capacity' | 'verify_availability'
+  | 'verify_certification' | 'call_for_participants' | 'develop_capacity' | 'acquire_equipment'
+  | 'seek_financing' | 'coordinate_meeting' | 'reanalyze_requirement' | 'other'
+
+export type OpportunityGapAction = {
+  action_id: string
+  gap_id: string
+  action_type: OpportunityGapActionType
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled'
+  rationale: string
+  responsible_internal_user_id: string | null
+  responsible_display_name: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const opportunityGapTypeLabels: Record<OpportunityGapType, string> = {
+  capacity: 'Capacidad', scale: 'Escala', availability: 'Disponibilidad',
+  resource_equipment: 'Recurso / equipamiento', certification_authorization: 'Certificación / habilitación',
+  knowledge: 'Conocimiento', articulation: 'Articulación', financing: 'Financiamiento',
+  logistics: 'Logística', deadline: 'Plazo', other: 'Otro',
+}
+
+export const opportunityGapStatusLabels: Record<OpportunityGapStatus, string> = {
+  open: 'Abierta', in_treatment: 'En tratamiento', blocked: 'Bloqueada',
+  resolved: 'Resuelta', closed_unresolved: 'Cerrada sin resolver', cancelled: 'Cancelada',
+}
+
 const pageSize = 500
 const idChunkSize = 100
 
@@ -308,6 +366,34 @@ export async function listOpportunityCoverageSnapshots(
   }
 
   return (data ?? []) as OpportunityCoverageSnapshot[]
+}
+
+export async function listOpportunityGaps(opportunityId: string): Promise<OpportunityGap[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('opportunity_gap_list')
+    .select(`
+      gap_id, opportunity_id, requirement_revision_id, requirement_id, requirement_name,
+      coverage_layer, gap_type, status, rationale, responsible_internal_user_id,
+      responsible_display_name, opened_by_internal_user_id, opened_by_display_name,
+      opened_at, updated_at, current_coverage_status
+    `)
+    .eq('opportunity_id', opportunityId)
+    .order('opened_at', { ascending: false })
+
+  if (error) throw new Error(`Unable to load opportunity gaps: ${error.message}`)
+  return (data ?? []) as OpportunityGap[]
+}
+
+export async function listOpportunityGapActions(opportunityId: string): Promise<OpportunityGapAction[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('opportunity_gap_action_list')
+    .select('action_id, gap_id, action_type, status, rationale, responsible_internal_user_id, responsible_display_name, created_at, updated_at')
+    .in('gap_id', (await listOpportunityGaps(opportunityId)).map((gap) => gap.gap_id))
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`Unable to load opportunity gap actions: ${error.message}`)
+  return (data ?? []) as OpportunityGapAction[]
 }
 
 async function listMatches(opportunityId: string) {
@@ -782,6 +868,84 @@ export async function createOpportunityCoverageSnapshot(
     p_opportunity_id: opportunityId,
   })
 
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data
+}
+
+export async function openOpportunityGap(
+  access: InternalAccess[],
+  input: {
+    requirementRevisionId: string
+    coverageLayer: 'network_mp25m' | 'expanded_argentina'
+    gapType: OpportunityGapType
+    rationale: string
+    responsibleInternalUserId: string | null
+  }
+) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc('open_opportunity_gap', {
+    p_actor_internal_user_id: getActorInternalUserId(access),
+    p_requirement_revision_id: input.requirementRevisionId,
+    p_coverage_layer: input.coverageLayer,
+    p_gap_type: input.gapType,
+    p_rationale: input.rationale,
+    p_responsible_internal_user_id: input.responsibleInternalUserId,
+  })
+
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data
+}
+
+export async function transitionOpportunityGap(
+  access: InternalAccess[],
+  input: {
+    gapId: string
+    status: OpportunityGapStatus
+    rationale: string
+    responsibleInternalUserId: string | null
+  }
+) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc('transition_opportunity_gap', {
+    p_actor_internal_user_id: getActorInternalUserId(access),
+    p_gap_id: input.gapId,
+    p_status: input.status,
+    p_rationale: input.rationale,
+    p_responsible_internal_user_id: input.responsibleInternalUserId,
+  })
+
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data
+}
+
+export async function createOpportunityGapAction(access: InternalAccess[], input: {
+  gapId: string
+  actionType: OpportunityGapActionType
+  rationale: string
+  responsibleInternalUserId: string | null
+}) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc('create_opportunity_gap_action', {
+    p_actor_internal_user_id: getActorInternalUserId(access), p_gap_id: input.gapId,
+    p_action_type: input.actionType, p_rationale: input.rationale,
+    p_responsible_internal_user_id: input.responsibleInternalUserId,
+  })
+  if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
+  return data
+}
+
+export async function transitionOpportunityGapAction(access: InternalAccess[], input: {
+  actionId: string
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled'
+  rationale: string
+  responsibleInternalUserId: string | null
+}) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc('transition_opportunity_gap_action', {
+    p_actor_internal_user_id: getActorInternalUserId(access), p_action_id: input.actionId,
+    p_status: input.status, p_rationale: input.rationale,
+    p_responsible_internal_user_id: input.responsibleInternalUserId,
+  })
   if (error) throw new OpportunityAnalysisRpcError(error.message, error.code ?? null)
   return data
 }

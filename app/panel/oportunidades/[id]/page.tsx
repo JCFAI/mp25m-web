@@ -46,6 +46,17 @@ const priorityLabels = {
   urgent: 'Urgente',
 }
 
+const provenanceOriginLabels = {
+  manual: 'Registro manual',
+  opportunity_candidate: 'Oportunidad candidata',
+}
+
+const provenanceDetectionLabels = {
+  manual: 'Carga manual',
+  radar_broad: 'Radar amplio',
+  radar_directed: 'Radar dirigido',
+}
+
 const actionLabels: Record<string, string> = {
   'opportunity.origin_resolved': 'Identidad de actor resuelta',
   'opportunity.create':
@@ -760,6 +771,7 @@ export default async function OpportunityDetailPage({
 
   const {
     opportunity,
+    provenance,
     origins,
     history,
   } = detail
@@ -832,6 +844,7 @@ export default async function OpportunityDetailPage({
         nodeIds={
           opportunity.node_ids ?? []
         }
+        assigneeOptions={assigneeOptions}
       />
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <div className="space-y-5">
@@ -902,6 +915,27 @@ export default async function OpportunityDetailPage({
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {opportunity.source_text}
                 </p>
+              </div>
+            ) : null}
+
+            {provenance ? (
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Procedencia
+                </p>
+                <dl className="mt-2 grid gap-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-slate-500">Origen</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">{provenanceOriginLabels[provenance.origin_kind]}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Método de detección</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">{provenanceDetectionLabels[provenance.detection_method]}</dd>
+                  </div>
+                  {provenance.source_name ? <div><dt className="text-slate-500">Fuente</dt><dd className="mt-0.5 text-slate-700">{provenance.source_name}</dd></div> : null}
+                  {provenance.external_reference ? <div><dt className="text-slate-500">Referencia externa</dt><dd className="mt-0.5 break-words text-slate-700">{provenance.external_reference}</dd></div> : null}
+                </dl>
+                <p className="mt-3 text-xs leading-5 text-slate-500">La procedencia se conserva para futuras señales del Radar; no implica una detección ni asignación automática.</p>
               </div>
             ) : null}
           </article>

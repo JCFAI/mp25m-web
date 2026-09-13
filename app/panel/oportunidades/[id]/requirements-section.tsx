@@ -7,6 +7,8 @@ import type {
 import {
   canOperateOpportunityRequirementEvaluation,
   getOpportunityCoverageSummary,
+  listOpportunityGaps,
+  listOpportunityGapActions,
   listOpportunityCoverageSnapshots,
   listOpportunityAnalysis,
 } from '../../../../lib/opportunities/analysis'
@@ -37,6 +39,10 @@ import {
   OpportunityCoverageSummaryCard,
 } from './opportunity-coverage-summary'
 
+import { OpportunityGapsSection } from './opportunity-gaps-section'
+
+import type { OpportunityAssigneeOption } from '../../../../lib/opportunities/detail'
+
 function formatDateTime(
   value: string
 ) {
@@ -59,11 +65,13 @@ export async function OpportunityRequirementsSection({
   access,
   assignedToInternalUserId,
   nodeIds,
+  assigneeOptions,
 }: {
   opportunityId: string
   access: InternalAccess[]
   assignedToInternalUserId: string | null
   nodeIds: string[]
+  assigneeOptions: OpportunityAssigneeOption[]
 }) {
   const [
     requirements,
@@ -71,6 +79,7 @@ export async function OpportunityRequirementsSection({
     analysis,
     coverageSummary,
     coverageSnapshots,
+    gaps,
   ] = access.length > 0
     ? await Promise.all([
         listOpportunityRequirements(
@@ -88,6 +97,7 @@ export async function OpportunityRequirementsSection({
         listOpportunityCoverageSnapshots(
           opportunityId
         ),
+        listOpportunityGaps(opportunityId),
       ])
     : [
         [],
@@ -103,6 +113,7 @@ export async function OpportunityRequirementsSection({
         },
         null,
         [],
+        [],
       ]
 
   const requirementPermissionContext = {
@@ -111,6 +122,10 @@ export async function OpportunityRequirementsSection({
     node_ids:
       nodeIds,
   }
+
+  const gapActions = access.length > 0
+    ? await listOpportunityGapActions(opportunityId)
+    : []
 
   const canFormulateRequirements =
     canFormulateOpportunityRequirement(
@@ -191,6 +206,15 @@ export async function OpportunityRequirementsSection({
           summary={coverageSummary}
           snapshots={coverageSnapshots}
           canCreateSnapshot={canOperateEvaluations}
+        />
+
+        <OpportunityGapsSection
+          opportunityId={opportunityId}
+          requirements={requirements}
+          gaps={gaps}
+          actions={gapActions}
+          canOperate={canOperateEvaluations}
+          assigneeOptions={assigneeOptions}
         />
 
         {canFormulateRequirements ? (

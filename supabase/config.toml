@@ -1,5 +1,12 @@
 [api]
 schemas = ["public", "graphql_public", "mp25m_api"]
 
+[auth]
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = [
+  "http://127.0.0.1:3000/auth/confirm",
+  "http://localhost:3000/auth/confirm",
+]
+
 [functions.mp25m-profile-submit]
 verify_jwt = false

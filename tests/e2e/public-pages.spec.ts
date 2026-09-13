@@ -9,6 +9,7 @@ test('muestra la presentación institucional', async ({ page }) => {
       name: 'Mapa productivo, capacidades y articulaciones',
     }),
   ).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ingresar al sistema' })).toBeVisible()
 })
 
 test('muestra el acceso al backoffice', async ({ page }) => {

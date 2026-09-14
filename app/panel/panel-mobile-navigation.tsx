@@ -44,17 +44,14 @@ const navigationItems = [
     label: 'Habilidades',
     marker: 'H',
   },
-]
-
-const futureModules = [
   {
-    label: 'Articulaciones',
-    marker: 'A',
-  },
-  {
+    href: '/panel/proyectos',
     label: 'Proyectos',
     marker: 'P',
   },
+]
+
+const futureModules = [
   {
     label: 'Informes',
     marker: 'I',

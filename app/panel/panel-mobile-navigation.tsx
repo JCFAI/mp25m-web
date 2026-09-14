@@ -49,6 +49,11 @@ const navigationItems = [
     label: 'Proyectos',
     marker: 'P',
   },
+  {
+    href: '/panel/articulaciones',
+    label: 'Articulaciones',
+    marker: 'A',
+  },
 ]
 
 const futureModules = [

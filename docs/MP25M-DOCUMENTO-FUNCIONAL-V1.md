@@ -613,8 +613,9 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 7 | Implementado: análisis productivo de oportunidades — requerimientos, coincidencias, cobertura, brechas, acciones, gobernanza y preparación de procedencia para Radar futuro. |
 | Incremento 8 | Implementado: articulaciones manuales y trazables posteriores al análisis. |
 | Incremento 9A | Implementado: proyectos de ejecución explícitos, con responsable, estado, novedades y auditoría. |
+| Incremento 9B | Implementado: participantes, entregables y evidencia trazable de proyectos, sin automatización ni economía. |
 
-Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; participantes y entregables de proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9A inicia Proyectos sin adelantar módulos de economía o automatización.
+Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9B completa el circuito operativo básico de Proyectos sin adelantar módulos de economía o automatización.
 
 ## 23. Decisiones pendientes
 

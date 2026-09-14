@@ -40,8 +40,8 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 }
 
-function ParticipantRemovalForm({ opportunityId, participant }: { opportunityId: string; participant: OpportunityArticulationParticipant }) {
-  const [state, formAction, pending] = useActionState(removeOpportunityArticulationParticipantAction.bind(null, opportunityId, participant.participant_id), initialState)
+function ParticipantRemovalForm({ opportunityId, articulationId, participant }: { opportunityId: string; articulationId: string; participant: OpportunityArticulationParticipant }) {
+  const [state, formAction, pending] = useActionState(removeOpportunityArticulationParticipantAction.bind(null, opportunityId, articulationId, participant.participant_id), initialState)
 
   return <details className="mt-2">
     <summary className="cursor-pointer text-xs font-semibold text-slate-600">Retirar participante</summary>
@@ -53,7 +53,7 @@ function ParticipantRemovalForm({ opportunityId, participant }: { opportunityId:
   </details>
 }
 
-function ArticulationControls({ opportunityId, articulation, participants, followups, assigneeOptions, participantOptions }: {
+export function ArticulationControls({ opportunityId, articulation, participants, followups, assigneeOptions, participantOptions }: {
   opportunityId: string; articulation: OpportunityArticulation; participants: OpportunityArticulationParticipant[]; followups: OpportunityArticulationFollowup[]; assigneeOptions: OpportunityAssigneeOption[]; participantOptions: OpportunityOrigin[]
 }) {
   const [transitionState, transitionAction, transitionPending] = useActionState(transitionOpportunityArticulationAction.bind(null, opportunityId, articulation.articulation_id), initialState)
@@ -78,7 +78,7 @@ function ArticulationControls({ opportunityId, articulation, participants, follo
     <details className="rounded-lg border border-slate-200 bg-white">
       <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold text-[#1E3A5F]">Participantes ({participants.length})</summary>
       <div className="border-t border-slate-200 p-3">
-        {participants.length ? <ul className="space-y-2">{participants.map((participant) => <li key={participant.participant_id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"><strong>{participant.display_name}</strong> · {participant.participant_type === 'person' ? 'Persona' : 'Organización'}<p className="mt-1 text-xs text-slate-500">Incorporado por {participant.added_by_display_name} · {formatDateTime(participant.added_at)}</p><ParticipantRemovalForm opportunityId={opportunityId} participant={participant} /></li>)}</ul> : <p className="text-sm text-slate-500">Todavía no hay participantes activos.</p>}
+        {participants.length ? <ul className="space-y-2">{participants.map((participant) => <li key={participant.participant_id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"><strong>{participant.display_name}</strong> · {participant.participant_type === 'person' ? 'Persona' : 'Organización'}<p className="mt-1 text-xs text-slate-500">Incorporado por {participant.added_by_display_name} · {formatDateTime(participant.added_at)}</p><ParticipantRemovalForm opportunityId={opportunityId} articulationId={articulation.articulation_id} participant={participant} /></li>)}</ul> : <p className="text-sm text-slate-500">Todavía no hay participantes activos.</p>}
         <form action={participantAction} className="mt-3 border-t border-slate-200 pt-3">
           <select name="actor" required defaultValue="" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="" disabled>Elegir actor ya vinculado a la oportunidad...</option>{participantOptions.map((origin) => <option key={origin.origin_id} value={`${origin.actor_type}:${origin.actor_id}`}>{origin.display_name} · {origin.actor_type === 'person' ? 'Persona' : 'Organización'}</option>)}</select>
           <input name="rationale" required minLength={3} maxLength={10000} placeholder="Por qué participa..." className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />

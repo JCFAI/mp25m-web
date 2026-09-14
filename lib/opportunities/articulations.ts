@@ -57,6 +57,27 @@ export async function listOpportunityArticulations(opportunityId: string) {
   return (data ?? []) as OpportunityArticulation[]
 }
 
+export async function listArticulations() {
+  const { data, error } = await createAdminClient()
+    .from('opportunity_articulation_list')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (error) throw new Error(`Unable to load articulations: ${error.message}`)
+  return (data ?? []) as OpportunityArticulation[]
+}
+
+export async function getArticulation(articulationId: string) {
+  const { data, error } = await createAdminClient()
+    .from('opportunity_articulation_list')
+    .select('*')
+    .eq('articulation_id', articulationId)
+    .maybeSingle()
+
+  if (error) throw new Error(`Unable to load articulation: ${error.message}`)
+  return data as OpportunityArticulation | null
+}
+
 export async function createOpportunityArticulation(access: InternalAccess[], input: {
   opportunityId: string; title: string; objective: string; responsibleInternalUserId: string | null
 }) {

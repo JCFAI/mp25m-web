@@ -13,6 +13,12 @@ import { OpportunityAssigneeForm } from './assignee-form'
 import { OpportunityFollowupForm } from './followup-form'
 import { OpportunityStatusForm } from './status-form'
 import { OpportunityRequirementsSection } from './requirements-section'
+import { OpportunityArticulationsSection } from './opportunity-articulations-section'
+import {
+  listOpportunityArticulationFollowups,
+  listOpportunityArticulationParticipants,
+  listOpportunityArticulations,
+} from '../../../../lib/opportunities/articulations'
 
 export const dynamic = 'force-dynamic'
 
@@ -746,10 +752,16 @@ export default async function OpportunityDetailPage({
     supabase,
     detail,
     assigneeOptions,
+    articulations,
+    articulationParticipants,
+    articulationFollowups,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
     listOpportunityAssigneeOptions(),
+    listOpportunityArticulations(id),
+    listOpportunityArticulationParticipants(id),
+    listOpportunityArticulationFollowups(id),
   ])
 
   if (!detail) {
@@ -844,6 +856,15 @@ export default async function OpportunityDetailPage({
         nodeIds={
           opportunity.node_ids ?? []
         }
+        assigneeOptions={assigneeOptions}
+      />
+      <OpportunityArticulationsSection
+        opportunityId={opportunity.id}
+        articulations={articulations}
+        participants={articulationParticipants}
+        followups={articulationFollowups}
+        origins={origins}
+        canOperate={canManage}
         assigneeOptions={assigneeOptions}
       />
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">

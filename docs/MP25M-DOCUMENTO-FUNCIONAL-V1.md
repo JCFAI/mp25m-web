@@ -610,9 +610,10 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 4 | Implementado: mapa de capacidades de nodos. |
 | Incremento 5 | Implementado: directorio, fichas, alta y validación de organizaciones y relaciones territoriales. |
 | Incremento 6 | Implementado: directorio de habilidades, gestión de habilidades personales, capacidades y actividades de organizaciones, gobernanza de catálogos y propuestas. |
-| Incremento 7 | Previsto: análisis productivo de oportunidades — requerimientos, coincidencias, cobertura, brechas y preparación para Radar. 7.0 sólo alinea documentación/nomenclatura; 7A–7G se desarrollarán después. |
+| Incremento 7 | Implementado: análisis productivo de oportunidades — requerimientos, coincidencias, cobertura, brechas, acciones, gobernanza y preparación de procedencia para Radar futuro. |
+| Incremento 8 | En desarrollo: articulaciones manuales y trazables posteriores al análisis. El alcance inicial se define en la especificación del Incremento 8. |
 
-Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; articulaciones; proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El orden exacto 7.0 → 7G se registra en el diseño técnico del Incremento 7.
+Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 8 inicia Articulaciones sin adelantar módulos de proyectos o economía.
 
 ## 23. Decisiones pendientes
 

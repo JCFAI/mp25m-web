@@ -57,6 +57,16 @@ export async function listOpportunityArticulations(opportunityId: string) {
   return (data ?? []) as OpportunityArticulation[]
 }
 
+export async function listArticulations() {
+  const { data, error } = await createAdminClient()
+    .from('opportunity_articulation_list')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (error) throw new Error(`Unable to load articulations: ${error.message}`)
+  return (data ?? []) as OpportunityArticulation[]
+}
+
 export async function createOpportunityArticulation(access: InternalAccess[], input: {
   opportunityId: string; title: string; objective: string; responsibleInternalUserId: string | null
 }) {

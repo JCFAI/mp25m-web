@@ -48,7 +48,7 @@ const modules: PanelModule[] = [
     description:
       'Proceso de conexión operativa de actores y recursos para concretar oportunidades.',
     status: 'active',
-    href: '/panel/oportunidades',
+    href: '/panel/articulaciones',
   },
   {
     name: 'Proyectos',

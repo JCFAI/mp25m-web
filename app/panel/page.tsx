@@ -46,14 +46,16 @@ const modules: PanelModule[] = [
   {
     name: 'Articulaciones',
     description:
-      'Proceso futuro de conexión operativa de actores y recursos para concretar oportunidades.',
-    status: 'planned',
+      'Proceso de conexión operativa de actores y recursos para concretar oportunidades.',
+    status: 'active',
+    href: '/panel/oportunidades',
   },
   {
     name: 'Proyectos',
     description:
-      'Iniciativas productivas, responsables, avances y resultados.',
-    status: 'planned',
+      'Ejecuciones acordadas, responsables, avances y resultados de articulaciones cerradas.',
+    status: 'active',
+    href: '/panel/proyectos',
   },
   {
     name: 'Informes',
@@ -214,7 +216,7 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 7
+              Incremento 9
             </span>
           </div>
 

@@ -1,6 +1,6 @@
 # MP25M - Documento Funcional V1
 
-> Alineación 7.0: este documento conserva la visión general y decisiones funcionales de largo plazo. No todo lo descrito está implementado. La secuencia histórica de incrementos evolucionó; la sección 22 refleja el estado real hasta el Incremento 6 y la nueva etapa 7. El detalle acordado está en la [especificación funcional del Incremento 7](MP25M-ESPECIFICACION-FUNCIONAL-INCREMENTO-7.md) y su [diseño técnico previsto](MP25M-DISENO-TECNICO-INCREMENTO-7.md). 7.0 sólo alinea documentación, etiquetas visibles y estado del panel.
+> Alineación 9A: este documento conserva la visión general y decisiones funcionales de largo plazo. No todo lo descrito está implementado. El detalle de la primera etapa de Proyectos está en la [especificación funcional del Incremento 9](MP25M-ESPECIFICACION-FUNCIONAL-INCREMENTO-9.md) y su [diseño técnico](MP25M-DISENO-TECNICO-INCREMENTO-9.md). Esta etapa habilita proyectos manuales y trazables sin adelantar economía ni automatizaciones.
 
 ## 1. Vision del sistema
 
@@ -249,7 +249,7 @@ Estado alineado con el cierre del Incremento 6. Las entidades marcadas como nuev
 | Coincidencias | Nuevo | Relacionan requerimientos con capacidades existentes. |
 | Brechas | Nuevo | Identifican faltantes y acciones para resolverlos. |
 | Articulaciones | Nuevo | Gestionan la conexion operativa posterior al analisis. |
-| Proyectos | Nuevo | Nacen cuando una oportunidad se acuerda y requiere ejecucion. |
+| Proyectos | Implementado y ampliable | Nacen explícitamente desde una articulación cerrada con resultado; incluyen responsable, estado y seguimiento manual. |
 | Actividades de seguimiento | Nuevo | Registran reuniones, tareas, llamadas, vencimientos y proximas acciones. |
 | Resultados | Nuevo | Registran cierre economico, territorial, estrategico u organizativo. |
 
@@ -611,9 +611,10 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 5 | Implementado: directorio, fichas, alta y validación de organizaciones y relaciones territoriales. |
 | Incremento 6 | Implementado: directorio de habilidades, gestión de habilidades personales, capacidades y actividades de organizaciones, gobernanza de catálogos y propuestas. |
 | Incremento 7 | Implementado: análisis productivo de oportunidades — requerimientos, coincidencias, cobertura, brechas, acciones, gobernanza y preparación de procedencia para Radar futuro. |
-| Incremento 8 | En desarrollo: articulaciones manuales y trazables posteriores al análisis. El alcance inicial se define en la especificación del Incremento 8. |
+| Incremento 8 | Implementado: articulaciones manuales y trazables posteriores al análisis. |
+| Incremento 9A | Implementado: proyectos de ejecución explícitos, con responsable, estado, novedades y auditoría. |
 
-Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 8 inicia Articulaciones sin adelantar módulos de proyectos o economía.
+Posteriores, sin fijar números rígidos: necesidades/ofertas/recursos/equipamiento; participantes y entregables de proyectos; resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9A inicia Proyectos sin adelantar módulos de economía o automatización.
 
 ## 23. Decisiones pendientes
 

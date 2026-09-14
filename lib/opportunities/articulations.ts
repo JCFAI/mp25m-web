@@ -17,6 +17,7 @@ export type OpportunityArticulation = {
   latest_followup_detail: string | null
   latest_followup_at: string | null
   created_at: string
+  closed_at: string | null
 }
 
 export type OpportunityArticulationParticipant = {

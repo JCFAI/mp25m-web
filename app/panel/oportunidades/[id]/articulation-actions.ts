@@ -37,6 +37,7 @@ export async function createOpportunityArticulationAction(opportunityId: string,
   try { await createOpportunityArticulation(access, { opportunityId, title, objective, responsibleInternalUserId }) }
   catch (error) { console.error('[MP25M] Articulation creation failed:', error); return { status: 'error', message: 'No se pudo registrar la articulación. No se modificó ningún dato.' } }
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  revalidatePath('/panel/articulaciones')
   return { status: 'success', message: 'La articulación fue registrada en borrador.' }
 }
 
@@ -57,6 +58,8 @@ export async function transitionOpportunityArticulationAction(opportunityId: str
   }
 
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  revalidatePath('/panel/articulaciones')
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
   return { status: 'success', message: 'El estado de la articulación fue actualizado.' }
 }
 
@@ -83,10 +86,12 @@ export async function addOpportunityArticulationParticipantAction(opportunityId:
   }
 
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  revalidatePath('/panel/articulaciones')
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
   return { status: 'success', message: 'El participante fue incorporado a la articulación.' }
 }
 
-export async function removeOpportunityArticulationParticipantAction(opportunityId: string, participantId: string, _state: ArticulationActionState, formData: FormData): Promise<ArticulationActionState> {
+export async function removeOpportunityArticulationParticipantAction(opportunityId: string, articulationId: string, participantId: string, _state: ArticulationActionState, formData: FormData): Promise<ArticulationActionState> {
   const access = await getCurrentAccess()
   const rationale = String(formData.get('rationale') ?? '').trim()
   if (rationale.length < 3) return { status: 'error', message: 'Indicá el motivo del retiro.' }
@@ -99,6 +104,8 @@ export async function removeOpportunityArticulationParticipantAction(opportunity
   }
 
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  revalidatePath('/panel/articulaciones')
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
   return { status: 'success', message: 'El participante fue retirado de la articulación.' }
 }
 
@@ -117,5 +124,7 @@ export async function createOpportunityArticulationFollowupAction(opportunityId:
   }
 
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
+  revalidatePath('/panel/articulaciones')
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
   return { status: 'success', message: 'La novedad fue registrada en el seguimiento.' }
 }

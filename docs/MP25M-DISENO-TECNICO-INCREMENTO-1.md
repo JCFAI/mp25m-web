@@ -58,7 +58,7 @@ Scripts disponibles:
 | `dev` | Ejecuta `next dev`. |
 | `build` | Ejecuta `next build`. |
 | `start` | Ejecuta `next start`. |
-| `lint` | Ejecuta `next lint`. |
+| `lint` | Ejecuta ESLint con la configuración de Next.js. |
 | `profile-link` | Ejecuta `node scripts/create-profile-link.mjs`. |
 
 `package-lock.json` confirma las mismas dependencias raiz. No hay dependencias de Supabase JS instaladas todavia.

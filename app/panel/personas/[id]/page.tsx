@@ -66,6 +66,27 @@ function skillVerificationBadgeClass(value: string) {
   ].join(' ')
 }
 
+function contactTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    email: 'Email',
+    phone: 'Teléfono',
+    whatsapp: 'WhatsApp',
+    other: 'Otro',
+  }
+
+  return labels[value] ?? value
+}
+
+function contactVisibilityLabel(value: string) {
+  const labels: Record<string, string> = {
+    public: 'Público',
+    internal: 'Interno',
+    private: 'Privado',
+  }
+
+  return labels[value] ?? value
+}
+
 function experienceLabel(value: string | null) {
   if (!value) {
     return 'Experiencia sin informar'
@@ -127,9 +148,17 @@ export default async function PersonProfilePage({
 
   const canManageSkills =
     canManagePersonSkills(access)
+  const canViewPrivateContacts = access.some(
+    (item) =>
+      item.is_administrative &&
+      item.scope_type === 'global'
+  )
 
   const profile =
-    await getCanonicalPersonProfile(id)
+    await getCanonicalPersonProfile(id, {
+      includePrivateContacts:
+        canViewPrivateContacts,
+    })
 
   if (!profile) {
     notFound()
@@ -141,6 +170,7 @@ export default async function PersonProfilePage({
     articulations,
     aliases,
     skills,
+    contacts,
   } = profile
 
   return (
@@ -274,6 +304,74 @@ export default async function PersonProfilePage({
           </div>
         </section>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">
+          Contactos
+        </h2>
+
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Datos de contacto disponibles según el nivel de acceso actual.
+        </p>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {contacts.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No hay contactos disponibles para este nivel de acceso.
+            </p>
+          ) : (
+            contacts.map((contact) => (
+              <article
+                key={contact.id}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {contactTypeLabel(
+                        contact.contact_type
+                      )}
+                    </p>
+                    <p className="mt-1 break-all font-semibold text-slate-900">
+                      {contact.value_original}
+                    </p>
+                    {contact.label ? (
+                      <p className="mt-1 text-sm text-slate-600">
+                        {contact.label}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {contact.is_primary ? (
+                      <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                        Principal
+                      </span>
+                    ) : null}
+                    <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                      {contactVisibilityLabel(
+                        contact.visibility
+                      )}
+                    </span>
+                    <span
+                      className={[
+                        'rounded-full px-2.5 py-1 text-xs font-semibold',
+                        contact.verified_at
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800',
+                      ].join(' ')}
+                    >
+                      {contact.verified_at
+                        ? 'Verificado'
+                        : 'Sin verificar'}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">

@@ -81,18 +81,40 @@ export type PersonSkill = {
   updated_at: string
 }
 
+export type PersonContact = {
+  id: string
+  person_id: string
+  contact_type: 'email' | 'phone' | 'whatsapp' | 'other'
+  value_original: string
+  label: string | null
+  is_primary: boolean
+  visibility: 'public' | 'internal' | 'private'
+  verified_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type CanonicalPersonProfile = {
   person: PersonProfile
   territories: PersonTerritory[]
   articulations: PersonArticulation[]
   aliases: PersonIdentityAlias[]
   skills: PersonSkill[]
+  contacts: PersonContact[]
+}
+
+type PersonProfileOptions = {
+  includePrivateContacts: boolean
 }
 
 export async function getCanonicalPersonProfile(
-  personId: string
+  personId: string,
+  options: PersonProfileOptions
 ): Promise<CanonicalPersonProfile | null> {
   const supabase = createAdminClient()
+  const visibleContactTypes = options.includePrivateContacts
+    ? ['public', 'internal', 'private']
+    : ['public', 'internal']
 
   const [
     personResult,
@@ -100,6 +122,7 @@ export async function getCanonicalPersonProfile(
     articulationsResult,
     aliasesResult,
     skillsResult,
+    contactsResult,
   ] = await Promise.all([
     supabase
       .from('person_profile')
@@ -140,6 +163,21 @@ export async function getCanonicalPersonProfile(
       .order('skill_name', {
         ascending: true,
       }),
+
+    supabase
+      .from('person_contact_list')
+      .select('*')
+      .eq('person_id', personId)
+      .in('visibility', visibleContactTypes)
+      .order('is_primary', {
+        ascending: false,
+      })
+      .order('contact_type', {
+        ascending: true,
+      })
+      .order('created_at', {
+        ascending: true,
+      }),
   ])
 
   if (personResult.error) {
@@ -176,6 +214,12 @@ export async function getCanonicalPersonProfile(
     )
   }
 
+  if (contactsResult.error) {
+    throw new Error(
+      `Unable to load person contacts: ${contactsResult.error.message}`
+    )
+  }
+
   return {
     person:
       personResult.data as PersonProfile,
@@ -191,5 +235,8 @@ export async function getCanonicalPersonProfile(
 
     skills:
       (skillsResult.data ?? []) as PersonSkill[],
+
+    contacts:
+      (contactsResult.data ?? []) as PersonContact[],
   }
 }

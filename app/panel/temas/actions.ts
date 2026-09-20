@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
 import { createClient } from '../../../lib/supabase/server'
+import { isIsoInstant } from '../../../lib/themes/date-time'
 import {
   addThemeResponsibility,
   createTheme,
@@ -35,6 +36,13 @@ function text(formData: FormData, name: string) {
 
 function optionalText(formData: FormData, name: string) {
   return text(formData, name) || null
+}
+
+function optionalInstant(formData: FormData, name: string) {
+  const value = optionalText(formData, name)
+  if (value === null) return { valid: true, value: null }
+  if (!isIsoInstant(value)) return { valid: false, value: null }
+  return { valid: true, value: new Date(value).toISOString() }
 }
 
 export async function createThemeAction(_state: ThemeActionState, formData: FormData): Promise<ThemeActionState> {
@@ -102,10 +110,15 @@ export async function removeThemeResponsibilityAction(themeId: string, responsib
 }
 
 export async function createThemeFollowupAction(themeId: string, _state: ThemeActionState, formData: FormData): Promise<ThemeActionState> {
+  const occurredAt = optionalInstant(formData, 'occurred_at')
+  const nextDueAt = optionalInstant(formData, 'next_due_at')
+  if (!occurredAt.valid || !nextDueAt.valid) {
+    return { status: 'error', message: 'Revisá las fechas y horas del seguimiento.' }
+  }
   const input = {
     themeId, followupType: text(formData, 'followup_type') as ThemeFollowupType, detail: text(formData, 'detail'),
-    occurredAt: optionalText(formData, 'occurred_at'), responsibleInternalUserId: optionalText(formData, 'responsible_internal_user_id'),
-    nextDueAt: optionalText(formData, 'next_due_at'),
+    occurredAt: occurredAt.value, responsibleInternalUserId: optionalText(formData, 'responsible_internal_user_id'),
+    nextDueAt: nextDueAt.value,
   }
   if (input.detail.length < 3) return { status: 'error', message: 'Describí el seguimiento.' }
   try { await createThemeFollowup(await currentAccess(), input) }

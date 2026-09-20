@@ -15,6 +15,11 @@ export type ThemePriority = 'low' | 'normal' | 'high' | 'urgent'
 export type ThemeResponsibilityRole = 'principal' | 'responsible' | 'promoter'
 export type ThemeFollowupType = 'general' | 'meeting' | 'decision' | 'commitment' | 'next_step' | 'result' | 'observation'
 
+export type ThemeUserOption = {
+  id: string
+  display_name: string
+}
+
 export type Theme = {
   theme_id: string
   name: string
@@ -183,6 +188,15 @@ export async function listThemeStatusHistory(themeId: string) {
   const { data, error } = await createAdminClient().from('theme_status_history_list').select('*').eq('theme_id', themeId).order('transition_no', { ascending: false })
   if (error) throw new Error(`Unable to load theme history: ${error.message}`)
   return (data ?? []) as ThemeStatusHistory[]
+}
+
+export async function listThemeUserOptions(): Promise<ThemeUserOption[]> {
+  const { data, error } = await createAdminClient()
+    .from('opportunity_assignee_options')
+    .select('id, display_name')
+    .order('display_name', { ascending: true })
+  if (error) throw new Error(`Unable to load theme user options: ${error.message}`)
+  return (data ?? []) as ThemeUserOption[]
 }
 
 export async function createTheme(access: InternalAccess[], input: {

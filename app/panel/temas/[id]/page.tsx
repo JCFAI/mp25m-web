@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
-import { listOpportunityAssigneeOptions } from '../../../../lib/opportunities/detail'
 import { createClient } from '../../../../lib/supabase/server'
 import {
   canFollowupTheme,
@@ -12,6 +11,7 @@ import {
   listThemeFollowups,
   listThemeResponsibilities,
   listThemeStatusHistory,
+  listThemeUserOptions,
   type ThemePriority,
   type ThemeStatus,
 } from '../../../../lib/themes/themes'
@@ -30,13 +30,16 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
   const access = await getInternalAccess(data.claims.sub)
   if (!access.length) redirect('/sin-acceso')
 
-  const [theme, responsibilities, followups, history, users] = await Promise.all([
-    getTheme(id), listThemeResponsibilities(id), listThemeFollowups(id), listThemeStatusHistory(id), listOpportunityAssigneeOptions(),
+  const [theme, responsibilities, followups, history] = await Promise.all([
+    getTheme(id), listThemeResponsibilities(id), listThemeFollowups(id), listThemeStatusHistory(id),
   ])
   if (!theme) notFound()
   const canGovern = canGovernThemes(access)
   const canManage = canManageTheme(access, responsibilities)
   const canFollowup = canFollowupTheme(access, responsibilities)
+  const users = canGovern || (canFollowup && theme.status !== 'closed')
+    ? await listThemeUserOptions()
+    : []
 
   return <div className="space-y-6">
     <Link href="/panel/temas" className="text-sm font-semibold text-[#2F5D8C]">← Volver a temas</Link>

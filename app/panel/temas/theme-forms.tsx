@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 
-import type { OpportunityAssigneeOption } from '../../../lib/opportunities/detail'
-import type { Theme, ThemeFollowup, ThemeResponsibility } from '../../../lib/themes/themes'
+import { currentLocalDateValue, localDateTimeToIso } from '../../../lib/themes/date-time'
+import type { Theme, ThemeFollowup, ThemeResponsibility, ThemeUserOption } from '../../../lib/themes/themes'
 import {
   addThemeResponsibilityAction,
   createThemeAction,
@@ -26,10 +26,36 @@ function Feedback({ state }: { state: ThemeActionState }) {
 
 const inputClass = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm'
 
-export function ThemeCreateForm({ users }: { users: OpportunityAssigneeOption[] }) {
+function LocalStartDateInput() {
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (inputRef.current && !inputRef.current.value) {
+      inputRef.current.value = currentLocalDateValue()
+    }
+  }, [])
+  return <input ref={inputRef} name="start_date" type="date" required className={inputClass} />
+}
+
+async function createThemeFollowupWithLocalTimes(
+  themeId: string,
+  state: ThemeActionState,
+  formData: FormData
+) {
+  try {
+    for (const name of ['occurred_at', 'next_due_at']) {
+      const value = String(formData.get(name) ?? '').trim()
+      if (value) formData.set(name, localDateTimeToIso(value))
+    }
+  } catch {
+    return { status: 'error', message: 'Revisá las fechas y horas del seguimiento.' } satisfies ThemeActionState
+  }
+  return createThemeFollowupAction(themeId, state, formData)
+}
+
+export function ThemeCreateForm({ users }: { users: ThemeUserOption[] }) {
   const [state, action, pending] = useActionState(createThemeAction, initialState)
   return <form action={action} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-    <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Nombre<input name="name" required minLength={3} maxLength={200} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Descripción<textarea name="description" required minLength={10} maxLength={10000} rows={4} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Propósito<textarea name="purpose" required minLength={3} maxLength={10000} rows={3} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700">Prioridad<select name="priority" defaultValue="normal" className={inputClass}>{Object.entries(priorities).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Fecha de inicio<input name="start_date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Situación actual<textarea name="current_summary" minLength={3} maxLength={10000} rows={3} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Alcance territorial<textarea name="territorial_scope_summary" minLength={3} maxLength={2000} rows={2} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700">Principal inicial<select name="principal_internal_user_id" className={inputClass}><option value="">Sin asignar</option>{users.map((user) => <option key={user.id} value={user.id}>{user.display_name}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Fundamento inicial<textarea name="rationale" required minLength={3} maxLength={10000} rows={2} className={inputClass} /></label></div>
+    <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Nombre<input name="name" required minLength={3} maxLength={200} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Descripción<textarea name="description" required minLength={10} maxLength={10000} rows={4} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Propósito<textarea name="purpose" required minLength={3} maxLength={10000} rows={3} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700">Prioridad<select name="priority" defaultValue="normal" className={inputClass}>{Object.entries(priorities).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Fecha de inicio<LocalStartDateInput /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Situación actual<textarea name="current_summary" minLength={3} maxLength={10000} rows={3} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Alcance territorial<textarea name="territorial_scope_summary" minLength={3} maxLength={2000} rows={2} className={inputClass} /></label><label className="text-sm font-semibold text-slate-700">Principal inicial<select name="principal_internal_user_id" className={inputClass}><option value="">Sin asignar</option>{users.map((user) => <option key={user.id} value={user.id}>{user.display_name}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Fundamento inicial<textarea name="rationale" required minLength={3} maxLength={10000} rows={2} className={inputClass} /></label></div>
     <Feedback state={state} /><button disabled={pending} className="mt-5 rounded-xl bg-[#1E3A5F] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Creando...' : 'Crear tema'}</button>
   </form>
 }
@@ -43,7 +69,7 @@ export function ThemeGovernanceForms({ theme, canManage, canGovern }: { theme: T
   </div>
 }
 
-export function ThemeResponsibilities({ themeId, responsibilities, users, canGovern }: { themeId: string; responsibilities: ThemeResponsibility[]; users: OpportunityAssigneeOption[]; canGovern: boolean }) {
+export function ThemeResponsibilities({ themeId, responsibilities, users, canGovern }: { themeId: string; responsibilities: ThemeResponsibility[]; users: ThemeUserOption[]; canGovern: boolean }) {
   const [state, action, pending] = useActionState(addThemeResponsibilityAction.bind(null, themeId), initialState)
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-semibold text-slate-950">Responsabilidades</h2><div className="mt-4 space-y-3">{responsibilities.filter((item) => !item.ended_at).map((item) => <ThemeResponsibilityCard key={item.responsibility_id} themeId={themeId} responsibility={item} canGovern={canGovern} />)}{!responsibilities.some((item) => !item.ended_at) ? <p className="text-sm text-slate-500">No hay responsabilidades activas.</p> : null}</div>{canGovern ? <form action={action} className="mt-5 grid gap-3 border-t border-slate-200 pt-5 sm:grid-cols-2"><select name="internal_user_id" required className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">Elegir persona...</option>{users.map((user) => <option key={user.id} value={user.id}>{user.display_name}</option>)}</select><select name="responsibility_role" defaultValue="responsible" className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm">{Object.entries(responsibilityRoles).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><textarea name="rationale" required minLength={3} maxLength={10000} rows={2} placeholder="Fundamento de la asignación..." className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm sm:col-span-2" /><div className="sm:col-span-2"><Feedback state={state} /><button disabled={pending} className="mt-3 rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Asignando...' : 'Asignar responsabilidad'}</button></div></form> : null}</section>
 }
@@ -53,7 +79,7 @@ function ThemeResponsibilityCard({ themeId, responsibility, canGovern }: { theme
   return <article className="rounded-xl bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{responsibility.display_name}</strong><span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{responsibilityRoles[responsibility.responsibility_role]}</span></div><p className="mt-2 text-sm text-slate-600">{responsibility.rationale}</p>{canGovern ? <form action={action} className="mt-3 flex flex-col gap-2 sm:flex-row"><input name="rationale" required minLength={3} maxLength={10000} placeholder="Motivo de finalización..." className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" /><button disabled={pending} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">Finalizar</button><Feedback state={state} /></form> : null}</article>
 }
 
-export function ThemeFollowups({ themeId, followups, users, canFollowup, isClosed }: { themeId: string; followups: ThemeFollowup[]; users: OpportunityAssigneeOption[]; canFollowup: boolean; isClosed: boolean }) {
-  const [state, action, pending] = useActionState(createThemeFollowupAction.bind(null, themeId), initialState)
+export function ThemeFollowups({ themeId, followups, users, canFollowup, isClosed }: { themeId: string; followups: ThemeFollowup[]; users: ThemeUserOption[]; canFollowup: boolean; isClosed: boolean }) {
+  const [state, action, pending] = useActionState(createThemeFollowupWithLocalTimes.bind(null, themeId), initialState)
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-semibold text-slate-950">Seguimiento</h2>{followups.length ? <ul className="mt-4 space-y-3">{followups.map((item) => <li key={item.followup_id} className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700"><div className="flex flex-wrap justify-between gap-2"><strong>{followupTypes[item.followup_type]}</strong><time className="text-xs text-slate-500">{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.occurred_at))}</time></div><p className="mt-2 whitespace-pre-line">{item.detail}</p><p className="mt-2 text-xs text-slate-500">Registró: {item.created_by_display_name}{item.responsible_display_name ? ` · Responsable: ${item.responsible_display_name}` : ''}{item.next_due_at ? ` · Próximo vencimiento: ${new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.next_due_at))}` : ''}</p></li>)}</ul> : <p className="mt-3 text-sm text-slate-500">Todavía no hay seguimientos.</p>}{canFollowup && !isClosed ? <form action={action} className="mt-5 grid gap-3 border-t border-slate-200 pt-5 sm:grid-cols-2"><select name="followup_type" defaultValue="general" className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm">{Object.entries(followupTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select name="responsible_internal_user_id" className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">Sin responsable específico</option>{users.map((user) => <option key={user.id} value={user.id}>{user.display_name}</option>)}</select><textarea name="detail" required minLength={3} maxLength={10000} rows={3} placeholder="Detalle del seguimiento..." className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm sm:col-span-2" /><label className="text-sm text-slate-600">Fecha del hecho<input name="occurred_at" type="datetime-local" className={inputClass} /></label><label className="text-sm text-slate-600">Próximo vencimiento<input name="next_due_at" type="datetime-local" className={inputClass} /></label><div className="sm:col-span-2"><Feedback state={state} /><button disabled={pending} className="mt-3 rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Registrando...' : 'Registrar seguimiento'}</button></div></form> : isClosed ? <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">El tema está cerrado. Reactivalo antes de registrar nuevos seguimientos.</p> : null}</section>
 }

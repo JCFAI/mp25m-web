@@ -1,6 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
+import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
 
 type NodeResult = {
   id: string
@@ -58,6 +66,50 @@ function NodePicker({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<NodeResult[]>([])
   const [loading, setLoading] = useState(false)
+  const fetchReferencePage = useCallback(
+    async ({
+      query: referenceQuery,
+      cursor,
+      signal,
+    }: {
+      query: string
+      cursor: string | null
+      signal: AbortSignal
+    }) => {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        q: referenceQuery,
+        limit: '25',
+      })
+
+      if (cursor) {
+        params.set('cursor', cursor)
+      }
+
+      const response = await fetch(
+        `/api/panel/nodos?${params.toString()}`,
+        {
+          signal,
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la lista.')
+      }
+
+      return (await response.json()) as {
+        items: NodeResult[]
+        nextCursor: string | null
+      }
+    },
+    []
+  )
+  const referenceList = useRemoteReferenceList({
+    contextKey: 'opportunity-node-picker',
+    getItemKey: (node: NodeResult) => node.id,
+    fetchPage: fetchReferencePage,
+  })
 
   useEffect(() => {
     const term = query.trim()
@@ -120,6 +172,12 @@ function NodePicker({
   }, [query, selected])
 
   function addNode(node: NodeResult) {
+    if (selected.some((item) => item.id === node.id)) {
+      setQuery('')
+      setResults([])
+      return
+    }
+
     onChange([...selected, node])
     setQuery('')
     setResults([])
@@ -200,6 +258,35 @@ function NodePicker({
         ) : null}
       </div>
 
+      <ReferenceListDialog
+        buttonClassName="mt-3"
+        title="Elegir nodo"
+        description="Explorá los nodos disponibles para relacionarlos con esta oportunidad."
+        items={referenceList.items}
+        searchPlaceholder="Buscar nodo o jurisdicción..."
+        emptyMessage="No se encontraron nodos para esta búsqueda."
+        getItemKey={(node) => node.id}
+        getItemSearchText={(node) => node.display_name}
+        renderItem={(node) => (
+          <p className="break-words text-sm font-semibold text-slate-900">
+            {node.display_name}
+          </p>
+        )}
+        onOpen={referenceList.open}
+        onSelect={addNode}
+        remote={{
+          query: referenceList.query,
+          onQueryChange: referenceList.setQuery,
+          initialLoading: referenceList.initialLoading,
+          loadingMore: referenceList.loadingMore,
+          hasMore: referenceList.hasMore,
+          initialError: referenceList.initialError,
+          loadMoreError: referenceList.loadMoreError,
+          onRetry: referenceList.retry,
+          onLoadMore: referenceList.loadMore,
+        }}
+      />
+
       {helperText ? (
         <p className="mt-2 text-xs leading-5 text-slate-400">
           {helperText}
@@ -225,6 +312,10 @@ function actorMetadata(actor: ActorResult) {
   }
 
   return parts.join(' · ')
+}
+
+function actorKey(actor: Pick<ActorResult, 'actor_type' | 'actor_id'>) {
+  return `${actor.actor_type}:${actor.actor_id}`
 }
 
 export function OpportunityRelations({
@@ -270,6 +361,63 @@ export function OpportunityRelations({
 
   const [newActorNodes, setNewActorNodes] =
     useState<NodeResult[]>([])
+
+  const selectedNodeIds = useMemo(
+    () =>
+      nodes
+        .map((node) => node.id)
+        .toSorted(),
+    [nodes]
+  )
+  const actorContextKey = selectedNodeIds.join(',')
+  const fetchActorReferencePage = useCallback(
+    async ({
+      query: referenceQuery,
+      cursor,
+      signal,
+    }: {
+      query: string
+      cursor: string | null
+      signal: AbortSignal
+    }) => {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        q: referenceQuery,
+        limit: '25',
+      })
+
+      for (const nodeId of selectedNodeIds) {
+        params.append('node_id', nodeId)
+      }
+
+      if (cursor) {
+        params.set('cursor', cursor)
+      }
+
+      const response = await fetch(
+        `/api/panel/oportunidades/actores?${params.toString()}`,
+        {
+          signal,
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la lista.')
+      }
+
+      return (await response.json()) as {
+        items: ActorResult[]
+        nextCursor: string | null
+      }
+    },
+    [selectedNodeIds]
+  )
+  const actorReferenceList = useRemoteReferenceList({
+    contextKey: actorContextKey,
+    getItemKey: actorKey,
+    fetchPage: fetchActorReferencePage,
+  })
 
   const selectedActorKeys = useMemo(
     () =>
@@ -355,10 +503,13 @@ export function OpportunityRelations({
   ])
 
   function addActor(actor: ActorResult) {
-    setSelectedActors((current) => [
-      ...current,
-      actor,
-    ])
+    setSelectedActors((current) => {
+      if (current.some((item) => actorKey(item) === actorKey(actor))) {
+        return current
+      }
+
+      return [...current, actor]
+    })
 
     setActorQuery('')
     setActorResults([])
@@ -563,15 +714,73 @@ export function OpportunityRelations({
 
         {!showNewActor ? (
           <div className="relative mt-3">
-            <input
-              value={actorQuery}
-              onChange={(event) =>
-                setActorQuery(event.target.value)
-              }
-              placeholder="Buscar persona, empresa o institución..."
-              autoComplete="off"
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-            />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={actorQuery}
+                onChange={(event) =>
+                  setActorQuery(event.target.value)
+                }
+                placeholder="Buscar persona, empresa o institución..."
+                autoComplete="off"
+                className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+              />
+
+              <ReferenceListDialog
+                buttonClassName="shrink-0 sm:w-auto"
+                title="Elegir actor de origen"
+                description="Explorá personas y organizaciones canónicas activas. Los actores relacionados con los nodos elegidos aparecen primero."
+                items={actorReferenceList.items}
+                searchPlaceholder="Buscar persona u organización..."
+                emptyMessage="No se encontraron actores para esta búsqueda."
+                getItemKey={actorKey}
+                getItemSearchText={(actor) =>
+                  [
+                    actor.display_name,
+                    actor.type_label,
+                    ...actor.node_names,
+                    ...actor.role_names,
+                  ].join(' ')
+                }
+                renderItem={(actor) => (
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="break-words text-sm font-semibold text-slate-900">
+                        {actor.display_name}
+                      </p>
+
+                      <span className="rounded-full bg-[#EAF0F7] px-2 py-0.5 text-[10px] font-semibold text-[#2F5D8C]">
+                        {actor.actor_type === 'person'
+                          ? 'Persona'
+                          : 'Organización'}
+                      </span>
+
+                      {actor.is_related_to_selected_node ? (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Nodo relacionado
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                      {actorMetadata(actor)}
+                    </p>
+                  </div>
+                )}
+                onOpen={actorReferenceList.open}
+                onSelect={addActor}
+                remote={{
+                  query: actorReferenceList.query,
+                  onQueryChange: actorReferenceList.setQuery,
+                  initialLoading: actorReferenceList.initialLoading,
+                  loadingMore: actorReferenceList.loadingMore,
+                  hasMore: actorReferenceList.hasMore,
+                  initialError: actorReferenceList.initialError,
+                  loadMoreError: actorReferenceList.loadMoreError,
+                  onRetry: actorReferenceList.retry,
+                  onLoadMore: actorReferenceList.loadMore,
+                }}
+              />
+            </div>
 
             {actorQuery.trim().length >= 2 ? (
               <div className="absolute z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">

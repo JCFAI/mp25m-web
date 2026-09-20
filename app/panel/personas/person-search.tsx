@@ -1,12 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
+  useCallback,
   useEffect,
   useId,
   useState,
 } from 'react'
 
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
+import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
 type ActorSearchResult = {
   actor_type:
     | 'person'
@@ -26,6 +30,13 @@ type PersonSearchResult =
   ActorSearchResult & {
     actor_type: 'person'
   }
+
+type PersonReferenceResult = {
+  id: string
+  display_name: string
+  node_names: string[]
+  role_names: string[]
+}
 
 const MINIMUM_QUERY_LENGTH = 3
 
@@ -57,6 +68,7 @@ function personMetadata(
 }
 
 export function PersonSearch() {
+  const router = useRouter()
   const inputId = useId()
   const resultsId = useId()
 
@@ -69,6 +81,50 @@ export function PersonSearch() {
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const fetchReferencePage = useCallback(
+    async ({
+      query: referenceQuery,
+      cursor,
+      signal,
+    }: {
+      query: string
+      cursor: string | null
+      signal: AbortSignal
+    }) => {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        q: referenceQuery,
+        limit: '25',
+      })
+
+      if (cursor) {
+        params.set('cursor', cursor)
+      }
+
+      const response = await fetch(
+        `/api/panel/personas?${params.toString()}`,
+        {
+          signal,
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la lista.')
+      }
+
+      return (await response.json()) as {
+        items: PersonReferenceResult[]
+        nextCursor: string | null
+      }
+    },
+    []
+  )
+  const referenceList = useRemoteReferenceList({
+    contextKey: 'person-directory',
+    getItemKey: (person: PersonReferenceResult) => person.id,
+    fetchPage: fetchReferencePage,
+  })
 
   const term = query.trim()
   const searchIsOpen =
@@ -158,8 +214,8 @@ export function PersonSearch() {
       </label>
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
-        Buscá por el nombre actual o por un nombre
-        informado anteriormente.
+        Buscá por el nombre actual. También podés explorar
+        el padrón con la lista paginada.
       </p>
 
       <div className="relative mt-4">
@@ -217,6 +273,55 @@ export function PersonSearch() {
           </div>
         ) : null}
       </div>
+
+      <ReferenceListDialog
+        buttonClassName="mt-3"
+        title="Directorio de personas"
+        description="Explorá personas canónicas activas sin descargar el padrón completo."
+        items={referenceList.items}
+        searchPlaceholder="Buscar persona..."
+        emptyMessage="No se encontraron personas para esta búsqueda."
+        getItemKey={(person) => person.id}
+        getItemSearchText={(person) =>
+          [
+            person.display_name,
+            ...person.node_names,
+            ...person.role_names,
+          ].join(' ')
+        }
+        renderItem={(person) => (
+          <div>
+            <p className="break-words text-sm font-semibold text-slate-900">
+              {person.display_name}
+            </p>
+
+            <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+              {[
+                person.node_names.join(', '),
+                person.role_names.join(', '),
+              ]
+                .filter(Boolean)
+                .join(' · ') ||
+                'Sin participación territorial confirmada'}
+            </p>
+          </div>
+        )}
+        onOpen={referenceList.open}
+        onSelect={(person) => {
+          router.push(`/panel/personas/${person.id}`)
+        }}
+        remote={{
+          query: referenceList.query,
+          onQueryChange: referenceList.setQuery,
+          initialLoading: referenceList.initialLoading,
+          loadingMore: referenceList.loadingMore,
+          hasMore: referenceList.hasMore,
+          initialError: referenceList.initialError,
+          loadMoreError: referenceList.loadMoreError,
+          onRetry: referenceList.retry,
+          onLoadMore: referenceList.loadMore,
+        }}
+      />
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
         Escribí al menos tres caracteres. Se muestran

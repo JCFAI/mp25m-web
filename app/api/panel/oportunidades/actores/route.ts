@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getInternalAccess } from '../../../../../lib/auth/internal-access'
-import { searchOpportunityActors } from '../../../../../lib/opportunities/actors'
+import {
+  listCanonicalActorReferencePage,
+  searchOpportunityActors,
+} from '../../../../../lib/opportunities/actors'
+import {
+  parseReferenceLimit,
+  ReferenceRequestError,
+} from '../../../../../lib/reference-pagination'
 import { createClient } from '../../../../../lib/supabase/server'
 
 const UUID_PATTERN =
@@ -34,10 +41,46 @@ export async function GET(request: NextRequest) {
   const query =
     request.nextUrl.searchParams.get('q') ?? ''
 
+  const mode =
+    request.nextUrl.searchParams.get('mode')
+
   const nodeIds =
     request.nextUrl.searchParams
       .getAll('node_id')
       .filter((value) => UUID_PATTERN.test(value))
+
+  if (mode === 'reference') {
+    try {
+      const page = await listCanonicalActorReferencePage({
+        query,
+        actorTypes: ['person', 'organization'],
+        nodeIds,
+        cursor:
+          request.nextUrl.searchParams.get('cursor'),
+        limit: parseReferenceLimit(
+          request.nextUrl.searchParams.get('limit')
+        ),
+      })
+
+      return NextResponse.json(page, {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      })
+    } catch (error) {
+      if (error instanceof ReferenceRequestError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            code: error.code,
+          },
+          { status: 400 }
+        )
+      }
+
+      throw error
+    }
+  }
 
   const actors = await searchOpportunityActors(
     query,

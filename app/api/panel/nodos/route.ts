@@ -5,9 +5,14 @@ import {
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
+  listNodeReferencePage,
   listNodeReferenceOptions,
   searchNodes,
 } from '../../../../lib/nodes/search'
+import {
+  parseReferenceLimit,
+  ReferenceRequestError,
+} from '../../../../lib/reference-pagination'
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -48,6 +53,46 @@ export async function GET(request: NextRequest) {
 
   const mode =
     request.nextUrl.searchParams.get('mode')
+
+  const usesPagedReferenceContract =
+    mode === 'reference' &&
+    (
+      request.nextUrl.searchParams.has('q') ||
+      request.nextUrl.searchParams.has('cursor') ||
+      request.nextUrl.searchParams.has('limit')
+    )
+
+  if (usesPagedReferenceContract) {
+    try {
+      const page = await listNodeReferencePage({
+        query,
+        cursor:
+          request.nextUrl.searchParams.get('cursor'),
+        limit: parseReferenceLimit(
+          request.nextUrl.searchParams.get('limit')
+        ),
+        excludeOrganizationId,
+      })
+
+      return NextResponse.json(page, {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      })
+    } catch (error) {
+      if (error instanceof ReferenceRequestError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            code: error.code,
+          },
+          { status: 400 }
+        )
+      }
+
+      throw error
+    }
+  }
 
   const results =
     mode === 'reference'

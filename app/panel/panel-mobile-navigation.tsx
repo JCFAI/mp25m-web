@@ -54,6 +54,11 @@ const navigationItems = [
     label: 'Articulaciones',
     marker: 'A',
   },
+  {
+    href: '/panel/temas',
+    label: 'Temas',
+    marker: 'T',
+  },
 ]
 
 const futureModules = [

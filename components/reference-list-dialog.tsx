@@ -24,6 +24,17 @@ type ReferenceListDialogProps<Item> = {
   renderItem: (item: Item) => ReactNode
   onOpen?: () => void
   onSelect?: (item: Item) => void
+  remote?: {
+    query: string
+    onQueryChange: (value: string) => void
+    initialLoading: boolean
+    loadingMore: boolean
+    hasMore: boolean
+    initialError?: string | null
+    loadMoreError?: string | null
+    onRetry?: () => void
+    onLoadMore?: () => void
+  }
 }
 
 function normalizeReferenceSearch(value: string) {
@@ -51,11 +62,14 @@ export function ReferenceListDialog<Item>({
   renderItem,
   onOpen,
   onSelect,
+  remote,
 }: ReferenceListDialogProps<Item>) {
   const dialogRef =
     useRef<HTMLDialogElement>(null)
   const filterInputRef =
     useRef<HTMLInputElement>(null)
+  const triggerRef =
+    useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const descriptionId = useId()
   const filterId = useId()
@@ -66,7 +80,7 @@ export function ReferenceListDialog<Item>({
     normalizeReferenceSearch(filter)
 
   const visibleItems = useMemo(() => {
-    if (!normalizedFilter) {
+    if (remote || !normalizedFilter) {
       return items
     }
 
@@ -75,16 +89,37 @@ export function ReferenceListDialog<Item>({
         getItemSearchText(item)
       ).includes(normalizedFilter)
     )
-  }, [getItemSearchText, items, normalizedFilter])
+  }, [
+    getItemSearchText,
+    items,
+    normalizedFilter,
+    remote,
+  ])
+
+  const searchValue = remote
+    ? remote.query
+    : filter
+  const isInitialLoading = remote
+    ? remote.initialLoading
+    : loading
+  const initialError = remote
+    ? remote.initialError ?? null
+    : errorMessage
 
   function openDialog() {
-    setFilter('')
+    if (!remote) {
+      setFilter('')
+    }
+
     onOpen?.()
     setOpen(true)
   }
 
   function closeDialog() {
     setOpen(false)
+    window.requestAnimationFrame(() => {
+      triggerRef.current?.focus()
+    })
   }
 
   useEffect(() => {
@@ -120,6 +155,7 @@ export function ReferenceListDialog<Item>({
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={openDialog}
         className={[
@@ -134,6 +170,8 @@ export function ReferenceListDialog<Item>({
 
       <dialog
         ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         onCancel={(event) => {
@@ -190,10 +228,15 @@ export function ReferenceListDialog<Item>({
               <input
                 ref={filterInputRef}
                 id={filterId}
-                value={filter}
-                onChange={(event) =>
+                value={searchValue}
+                onChange={(event) => {
+                  if (remote) {
+                    remote.onQueryChange(event.target.value)
+                    return
+                  }
+
                   setFilter(event.target.value)
-                }
+                }}
                 placeholder={searchPlaceholder}
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
               />
@@ -201,14 +244,36 @@ export function ReferenceListDialog<Item>({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-            {loading ? (
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {isInitialLoading
+                ? 'Cargando lista'
+                : initialError
+                  ? initialError
+                  : `${visibleItems.length} resultados disponibles`}
+            </div>
+
+            {isInitialLoading ? (
               <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                 Cargando lista...
               </p>
-            ) : errorMessage ? (
-              <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {errorMessage}
-              </p>
+            ) : initialError ? (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p>{initialError}</p>
+
+                {remote?.onRetry ? (
+                  <button
+                    type="button"
+                    onClick={remote.onRetry}
+                    className="mt-3 min-h-10 rounded-lg border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                  >
+                    Reintentar
+                  </button>
+                ) : null}
+              </div>
             ) : visibleItems.length > 0 ? (
               <div className="grid gap-2">
                 {visibleItems.map((item) => {
@@ -239,6 +304,39 @@ export function ReferenceListDialog<Item>({
                     </button>
                   )
                 })}
+
+                {remote?.loadMoreError ? (
+                  <div
+                    aria-live="polite"
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  >
+                    <p>{remote.loadMoreError}</p>
+
+                    {remote.onLoadMore ? (
+                      <button
+                        type="button"
+                        onClick={remote.onLoadMore}
+                        disabled={remote.loadingMore}
+                        className="mt-3 min-h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Reintentar carga
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {remote?.hasMore && remote.onLoadMore ? (
+                  <button
+                    type="button"
+                    onClick={remote.onLoadMore}
+                    disabled={remote.loadingMore}
+                    className="min-h-11 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {remote.loadingMore
+                      ? 'Cargando más...'
+                      : 'Cargar más'}
+                  </button>
+                ) : null}
               </div>
             ) : (
               <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">

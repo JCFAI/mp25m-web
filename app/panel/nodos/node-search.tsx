@@ -1,12 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
+  useCallback,
   useEffect,
   useId,
   useState,
 } from 'react'
 
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
+import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
 type NodeSearchResult = {
   id: string
   node_number: number | null
@@ -39,6 +43,7 @@ function nodeMetadata(node: NodeSearchResult) {
 }
 
 export function NodeSearch() {
+  const router = useRouter()
   const inputId = useId()
   const resultsId = useId()
 
@@ -51,6 +56,50 @@ export function NodeSearch() {
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const fetchReferencePage = useCallback(
+    async ({
+      query: referenceQuery,
+      cursor,
+      signal,
+    }: {
+      query: string
+      cursor: string | null
+      signal: AbortSignal
+    }) => {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        q: referenceQuery,
+        limit: '25',
+      })
+
+      if (cursor) {
+        params.set('cursor', cursor)
+      }
+
+      const response = await fetch(
+        `/api/panel/nodos?${params.toString()}`,
+        {
+          signal,
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la lista.')
+      }
+
+      return (await response.json()) as {
+        items: NodeSearchResult[]
+        nextCursor: string | null
+      }
+    },
+    []
+  )
+  const referenceList = useRemoteReferenceList({
+    contextKey: 'node-directory',
+    getItemKey: (node: NodeSearchResult) => node.id,
+    fetchPage: fetchReferencePage,
+  })
 
   const term = query.trim()
   const searchIsOpen =
@@ -196,6 +245,51 @@ export function NodeSearch() {
           </div>
         ) : null}
       </div>
+
+      <ReferenceListDialog
+        buttonClassName="mt-3"
+        title="Directorio de nodos"
+        description="Explorá los nodos disponibles o buscá por nombre y jurisdicción territorial."
+        items={referenceList.items}
+        searchPlaceholder="Buscar nodo o jurisdicción..."
+        emptyMessage="No se encontraron nodos para esta búsqueda."
+        getItemKey={(node) => node.id}
+        getItemSearchText={(node) =>
+          [
+            node.display_name,
+            node.jurisdiction_name,
+            node.jurisdiction_type_name,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        }
+        renderItem={(node) => (
+          <div>
+            <p className="break-words text-sm font-semibold text-slate-900">
+              {node.display_name}
+            </p>
+
+            <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+              {nodeMetadata(node)}
+            </p>
+          </div>
+        )}
+        onOpen={referenceList.open}
+        onSelect={(node) => {
+          router.push(`/panel/nodos/${node.id}`)
+        }}
+        remote={{
+          query: referenceList.query,
+          onQueryChange: referenceList.setQuery,
+          initialLoading: referenceList.initialLoading,
+          loadingMore: referenceList.loadingMore,
+          hasMore: referenceList.hasMore,
+          initialError: referenceList.initialError,
+          loadMoreError: referenceList.loadMoreError,
+          onRetry: referenceList.retry,
+          onLoadMore: referenceList.loadMore,
+        }}
+      />
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
         Escribí al menos dos caracteres. Se muestran

@@ -59,6 +59,11 @@ const navigationItems = [
     label: 'Temas',
     marker: 'T',
   },
+  {
+    href: '/panel/necesidades-ofertas',
+    label: 'Necesidades y ofertas',
+    marker: 'N/O',
+  },
 ]
 
 const futureModules = [

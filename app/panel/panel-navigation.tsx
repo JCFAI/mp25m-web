@@ -49,6 +49,11 @@ export function PanelNavigation() {
   const themesActive =
     pathname === '/panel/temas' ||
     pathname.startsWith('/panel/temas/')
+
+  const needsOffersActive =
+    pathname === '/panel/necesidades-ofertas' ||
+    pathname.startsWith('/panel/necesidades-ofertas/')
+
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -174,6 +179,19 @@ export function PanelNavigation() {
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
+
+        <Link
+          href="/panel/necesidades-ofertas"
+          aria-current={needsOffersActive ? 'page' : undefined}
+          className={activeClass(needsOffersActive)}
+        >
+          <span>Necesidades y ofertas</span>
+
+          {needsOffersActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
         {futureModules.map((module) => (
           <div
             key={module}

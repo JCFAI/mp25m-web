@@ -45,6 +45,10 @@ export function PanelNavigation() {
   const articulationsActive =
     pathname === '/panel/articulaciones' ||
     pathname.startsWith('/panel/articulaciones/')
+
+  const themesActive =
+    pathname === '/panel/temas' ||
+    pathname.startsWith('/panel/temas/')
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -156,6 +160,17 @@ export function PanelNavigation() {
           <span>Articulaciones</span>
 
           {articulationsActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+        <Link
+          href="/panel/temas"
+          aria-current={themesActive ? 'page' : undefined}
+          className={activeClass(themesActive)}
+        >
+          <span>Temas</span>
+
+          {themesActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>

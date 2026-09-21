@@ -58,6 +58,13 @@ const modules: PanelModule[] = [
     href: '/panel/proyectos',
   },
   {
+    name: 'Temas',
+    description:
+      'Asuntos transversales, responsables, estados y seguimientos sostenidos por el Movimiento.',
+    status: 'active',
+    href: '/panel/temas',
+  },
+  {
     name: 'Informes',
     description:
       'Lecturas, reportes y tableros para seguir la evoluci\u00f3n del sistema.',

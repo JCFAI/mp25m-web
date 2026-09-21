@@ -16,6 +16,13 @@ const modules: PanelModule[] = [
     href: '/panel/oportunidades',
   },
   {
+    name: 'Necesidades y ofertas',
+    description:
+      'Registro independiente de necesidades y ofertas, con responsables, estados, seguimiento e historial.',
+    status: 'active',
+    href: '/panel/necesidades-ofertas',
+  },
+  {
     name: 'Personas',
     description:
       'Directorio de personas, sus participaciones territoriales, habilidades y oportunidades.',
@@ -223,16 +230,16 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 9
+              Incremento 10
             </span>
           </div>
 
           <h2 className="mt-4 text-base font-semibold text-[#1E3A5F] sm:mt-5 sm:text-lg">
-            Análisis productivo de oportunidades
+            Necesidades, ofertas y temas
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            {'La nueva etapa incorporará requerimientos, coincidencias, cobertura y brechas sobre las capacidades ya registradas.'}
+            {'El sistema incorpora registros independientes para necesidades, ofertas y temas, manteniendo su trazabilidad sin convertirlos automáticamente en oportunidades, articulaciones o proyectos.'}
           </p>
         </article>
       </section>

@@ -367,7 +367,7 @@ export function NeedOfferDirectory({
                 item.need_offer_id
               }
               href={`/panel/necesidades-ofertas/${item.need_offer_id}`}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
+              className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <strong className="text-slate-950">
@@ -419,6 +419,10 @@ export function NeedOfferDirectory({
                   }
                 </p>
               ) : null}
+
+              <span className="mt-3 inline-flex text-xs font-semibold text-[#2F5D8C] transition group-hover:text-[#1E3A5F] group-hover:underline">
+                Ver detalle →
+              </span>
             </Link>
           )
         )}

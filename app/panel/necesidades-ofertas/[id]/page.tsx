@@ -20,11 +20,22 @@ import {
   NeedOfferEditForm,
   NeedOfferFollowups,
   NeedOfferStatusForm,
-  needOfferStatusLabels,
-  needOfferTypeLabels,
 } from '../need-offer-forms'
 
 export const dynamic = 'force-dynamic'
+
+const needOfferTypeLabels = {
+  need: 'Necesidad',
+  offer: 'Oferta',
+} as const
+
+const needOfferStatusLabels = {
+  draft: 'Borrador',
+  active: 'Vigente',
+  paused: 'Pausada',
+  closed: 'Cerrada',
+  cancelled: 'Cancelada',
+} as const
 
 function formatDateTime(
   value: string
@@ -202,6 +213,16 @@ export default async function NeedOfferDetailPage({
                       needOffer.status
                     ]
                   }
+                </dd>
+              </div>
+
+              <div className="sm:col-span-2">
+                <dt className="font-semibold text-slate-500">
+                  Descripción
+                </dt>
+
+                <dd className="mt-1 whitespace-pre-line leading-6 text-slate-800">
+                  {needOffer.description}
                 </dd>
               </div>
 

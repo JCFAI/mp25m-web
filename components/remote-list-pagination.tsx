@@ -54,23 +54,66 @@ export function RemoteListPagination({
 
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel || !autoLoad || !hasMore ||
-      typeof IntersectionObserver === 'undefined') return
+    const scrollRoot = rootRef?.current ?? null
+
+    if (!sentinel || !autoLoad || !hasMore) return
 
     let active = true
     let inside = false
-    const observer = new IntersectionObserver((entries) => {
-      if (!active) return
-      for (const entry of entries) {
-        const entering = entry.isIntersecting && !inside
-        inside = entry.isIntersecting
-        if (entering) requestAutomatically()
+    let previousScrollTop = scrollRoot?.scrollTop ?? 0
+
+    // En listas con scroll propio, empezamos a precargar apenas
+    // el usuario comienza a desplazarse hacia abajo. Esto responde
+    // a rueda, trackpad, teclado y touch, no solamente a wheel.
+    const onScroll = () => {
+      if (!active || !scrollRoot) return
+
+      const currentScrollTop = scrollRoot.scrollTop
+      const movingDown = currentScrollTop > previousScrollTop
+
+      previousScrollTop = currentScrollTop
+
+      if (movingDown) {
+        requestAutomatically()
       }
-    }, { root: rootRef?.current ?? null, rootMargin: '0px 0px 200px 0px' })
-    observer.observe(sentinel)
+    }
+
+    if (scrollRoot) {
+      scrollRoot.addEventListener('scroll', onScroll, {
+        passive: true,
+      })
+    }
+
+    // El observer queda como respaldo para listas sin scrollRoot
+    // y para la llegada natural al final de la lista.
+    let observer: IntersectionObserver | null = null
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver((entries) => {
+        if (!active) return
+
+        for (const entry of entries) {
+          const entering =
+            entry.isIntersecting && !inside
+
+          inside = entry.isIntersecting
+
+          if (entering) {
+            requestAutomatically()
+          }
+        }
+      }, {
+        root: scrollRoot,
+        rootMargin: '0px 0px 200px 0px',
+      })
+
+      observer.observe(sentinel)
+    }
+
     return () => {
       active = false
-      observer.disconnect()
+      scrollRoot?.removeEventListener('scroll', onScroll)
+      observer?.disconnect()
     }
   }, [autoLoad, hasMore, rootRef])
 

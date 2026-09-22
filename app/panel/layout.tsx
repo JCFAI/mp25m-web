@@ -59,7 +59,7 @@ export default async function PanelLayout({
       />
 
       <div className="mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[270px_1fr]">
-        <aside className="hidden bg-[#1E3A5F] text-white md:sticky md:top-0 md:flex md:h-dvh md:self-start md:flex-col md:overflow-y-auto">
+        <aside className="hidden bg-[#1E3A5F] text-white md:sticky md:top-0 md:flex md:h-dvh md:self-start md:flex-col md:overflow-x-hidden md:overflow-y-auto">
           <div className="flex items-center gap-3 border-b border-white/10 px-5 py-6">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black tracking-wide text-[#1E3A5F] shadow-sm">
               25M

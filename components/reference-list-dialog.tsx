@@ -9,6 +9,12 @@ import {
   useState,
 } from 'react'
 
+import {
+  normalizeRemoteReferenceQuery,
+  type RemoteReferenceStatus,
+} from '../hooks/use-remote-reference-list'
+import { RemoteListPagination } from './remote-list-pagination'
+
 type ReferenceListDialogProps<Item> = {
   buttonLabel?: string
   buttonClassName?: string
@@ -25,6 +31,10 @@ type ReferenceListDialogProps<Item> = {
   onOpen?: () => void
   onSelect?: (item: Item) => void
   remote?: {
+    paginationKey?: string
+    status?: RemoteReferenceStatus
+    minimumQueryLength?: number
+    autoLoad?: boolean
     query: string
     onQueryChange: (value: string) => void
     initialLoading: boolean
@@ -70,6 +80,7 @@ export function ReferenceListDialog<Item>({
     useRef<HTMLInputElement>(null)
   const triggerRef =
     useRef<HTMLButtonElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const descriptionId = useId()
   const filterId = useId()
@@ -105,6 +116,14 @@ export function ReferenceListDialog<Item>({
   const initialError = remote
     ? remote.initialError ?? null
     : errorMessage
+  const minimumQueryLength = remote?.minimumQueryLength ?? 2
+  const remoteQueryLength = remote
+    ? normalizeRemoteReferenceQuery(remote.query).length : 0
+  const needsMoreCharacters = remote?.status === 'minimum-query' ||
+    (remoteQueryLength > 0 && remoteQueryLength < minimumQueryLength)
+  const minimumQueryMessage =
+    `Ingresá al menos ${minimumQueryLength} caracteres para buscar, o borrá el texto para explorar.`
+  const isIdle = remote?.status === 'idle'
 
   function openDialog() {
     if (!remote) {
@@ -159,7 +178,7 @@ export function ReferenceListDialog<Item>({
         type="button"
         onClick={openDialog}
         className={[
-          'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 sm:w-auto',
+          'ux-button inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 sm:w-auto',
           buttonClassName,
         ]
           .filter(Boolean)
@@ -211,7 +230,7 @@ export function ReferenceListDialog<Item>({
               <button
                 type="button"
                 onClick={closeDialog}
-                className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                className="ux-button inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               >
                 Cerrar
               </button>
@@ -243,20 +262,28 @@ export function ReferenceListDialog<Item>({
             </label>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
             <div
               aria-live="polite"
               aria-atomic="true"
               className="sr-only"
             >
-              {isInitialLoading
+              {needsMoreCharacters ? minimumQueryMessage : isIdle ? 'Explorá la lista o ingresá una búsqueda.' : isInitialLoading
                 ? 'Cargando lista'
                 : initialError
                   ? initialError
                   : `${visibleItems.length} resultados disponibles`}
             </div>
 
-            {isInitialLoading ? (
+            {needsMoreCharacters ? (
+              <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                {minimumQueryMessage}
+              </p>
+            ) : isIdle ? (
+              <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                Explorá la lista o ingresá una búsqueda.
+              </p>
+            ) : isInitialLoading ? (
               <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                 Cargando lista...
               </p>
@@ -268,7 +295,7 @@ export function ReferenceListDialog<Item>({
                   <button
                     type="button"
                     onClick={remote.onRetry}
-                    className="mt-3 min-h-10 rounded-lg border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                    className="ux-button mt-3 min-h-10 rounded-lg border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 hover:bg-red-50"
                   >
                     Reintentar
                   </button>
@@ -305,37 +332,16 @@ export function ReferenceListDialog<Item>({
                   )
                 })}
 
-                {remote?.loadMoreError ? (
-                  <div
-                    aria-live="polite"
-                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-                  >
-                    <p>{remote.loadMoreError}</p>
-
-                    {remote.onLoadMore ? (
-                      <button
-                        type="button"
-                        onClick={remote.onLoadMore}
-                        disabled={remote.loadingMore}
-                        className="mt-3 min-h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Reintentar carga
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {remote?.hasMore && remote.onLoadMore ? (
-                  <button
-                    type="button"
-                    onClick={remote.onLoadMore}
-                    disabled={remote.loadingMore}
-                    className="min-h-11 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {remote.loadingMore
-                      ? 'Cargando más...'
-                      : 'Cargar más'}
-                  </button>
+                {remote?.onLoadMore ? (
+                  <RemoteListPagination
+                    key={remote.paginationKey ?? remote.query}
+                    hasMore={remote.hasMore}
+                    loadingMore={remote.loadingMore}
+                    error={remote.loadMoreError}
+                    onLoadMore={remote.onLoadMore}
+                    autoLoad={open && remote.autoLoad === true}
+                    rootRef={scrollRef}
+                  />
                 ) : null}
               </div>
             ) : (

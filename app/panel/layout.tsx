@@ -51,7 +51,7 @@ export default async function PanelLayout({
     profile.display_name ?? roleName
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-100 text-slate-950">
+    <main className="min-h-screen overflow-x-clip bg-slate-100 text-slate-950">
       <PanelMobileNavigation
         displayName={displayName}
         roleName={roleName}
@@ -59,7 +59,7 @@ export default async function PanelLayout({
       />
 
       <div className="mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[270px_1fr]">
-        <aside className="hidden bg-[#1E3A5F] text-white md:flex md:min-h-screen md:flex-col">
+        <aside className="hidden bg-[#1E3A5F] text-white md:sticky md:top-0 md:flex md:h-dvh md:self-start md:flex-col md:overflow-y-auto">
           <div className="flex items-center gap-3 border-b border-white/10 px-5 py-6">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black tracking-wide text-[#1E3A5F] shadow-sm">
               25M

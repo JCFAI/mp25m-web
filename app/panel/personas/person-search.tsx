@@ -94,7 +94,7 @@ export function PersonSearch() {
       const params = new URLSearchParams({
         mode: 'reference',
         q: referenceQuery,
-        limit: '25',
+        limit: '50',
       })
 
       if (cursor) {
@@ -311,6 +311,10 @@ export function PersonSearch() {
           router.push(`/panel/personas/${person.id}`)
         }}
         remote={{
+          paginationKey: referenceList.paginationKey,
+          status: referenceList.status,
+          minimumQueryLength: referenceList.minimumQueryLength,
+          autoLoad: true,
           query: referenceList.query,
           onQueryChange: referenceList.setQuery,
           initialLoading: referenceList.initialLoading,

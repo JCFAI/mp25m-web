@@ -20,6 +20,7 @@ type UseRemoteReferenceListOptions<Item> = {
     signal: AbortSignal
   }) => Promise<RemoteReferencePage<Item>>
   minimumQueryLength?: number
+  enabledInitially?: boolean
 }
 
 type ListState<Item> = RemoteReferencePage<Item> & {
@@ -55,10 +56,14 @@ function deduplicateItems<Item>(items: Item[], getItemKey: (item: Item) => strin
 }
 
 export function useRemoteReferenceList<Item>({
-  contextKey, getItemKey, fetchPage, minimumQueryLength = 2,
+  contextKey,
+  getItemKey,
+  fetchPage,
+  minimumQueryLength = 2,
+  enabledInitially = false,
 }: UseRemoteReferenceListOptions<Item>) {
   const [query, updateQuery] = useState('')
-  const [enabled, setEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(enabledInitially)
   const [revision, setRevision] = useState(0)
   const [previousContextKey, setPreviousContextKey] = useState(contextKey)
   const [state, setState] = useState<ListState<Item>>(emptyState)

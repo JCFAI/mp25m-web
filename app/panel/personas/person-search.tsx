@@ -81,6 +81,8 @@ export function PersonSearch() {
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const [inputFocused, setInputFocused] =
+    useState(false)
   const fetchReferencePage = useCallback(
     async ({
       query: referenceQuery,
@@ -124,30 +126,27 @@ export function PersonSearch() {
     contextKey: 'person-directory',
     getItemKey: (person: PersonReferenceResult) => person.id,
     fetchPage: fetchReferencePage,
+    enabledInitially: true,
   })
 
   const term = query.trim()
+  const inlineBrowseMode =
+    term.length < MINIMUM_QUERY_LENGTH
+
   const searchIsOpen =
-    term.length >= MINIMUM_QUERY_LENGTH
+    inputFocused
 
   useEffect(() => {
     const currentTerm = query.trim()
-
-    setResults([])
-    setHasSearched(false)
-    setErrorMessage(null)
 
     if (
       currentTerm.length <
       MINIMUM_QUERY_LENGTH
     ) {
-      setLoading(false)
       return
     }
 
     const controller = new AbortController()
-
-    setLoading(true)
 
     const timeout = window.setTimeout(
       async () => {
@@ -218,13 +217,35 @@ export function PersonSearch() {
         el padrón con la lista paginada.
       </p>
 
-      <div className="relative mt-4">
+      <div className="relative mt-4"
+        onFocusCapture={() => setInputFocused(true)}
+        onBlurCapture={(event) => {
+          const nextTarget =
+            event.relatedTarget as Node | null
+
+          if (
+            !nextTarget ||
+            !event.currentTarget.contains(nextTarget)
+          ) {
+            setInputFocused(false)
+          }
+        }}
+      >
         <input
           id={inputId}
           value={query}
-          onChange={(event) =>
-            setQuery(event.target.value)
-          }
+          onChange={(event) => {
+            const value = event.target.value
+            const currentTerm = value.trim()
+
+            setQuery(value)
+            setResults([])
+            setHasSearched(false)
+            setErrorMessage(null)
+            setLoading(
+              currentTerm.length >= MINIMUM_QUERY_LENGTH
+            )
+          }}
           placeholder="Ej.: Omar, Santiago..."
           autoComplete="off"
           role="combobox"
@@ -240,7 +261,52 @@ export function PersonSearch() {
             id={resultsId}
             className="absolute z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
           >
-            {loading ? (
+            {inlineBrowseMode ? (
+              referenceList.initialLoading ? (
+                <p className="px-4 py-3 text-sm text-slate-500">
+                  Cargando personas...
+                </p>
+              ) : referenceList.initialError ? (
+                <p className="px-4 py-3 text-sm text-red-600">
+                  {referenceList.initialError}
+                </p>
+              ) : referenceList.items.length > 0 ? (
+                <>
+                  {term.length > 0 ? (
+                    <p className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-500">
+                      Escribí al menos tres caracteres para buscar en todo el padrón.
+                    </p>
+                  ) : null}
+
+                  {referenceList.items.map((person) => (
+                    <Link
+                      key={person.id}
+                      href={`/panel/personas/${person.id}`}
+                      prefetch={false}
+                      className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                    >
+                      <p className="break-words text-sm font-semibold text-slate-900">
+                        {person.display_name}
+                      </p>
+
+                      <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                        {[
+                          person.node_names.join(', '),
+                          person.role_names.join(', '),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') ||
+                          'Sin participación territorial confirmada'}
+                      </p>
+                    </Link>
+                  ))}
+                </>
+              ) : (
+                <p className="px-4 py-3 text-sm text-slate-500">
+                  No hay personas disponibles.
+                </p>
+              )
+            ) : loading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
                 Buscando personas...
               </p>

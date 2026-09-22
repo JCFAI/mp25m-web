@@ -56,7 +56,7 @@ let browser
 before(async () => { browser = await chromium.launch() })
 after(async () => { await browser?.close() })
 
-async function fixture(t, { dialog = false, observer = 'mock' } = {}) {
+async function fixture(t, { dialog = false, observer = 'mock', enabledInitially = false } = {}) {
   const page = await browser.newPage()
   t.after(() => page.close())
   const errors = []
@@ -64,7 +64,7 @@ async function fixture(t, { dialog = false, observer = 'mock' } = {}) {
   t.after(() => assert.deepEqual(errors, []))
   await page.setContent('<div id="root"></div>')
   await page.addScriptTag({ content: bundle })
-  await page.evaluate(({ ids, aliases, dialog, observer }) => {
+  await page.evaluate(({ ids, aliases, dialog, observer, enabledInitially }) => {
     const React = window.loadTestModule(aliases.react)
     const { createRoot } = window.loadTestModule(aliases['react-dom/client'])
     const { useRemoteReferenceList } = window.loadTestModule(ids.hook)
@@ -86,6 +86,7 @@ async function fixture(t, { dialog = false, observer = 'mock' } = {}) {
         fetchPage: (input) => new Promise((resolve, reject) => {
           window.requests.push({ ...input, context, resolve, reject })
         }),
+        enabledInitially,
       })
       React.useEffect(() => { window.list = list; window.setContext = setContext }, [list])
       if (dialog) return React.createElement(ReferenceListDialog, {
@@ -107,7 +108,7 @@ async function fixture(t, { dialog = false, observer = 'mock' } = {}) {
     }
     window.testRoot = createRoot(document.getElementById('root'))
     window.testRoot.render(React.createElement(Harness))
-  }, { ids, aliases, dialog, observer })
+  }, { ids, aliases, dialog, observer, enabledInitially })
   await page.waitForFunction(() => Boolean(window.list))
   return page
 }
@@ -122,6 +123,45 @@ async function requestCount(page, count) {
 async function status(page, value) {
   await page.waitForFunction((value) => window.list.status === value, value)
 }
+
+test('enabledInitially preloads the first page without an explicit open action', async (t) => {
+  const page = await fixture(t, {
+    observer: 'absent',
+    enabledInitially: true,
+  })
+
+  await requestCount(page, 1)
+
+  assert.deepEqual(
+    await page.evaluate(() => {
+      const { query, cursor, context } = window.requests[0]
+      return { query, cursor, context }
+    }),
+    { query: '', cursor: null, context: 'A' }
+  )
+
+  await resolvePage(page, 0, ['one', 'two'], 'next')
+  await status(page, 'ready')
+
+  assert.deepEqual(
+    await page.evaluate(() => window.list.items),
+    [{ id: 'one' }, { id: 'two' }]
+  )
+})
+
+test('Personas and Nodos opt into preload and open inline browsing on focus', () => {
+  for (const relativePath of [
+    'app/panel/personas/person-search.tsx',
+    'app/panel/nodos/node-search.tsx',
+  ]) {
+    const source = readFileSync(resolve(root, relativePath), 'utf8')
+
+    assert.match(source, /enabledInitially:\s*true/)
+    assert.match(source, /const searchIsOpen =\s*\n\s*inputFocused/)
+    assert.match(source, /onFocusCapture=\{\(\) => setInputFocused\(true\)\}/)
+    assert.match(source, /onBlurCapture=/)
+  }
+})
 
 test('setQuery immediately blocks loadMore from the previous query and cursor', async (t) => {
   const page = await fixture(t)

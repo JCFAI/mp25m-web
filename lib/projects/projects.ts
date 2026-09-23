@@ -97,6 +97,24 @@ export async function getProject(projectId: string) {
   return data as Project | null
 }
 
+export async function getProjectBySourceArticulation(
+  articulationId: string
+) {
+  const { data, error } = await createAdminClient()
+    .from('project_list')
+    .select('*')
+    .eq('source_articulation_id', articulationId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(
+      `Unable to load project by source articulation: ${error.message}`
+    )
+  }
+
+  return data as Project | null
+}
+
 export async function listProjectSourceArticulations() {
   const { data, error } = await createAdminClient().from('project_source_articulation_list').select('*').order('closed_at', { ascending: false })
   if (error) throw new Error(`Unable to load project sources: ${error.message}`)

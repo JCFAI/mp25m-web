@@ -149,18 +149,82 @@ test('enabledInitially preloads the first page without an explicit open action',
   )
 })
 
-test('Personas and Nodos opt into preload and open inline browsing on focus', () => {
-  for (const relativePath of [
-    'app/panel/personas/person-search.tsx',
-    'app/panel/nodos/node-search.tsx',
-  ]) {
-    const source = readFileSync(resolve(root, relativePath), 'utf8')
+test('Personas paginates remotely while Nodos loads once and filters locally', () => {
+  const personSource = readFileSync(
+    resolve(root, 'app/panel/personas/person-search.tsx'),
+    'utf8'
+  )
+  const nodeSource = readFileSync(
+    resolve(root, 'app/panel/nodos/node-search.tsx'),
+    'utf8'
+  )
+  const nodeServerSource = readFileSync(
+    resolve(root, 'lib/nodes/search.ts'),
+    'utf8'
+  )
+  const paginationSource = readFileSync(
+    resolve(root, 'lib/reference-pagination.ts'),
+    'utf8'
+  )
+  const peopleSearchSource = readFileSync(
+    resolve(root, 'lib/people/search.ts'),
+    'utf8'
+  )
+  const actorSearchSource = readFileSync(
+    resolve(root, 'lib/opportunities/actors.ts'),
+    'utf8'
+  )
 
-    assert.match(source, /enabledInitially:\s*true/)
-    assert.match(source, /const searchIsOpen =\s*\n\s*inputFocused/)
-    assert.match(source, /onFocusCapture=\{\(\) => setInputFocused\(true\)\}/)
-    assert.match(source, /onBlurCapture=/)
-  }
+  // Personas: grande/dinámico -> remoto + cursor + búsqueda
+  // desde el primer carácter.
+  assert.match(personSource, /enabledInitially:\s*true/)
+  assert.match(personSource, /minimumQueryLength:\s*1/)
+  assert.match(personSource, /<RemoteListPagination/)
+  assert.match(personSource, /rootRef=\{inlineListRef\}/)
+
+  // Nodos: catálogo chico/estable -> una carga completa y
+  // filtrado local, sin paginador inline.
+  assert.match(
+    nodeSource,
+    /\/api\/panel\/nodos\?mode=reference/
+  )
+  assert.match(nodeSource, /useMemo/)
+  assert.match(nodeSource, /visibleNodes/)
+  assert.match(nodeSource, /normalizeNodeFilter/)
+  assert.doesNotMatch(
+    nodeSource,
+    /<RemoteListPagination/
+  )
+  assert.doesNotMatch(
+    nodeSource,
+    /useRemoteReferenceList/
+  )
+
+  // El endpoint de opciones de nodos no debe cortar el
+  // directorio completo en 50 registros.
+  assert.doesNotMatch(
+    nodeServerSource,
+    /REFERENCE_NODE_LIST_LIMIT/
+  )
+
+  // El contrato general conserva mínimo 2 salvo que un
+  // consumidor pida explícitamente otra cosa.
+  assert.match(
+    paginationSource,
+    /minimumQueryLength = 2/
+  )
+  assert.match(
+    peopleSearchSource,
+    /minimumQueryLength:\s*1/
+  )
+  assert.match(
+    actorSearchSource,
+    /minimumQueryLength = 2/
+  )
+  assert.match(
+    actorSearchSource,
+    /normalizeReferenceQuery\(\s*query,\s*minimumQueryLength\s*\)/
+  )
 })
 
 test('setQuery immediately blocks loadMore from the previous query and cursor', async (t) => {

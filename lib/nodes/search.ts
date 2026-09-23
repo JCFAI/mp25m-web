@@ -42,7 +42,6 @@ type NodeReferenceCursor = {
 const MINIMUM_QUERY_LENGTH = 2
 const NODE_SEARCH_LIMIT = 10
 const FILTERED_NODE_SEARCH_LIMIT = 50
-const REFERENCE_NODE_LIST_LIMIT = 50
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -193,7 +192,6 @@ export async function listNodeReferenceOptions(
     .order('display_name', {
       ascending: true,
     })
-    .limit(REFERENCE_NODE_LIST_LIMIT)
 
   if (error) {
     throw new Error(

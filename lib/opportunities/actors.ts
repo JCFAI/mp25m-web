@@ -61,6 +61,7 @@ type ListCanonicalActorReferencesInput = {
   nodeIds?: string[]
   cursor?: string | null
   limit: number
+  minimumQueryLength?: number
 }
 
 const UUID_PATTERN =
@@ -91,11 +92,15 @@ export async function listCanonicalActorReferencePage({
   nodeIds = [],
   cursor = null,
   limit,
+  minimumQueryLength = 2,
 }: ListCanonicalActorReferencesInput): Promise<
   ReferencePage<CanonicalActorReference>
 > {
   const normalizedQuery =
-    normalizeReferenceQuery(query)
+    normalizeReferenceQuery(
+      query,
+      minimumQueryLength
+    )
   const normalizedActorTypes = [
     ...new Set(actorTypes),
   ].sort()

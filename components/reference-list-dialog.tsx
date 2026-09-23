@@ -27,6 +27,10 @@ type ReferenceListDialogProps<Item> = {
   emptyMessage: string
   getItemKey: (item: Item) => string
   getItemSearchText: (item: Item) => string
+  matchesFilter?: (
+    item: Item,
+    normalizedFilter: string
+  ) => boolean
   renderItem: (item: Item) => ReactNode
   onOpen?: () => void
   onSelect?: (item: Item) => void
@@ -69,6 +73,7 @@ export function ReferenceListDialog<Item>({
   emptyMessage,
   getItemKey,
   getItemSearchText,
+  matchesFilter,
   renderItem,
   onOpen,
   onSelect,
@@ -95,14 +100,22 @@ export function ReferenceListDialog<Item>({
       return items
     }
 
-    return items.filter((item) =>
-      normalizeReferenceSearch(
+    return items.filter((item) => {
+      if (matchesFilter) {
+        return matchesFilter(
+          item,
+          normalizedFilter
+        )
+      }
+
+      return normalizeReferenceSearch(
         getItemSearchText(item)
       ).includes(normalizedFilter)
-    )
+    })
   }, [
     getItemSearchText,
     items,
+    matchesFilter,
     normalizedFilter,
     remote,
   ])

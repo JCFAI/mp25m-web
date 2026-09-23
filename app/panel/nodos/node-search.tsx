@@ -10,18 +10,13 @@ import {
 } from 'react'
 
 import { ReferenceListDialog } from '../../../components/reference-list-dialog'
-
-type NodeSearchResult = {
-  id: string
-  node_number: number | null
-  display_name: string
-  status: string
-  jurisdiction_name: string | null
-  jurisdiction_type_name: string | null
-}
+import {
+  loadNodeDirectory,
+  type NodeDirectoryItem,
+} from '../../../lib/nodes/client-directory-cache'
 
 function nodeMetadata(
-  node: NodeSearchResult
+  node: NodeDirectoryItem
 ) {
   const parts: string[] = []
 
@@ -52,6 +47,65 @@ function normalizeNodeFilter(value: string) {
     .trim()
 }
 
+function matchesNodeFilter(
+  node: NodeDirectoryItem,
+  normalizedQuery: string
+) {
+  if (!normalizedQuery) {
+    return true
+  }
+
+  const textualIdentity =
+    normalizeNodeFilter(
+      [
+        node.display_name,
+        node.jurisdiction_name,
+        node.jurisdiction_type_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    )
+
+  const explicitNodeNumber =
+    normalizedQuery.match(/^nodo\s+(\d+)$/)
+
+  if (explicitNodeNumber) {
+    return (
+      node.node_number !== null &&
+      String(node.node_number) ===
+        explicitNodeNumber[1]
+    )
+  }
+
+  // Una consulta puramente numérica puede referirse
+  // tanto a una jurisdicción como al número del nodo.
+  if (/^\d+$/.test(normalizedQuery)) {
+    return (
+      textualIdentity.includes(
+        normalizedQuery
+      ) ||
+      (
+        node.node_number !== null &&
+        String(node.node_number) ===
+          normalizedQuery
+      )
+    )
+  }
+
+  // En consultas mixtas como "CABA 12", los términos
+  // se buscan dentro de la identidad territorial.
+  // Así evitamos mezclar accidentalmente "CABA"
+  // con el número técnico de otro nodo.
+  const terms =
+    normalizedQuery
+      .split(' ')
+      .filter(Boolean)
+
+  return terms.every((term) =>
+    textualIdentity.includes(term)
+  )
+}
+
 export function NodeSearch() {
   const router = useRouter()
   const inputId = useId()
@@ -61,7 +115,7 @@ export function NodeSearch() {
   const [inputFocused, setInputFocused] =
     useState(false)
   const [nodes, setNodes] =
-    useState<NodeSearchResult[]>([])
+    useState<NodeDirectoryItem[]>([])
   const [loading, setLoading] =
     useState(true)
   const [errorMessage, setErrorMessage] =
@@ -70,47 +124,28 @@ export function NodeSearch() {
     useState(0)
 
   useEffect(() => {
-    const controller = new AbortController()
+    let active = true
 
     async function loadNodes() {
       try {
-        const response = await fetch(
-          '/api/panel/nodos?mode=reference',
-          {
-            signal: controller.signal,
-            cache: 'no-store',
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(
-            'No se pudo cargar el directorio.'
-          )
-        }
-
         const data =
-          (await response.json()) as NodeSearchResult[]
+          await loadNodeDirectory({
+            force: reloadKey > 0,
+          })
 
-        if (!controller.signal.aborted) {
+        if (active) {
           setNodes(data)
           setErrorMessage(null)
         }
-      } catch (error) {
-        if (
-          error instanceof DOMException &&
-          error.name === 'AbortError'
-        ) {
-          return
-        }
-
-        if (!controller.signal.aborted) {
+      } catch {
+        if (active) {
           setNodes([])
           setErrorMessage(
             'No se pudo cargar el directorio de nodos. Intentá nuevamente.'
           )
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (active) {
           setLoading(false)
         }
       }
@@ -118,7 +153,9 @@ export function NodeSearch() {
 
     void loadNodes()
 
-    return () => controller.abort()
+    return () => {
+      active = false
+    }
   }, [reloadKey])
 
   const normalizedQuery =
@@ -129,24 +166,12 @@ export function NodeSearch() {
       return nodes
     }
 
-    return nodes.filter((node) => {
-      const searchable = normalizeNodeFilter(
-        [
-          node.display_name,
-          node.node_number !== null
-            ? String(node.node_number)
-            : '',
-          node.jurisdiction_name,
-          node.jurisdiction_type_name,
-        ]
-          .filter(Boolean)
-          .join(' ')
-      )
-
-      return searchable.includes(
+    return nodes.filter((node) =>
+      matchesNodeFilter(
+        node,
         normalizedQuery
       )
-    })
+    )
   }, [nodes, normalizedQuery])
 
   function retryLoad() {
@@ -165,9 +190,9 @@ export function NodeSearch() {
       </label>
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
-        El directorio se carga al entrar. Explorá la
-        lista o escribí desde el primer carácter para
-        filtrar por nombre, número o jurisdicción.
+        Explorá el directorio o escribí desde el primer
+        carácter para filtrar por nombre, número o
+        jurisdicción.
       </p>
 
       <div
@@ -273,16 +298,17 @@ export function NodeSearch() {
         getItemSearchText={(node) =>
           [
             node.display_name,
-            node.node_number,
+            node.node_number !== null
+              ? `Nodo ${node.node_number}`
+              : null,
             node.jurisdiction_name,
             node.jurisdiction_type_name,
           ]
-            .filter(
-              (value) =>
-                value !== null &&
-                value !== undefined
-            )
+            .filter(Boolean)
             .join(' ')
+        }
+        matchesFilter={
+          matchesNodeFilter
         }
         renderItem={(node) => (
           <div>
@@ -308,11 +334,10 @@ export function NodeSearch() {
       />
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        Los nodos cambian con poca frecuencia, por eso
-        el directorio completo se mantiene en memoria
-        mientras permanecés en esta pantalla. El filtro
-        es inmediato y no realiza una consulta por cada
-        tecla.
+        El directorio queda disponible durante esta
+        sesión y el filtro es inmediato. Para buscar
+        específicamente por número, escribí por ejemplo
+        “nodo 12”.
       </p>
     </div>
   )

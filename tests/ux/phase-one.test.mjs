@@ -149,7 +149,7 @@ test('enabledInitially preloads the first page without an explicit open action',
   )
 })
 
-test('Personas paginates remotely while Nodos loads once and filters locally', () => {
+test('Personas paginates remotely while Nodos caches and filters locally', () => {
   const personSource = readFileSync(
     resolve(root, 'app/panel/personas/person-search.tsx'),
     'utf8'
@@ -158,8 +158,16 @@ test('Personas paginates remotely while Nodos loads once and filters locally', (
     resolve(root, 'app/panel/nodos/node-search.tsx'),
     'utf8'
   )
+  const nodeCacheSource = readFileSync(
+    resolve(root, 'lib/nodes/client-directory-cache.ts'),
+    'utf8'
+  )
   const nodeServerSource = readFileSync(
     resolve(root, 'lib/nodes/search.ts'),
+    'utf8'
+  )
+  const dialogSource = readFileSync(
+    resolve(root, 'components/reference-list-dialog.tsx'),
     'utf8'
   )
   const paginationSource = readFileSync(
@@ -175,22 +183,20 @@ test('Personas paginates remotely while Nodos loads once and filters locally', (
     'utf8'
   )
 
-  // Personas: grande/dinámico -> remoto + cursor + búsqueda
-  // desde el primer carácter.
+  // Personas: grande/dinámico -> remoto + cursor.
   assert.match(personSource, /enabledInitially:\s*true/)
   assert.match(personSource, /minimumQueryLength:\s*1/)
   assert.match(personSource, /<RemoteListPagination/)
   assert.match(personSource, /rootRef=\{inlineListRef\}/)
 
-  // Nodos: catálogo chico/estable -> una carga completa y
-  // filtrado local, sin paginador inline.
+  // Nodos: catálogo chico/estable -> carga completa,
+  // cache de sesión y filtrado local.
+  assert.match(nodeSource, /loadNodeDirectory/)
+  assert.match(nodeSource, /matchesNodeFilter/)
   assert.match(
     nodeSource,
-    /\/api\/panel\/nodos\?mode=reference/
+    /matchesFilter=\{\s*matchesNodeFilter\s*\}/
   )
-  assert.match(nodeSource, /useMemo/)
-  assert.match(nodeSource, /visibleNodes/)
-  assert.match(nodeSource, /normalizeNodeFilter/)
   assert.doesNotMatch(
     nodeSource,
     /<RemoteListPagination/
@@ -200,15 +206,34 @@ test('Personas paginates remotely while Nodos loads once and filters locally', (
     /useRemoteReferenceList/
   )
 
-  // El endpoint de opciones de nodos no debe cortar el
-  // directorio completo en 50 registros.
+  assert.match(
+    nodeCacheSource,
+    /sessionStorage/
+  )
+  assert.match(
+    nodeCacheSource,
+    /memoryCache/
+  )
+  assert.match(
+    nodeCacheSource,
+    /pendingRequest/
+  )
+
+  // El diálogo admite semántica de filtrado específica
+  // para evitar mezclar campos accidentalmente.
+  assert.match(
+    dialogSource,
+    /matchesFilter\?/
+  )
+
+  // El endpoint no recorta el catálogo de nodos.
   assert.doesNotMatch(
     nodeServerSource,
     /REFERENCE_NODE_LIST_LIMIT/
   )
 
-  // El contrato general conserva mínimo 2 salvo que un
-  // consumidor pida explícitamente otra cosa.
+  // El contrato general conserva mínimo 2 salvo que
+  // un consumidor pida explícitamente otra cosa.
   assert.match(
     paginationSource,
     /minimumQueryLength = 2/
@@ -220,10 +245,6 @@ test('Personas paginates remotely while Nodos loads once and filters locally', (
   assert.match(
     actorSearchSource,
     /minimumQueryLength = 2/
-  )
-  assert.match(
-    actorSearchSource,
-    /normalizeReferenceQuery\(\s*query,\s*minimumQueryLength\s*\)/
   )
 })
 

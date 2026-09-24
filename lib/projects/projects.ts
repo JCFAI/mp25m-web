@@ -115,6 +115,26 @@ export async function getProjectBySourceArticulation(
   return data as Project | null
 }
 
+export async function listProjectsByOpportunity(
+  opportunityId: string
+) {
+  const { data, error } = await createAdminClient()
+    .from('project_list')
+    .select('*')
+    .eq('opportunity_id', opportunityId)
+    .order('updated_at', {
+      ascending: false,
+    })
+
+  if (error) {
+    throw new Error(
+      `Unable to load opportunity projects: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as Project[]
+}
+
 export async function listProjectSourceArticulations() {
   const { data, error } = await createAdminClient().from('project_source_articulation_list').select('*').order('closed_at', { ascending: false })
   if (error) throw new Error(`Unable to load project sources: ${error.message}`)

@@ -702,3 +702,69 @@ test('compiled sidebar CSS stays sticky, scrolls internally and hides on mobile'
   await page.setViewportSize({ width: 390, height: 844 })
   assert.equal(await page.locator('aside').isVisible(), false)
 })
+
+
+test('Opportunity detail exposes the operational process and visible articulation entry point', () => {
+  const opportunitySource = readFileSync(
+    resolve(root, 'app/panel/oportunidades/[id]/page.tsx'),
+    'utf8'
+  )
+  const articulationSource = readFileSync(
+    resolve(
+      root,
+      'app/panel/oportunidades/[id]/opportunity-articulations-section.tsx'
+    ),
+    'utf8'
+  )
+  const projectSource = readFileSync(
+    resolve(root, 'lib/projects/projects.ts'),
+    'utf8'
+  )
+
+  assert.match(
+    opportunitySource,
+    /Proceso operativo/
+  )
+  assert.match(
+    opportunitySource,
+    /1 · Oportunidad/
+  )
+  assert.match(
+    opportunitySource,
+    /2 · Articulación/
+  )
+  assert.match(
+    opportunitySource,
+    /3 · Proyecto/
+  )
+  assert.match(
+    opportunitySource,
+    /href="#iniciar-articulacion"/
+  )
+  assert.match(
+    opportunitySource,
+    /listProjectsByOpportunity/
+  )
+
+  assert.match(
+    articulationSource,
+    /id="articulaciones"/
+  )
+  assert.match(
+    articulationSource,
+    /id="iniciar-articulacion"/
+  )
+  assert.match(
+    articulationSource,
+    /open=\{articulations\.length === 0\}/
+  )
+  assert.match(
+    articulationSource,
+    />Iniciar articulación</
+  )
+
+  assert.match(
+    projectSource,
+    /export async function listProjectsByOpportunity/
+  )
+})

@@ -136,3 +136,64 @@ test('generic actions operate on articulation IDs, validate inputs and invalidat
   assert.equal((await actions.addArticulationParticipantAction(id, idle, data({ actor: `candidate:${otherId}`, rationale: 'No canónico' }))).status, 'error')
   assert.equal(calls.length, 6)
 })
+
+test('project link consistency keeps legacy fields out of N:M behavior', () => {
+  const migration = readFileSync(
+    resolve(
+      root,
+      'supabase/migrations/20260927120244_project_link_consistency.sql'
+    ),
+    'utf8'
+  )
+
+  assert.match(
+    migration,
+    /from mp25m\.project_opportunities link/
+  )
+
+  assert.doesNotMatch(
+    migration,
+    /articulation\.opportunity_id/
+  )
+
+  assert.doesNotMatch(
+    migration,
+    /from mp25m\.project_articulations/
+  )
+
+  const projectListPage = readFileSync(
+    resolve(
+      root,
+      'app/panel/proyectos/page.tsx'
+    ),
+    'utf8'
+  )
+
+  assert.doesNotMatch(
+    projectListPage,
+    /project\.source_articulation_title/
+  )
+
+  assert.doesNotMatch(
+    projectListPage,
+    /project\.opportunity_title/
+  )
+
+  assert.match(
+    projectListPage,
+    /Los vínculos con oportunidades y articulaciones/
+  )
+
+  const projectDetailPage = readFileSync(
+    resolve(
+      root,
+      'app/panel/proyectos/\[id\]/page.tsx'
+    ),
+    'utf8'
+  )
+
+  assert.match(
+    projectDetailPage,
+    /opportunity\.status\s*!==\s*'discarded'/
+  )
+})

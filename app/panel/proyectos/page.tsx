@@ -83,21 +83,10 @@ export default async function ProjectsPage() {
                     'Sin asignar'}
                 </p>
 
-                {project.source_articulation_title ? (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Articulación vinculada:{' '}
-                    {project.source_articulation_title}
-                  </p>
-                ) : project.opportunity_title ? (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Oportunidad vinculada:{' '}
-                    {project.opportunity_title}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-slate-400">
-                    Sin vínculos todavía
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-slate-400">
+                  Los vínculos con oportunidades y articulaciones
+                  se gestionan desde la ficha.
+                </p>
               </Link>
             ))}
           </div>

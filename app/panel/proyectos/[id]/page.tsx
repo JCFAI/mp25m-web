@@ -128,13 +128,16 @@ export default async function ProjectDetailPage({
         projectId={id}
         opportunityLinks={opportunityLinks}
         articulationLinks={articulationLinks}
-        opportunityOptions={opportunities.map(
-          (opportunity) => ({
+        opportunityOptions={opportunities
+          .filter(
+            (opportunity) =>
+              opportunity.status !== 'discarded'
+          )
+          .map((opportunity) => ({
             id: opportunity.id,
             title: opportunity.title,
             status: opportunity.status,
-          })
-        )}
+          }))}
         articulationOptions={articulations.map(
           (articulation) => ({
             articulation_id:

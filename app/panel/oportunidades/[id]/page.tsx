@@ -16,8 +16,6 @@ import { OpportunityStatusForm } from './status-form'
 import { OpportunityRequirementsSection } from './requirements-section'
 import { OpportunityArticulationsSection } from './opportunity-articulations-section'
 import {
-  listOpportunityArticulationFollowups,
-  listOpportunityArticulationParticipants,
   listOpportunityArticulations,
 } from '../../../../lib/opportunities/articulations'
 
@@ -764,16 +762,12 @@ export default async function OpportunityDetailPage({
     detail,
     assigneeOptions,
     articulations,
-    articulationParticipants,
-    articulationFollowups,
     projects,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
     listOpportunityAssigneeOptions(),
     listOpportunityArticulations(id),
-    listOpportunityArticulationParticipants(id),
-    listOpportunityArticulationFollowups(id),
     listProjectsByOpportunity(id),
   ])
 
@@ -804,34 +798,22 @@ export default async function OpportunityDetailPage({
   const primaryArticulation =
     articulations[0] ?? null
 
-  const projectReadyArticulation =
-    articulations.find(
-      (articulation) =>
-        articulation.status ===
-        'closed_with_result'
-    ) ?? null
-
-  const primaryProject =
-    projects[0] ?? null
-
-  const articulationStageLabel =
+  const articulationSummary =
     articulations.length === 0
-      ? 'No iniciada'
+      ? 'Sin articulaciones vinculadas'
       : articulations.length === 1 &&
           primaryArticulation
         ? articulationStatusLabels[
             primaryArticulation.status
           ]
-        : `${articulations.length} registradas`
+        : `${articulations.length} articulaciones`
 
-  const projectStageLabel =
-    primaryProject
-      ? projects.length === 1
-        ? 'Proyecto registrado'
-        : `${projects.length} proyectos registrados`
-      : projectReadyArticulation
-        ? 'Disponible para iniciar'
-        : 'Opcional · no iniciado'
+  const projectSummary =
+    projects.length === 0
+      ? 'Sin proyectos vinculados'
+      : projects.length === 1
+        ? '1 proyecto vinculado'
+        : `${projects.length} proyectos vinculados`
 
   return (
     <div className="space-y-7">
@@ -894,128 +876,143 @@ export default async function OpportunityDetailPage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
-          Proceso operativo
+          Relaciones de trabajo
         </p>
 
         <h2 className="mt-2 text-xl font-semibold text-slate-950">
-          De la oportunidad a la ejecución
+          Entidades relacionadas con esta oportunidad
         </h2>
 
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-          La oportunidad permite analizar qué se necesita
-          y si puede abordarse. La articulación coordina
-          actores, acuerdos y acciones concretas. Un
-          proyecto es una etapa posterior y opcional,
-          sólo cuando el resultado requiere una ejecución
-          organizada.
+          La oportunidad, las articulaciones y los
+          proyectos conservan identidad propia. Una
+          articulación puede coordinar acciones concretas
+          sin convertirse en proyecto, y un proyecto
+          puede existir independientemente y vincularse
+          a esta oportunidad cuando resulte útil.
         </p>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
-              1 · Oportunidad
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
+                  Articulaciones vinculadas
+                </p>
 
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold text-slate-950">
-                {opportunity.title}
-              </h3>
+                <h3 className="mt-2 font-semibold text-slate-950">
+                  Entidades autónomas relacionadas
+                </h3>
+              </div>
 
               <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {statusLabels[opportunity.status]}
+                {articulationSummary}
               </span>
             </div>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Análisis, requerimientos, cobertura y
-              decisión sobre cómo avanzar.
-            </p>
-          </article>
-
-          <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
-              2 · Articulación
+              Cada articulación conserva identidad y gestión
+              propias. El vínculo con esta oportunidad es
+              opcional y no implica que una entidad dependa
+              de la otra.
             </p>
 
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold text-slate-950">
-                Coordinación operativa
-              </h3>
-
-              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {articulationStageLabel}
-              </span>
-            </div>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Contactos, reuniones, compromisos,
-              participantes, entregas y seguimiento del
-              trabajo concreto.
-            </p>
-
-            {articulations.length === 0 ? (
-              canManage ? (
-                <a
-                  href="#iniciar-articulacion"
-                  className="ux-button mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#1E3A5F] px-3 py-2 text-sm font-semibold text-white"
-                >
-                  Iniciar articulación
-                </a>
-              ) : null
-            ) : articulations.length === 1 &&
-              primaryArticulation ? (
-              <Link
-                href={`/panel/articulaciones/${primaryArticulation.articulation_id}`}
-                className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C] hover:underline"
-              >
-                Ver articulación →
-              </Link>
-            ) : (
-              <a
-                href="#articulaciones"
-                className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C] hover:underline"
-              >
-                Ver articulaciones →
-              </a>
-            )}
-          </article>
-
-          <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
-              3 · Proyecto
-            </p>
-
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold text-slate-950">
-                Ejecución organizada
-              </h3>
-
-              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {projectStageLabel}
-              </span>
-            </div>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Sólo hace falta si el resultado de una
-              articulación requiere una etapa propia de
-              ejecución, entregables y seguimiento.
-            </p>
-
-            {primaryProject ? (
-              <Link
-                href={`/panel/proyectos/${primaryProject.project_id}`}
-                className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C] hover:underline"
-              >
-                Ver proyecto →
-              </Link>
-            ) : projectReadyArticulation ? (
-              <Link
-                href={`/panel/proyectos?articulation=${projectReadyArticulation.articulation_id}`}
-                className="ux-button mt-3 inline-flex min-h-10 items-center rounded-lg border border-[#2F5D8C] px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
-              >
-                Crear proyecto
-              </Link>
+            {articulations.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {articulations
+                  .slice(0, 3)
+                  .map((articulation) => (
+                    <Link
+                      key={
+                        articulation.articulation_id
+                      }
+                      href={`/panel/articulaciones/${articulation.articulation_id}`}
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-[#2F5D8C]/40"
+                    >
+                      <span className="font-semibold text-[#1E3A5F]">
+                        {articulation.title}
+                      </span>
+                      {' · '}
+                      {
+                        articulationStatusLabels[
+                          articulation.status
+                        ]
+                      }
+                    </Link>
+                  ))}
+              </div>
             ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              {canManage &&
+              !['resolved', 'discarded'].includes(
+                opportunity.status,
+              ) ? (
+                <a
+                  href="#crear-vincular-articulacion"
+                  className="ux-button inline-flex min-h-10 items-center rounded-lg bg-[#1E3A5F] px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Crear y vincular articulación
+                </a>
+              ) : null}
+
+              {articulations.length > 0 ? (
+                <a
+                  href="#articulaciones"
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                >
+                  Ver sección completa
+                </a>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
+                  Proyectos relacionados
+                </p>
+
+                <h3 className="mt-2 font-semibold text-slate-950">
+                  Unidades de trabajo autónomas
+                </h3>
+              </div>
+
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                {projectSummary}
+              </span>
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Un proyecto puede comenzar sin oportunidad
+              ni articulación. Después puede vincularse
+              con esta oportunidad y sumar los recursos
+              que necesite.
+            </p>
+
+            {projects.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {projects
+                  .slice(0, 3)
+                  .map((project) => (
+                    <Link
+                      key={project.project_id}
+                      href={`/panel/proyectos/${project.project_id}`}
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#1E3A5F] hover:border-[#2F5D8C]/40"
+                    >
+                      {project.title}
+                    </Link>
+                  ))}
+              </div>
+            ) : null}
+
+            <Link
+              href="/panel/proyectos"
+              className="ux-button mt-4 inline-flex min-h-10 items-center rounded-lg border border-[#2F5D8C] px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
+            >
+              Ir a proyectos
+            </Link>
           </article>
         </div>
       </section>
@@ -1033,10 +1030,8 @@ export default async function OpportunityDetailPage({
       />
       <OpportunityArticulationsSection
         opportunityId={opportunity.id}
+        opportunityStatus={opportunity.status}
         articulations={articulations}
-        participants={articulationParticipants}
-        followups={articulationFollowups}
-        origins={origins}
         canOperate={canManage}
         assigneeOptions={assigneeOptions}
       />

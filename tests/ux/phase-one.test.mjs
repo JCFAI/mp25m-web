@@ -24,6 +24,10 @@ function bundleModule(file) {
   let code = file.endsWith('/app/login/actions.ts')
     ? 'exports.login = () => new Promise(resolve => { window.loginCalls++; window.finishLogin = resolve })'
     : readFileSync(file, 'utf8')
+  if (file.endsWith('/app/panel/proyectos/actions.ts')) {
+    code = ['linkProjectOpportunityAction', 'unlinkProjectOpportunityAction', 'linkProjectArticulationAction', 'unlinkProjectArticulationAction']
+      .map((name) => `exports.${name} = async (...args) => window.projectActions.${name}(...args)`).join('\n')
+  }
   if (/\.tsx?$/.test(file)) {
     code = ts.transpileModule(code, { compilerOptions: {
       module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX,
@@ -31,6 +35,7 @@ function bundleModule(file) {
     } }).outputText
   }
   code = code.replace(/require\(["']([^"']+)["']\)/g, (_, name) => {
+    if (name === 'next/link') return `({ default: (props) => require(${JSON.stringify(bundleModule(aliases.react))}).createElement('a', props, props.children) })`
     const local = resolve(dirname(file), name)
     const target = aliases[name] ?? [local, local + '.ts', local + '.tsx']
       .find((candidate) => existsSync(candidate))
@@ -46,6 +51,7 @@ for (const [name, file] of Object.entries({
   pagination: 'components/remote-list-pagination.tsx',
   dialog: 'components/reference-list-dialog.tsx',
   login: 'app/login/login-form.tsx',
+  projectLinks: 'app/panel/proyectos/project-links.tsx',
 })) ids[name] = bundleModule(resolve(root, file))
 for (const file of Object.values(aliases)) bundleModule(file)
 const bundle = '(function(){const modules={' + [...modules].map(([id, code]) =>
@@ -704,67 +710,182 @@ test('compiled sidebar CSS stays sticky, scrolls internally and hides on mobile'
 })
 
 
-test('Opportunity detail exposes the operational process and visible articulation entry point', () => {
+test('Opportunities, articulations and projects are presented as independent related entities', () => {
   const opportunitySource = readFileSync(
-    resolve(root, 'app/panel/oportunidades/[id]/page.tsx'),
-    'utf8'
-  )
-  const articulationSource = readFileSync(
     resolve(
       root,
-      'app/panel/oportunidades/[id]/opportunity-articulations-section.tsx'
+      'app/panel/oportunidades/[id]/page.tsx'
     ),
     'utf8'
   )
-  const projectSource = readFileSync(
-    resolve(root, 'lib/projects/projects.ts'),
+
+  const articulationSource = readFileSync(
+    resolve(
+      root,
+      'app/panel/articulaciones/[id]/page.tsx'
+    ),
+    'utf8'
+  )
+
+  const projectsPageSource = readFileSync(
+    resolve(
+      root,
+      'app/panel/proyectos/page.tsx'
+    ),
+    'utf8'
+  )
+
+  const projectFormSource = readFileSync(
+    resolve(
+      root,
+      'app/panel/proyectos/project-forms.tsx'
+    ),
+    'utf8'
+  )
+
+  const migrationSource = readFileSync(
+    resolve(
+      root,
+      'supabase/migrations/20260924025745_project_autonomy_links.sql'
+    ),
     'utf8'
   )
 
   assert.match(
     opportunitySource,
-    /Proceso operativo/
+    /Relaciones de trabajo/
   )
+
   assert.match(
+    opportunitySource,
+    /Articulaciones vinculadas/
+  )
+
+  assert.match(
+    opportunitySource,
+    /Proyectos relacionados/
+  )
+
+  assert.match(
+    opportunitySource,
+    /puede comenzar sin oportunidad/
+  )
+
+  assert.doesNotMatch(
     opportunitySource,
     /1 · Oportunidad/
   )
-  assert.match(
-    opportunitySource,
-    /2 · Articulación/
-  )
-  assert.match(
+
+  assert.doesNotMatch(
     opportunitySource,
     /3 · Proyecto/
   )
+
   assert.match(
-    opportunitySource,
-    /href="#iniciar-articulacion"/
-  )
-  assert.match(
-    opportunitySource,
-    /listProjectsByOpportunity/
+    articulationSource,
+    /no necesita estar cerrada/
   )
 
   assert.match(
     articulationSource,
-    /id="articulaciones"/
-  )
-  assert.match(
-    articulationSource,
-    /id="iniciar-articulacion"/
-  )
-  assert.match(
-    articulationSource,
-    /open=\{articulations\.length === 0\}/
-  )
-  assert.match(
-    articulationSource,
-    />Iniciar articulación</
+    /Proyectos vinculados/
   )
 
   assert.match(
-    projectSource,
-    /export async function listProjectsByOpportunity/
+    projectsPageSource,
+    /unidad de trabajo autónoma/
   )
+
+  assert.match(
+    projectFormSource,
+    /puede iniciarse de manera\s+independiente/
+  )
+
+  assert.match(
+    migrationSource,
+    /create table mp25m\.project_opportunities/
+  )
+
+  assert.match(
+    migrationSource,
+    /create table mp25m\.project_articulations/
+  )
+
+  assert.match(
+    migrationSource,
+    /alter column opportunity_id drop not null/
+  )
+
+  assert.match(
+    migrationSource,
+    /alter column source_articulation_id drop not null/
+  )
+
+  assert.match(
+    migrationSource,
+    /mp25m_api\.create_project\(/
+  )
+
+  assert.doesNotMatch(
+    migrationSource,
+    /status = 'closed_with_result'/
+  )
+})
+
+
+test('ProjectLinks clears previous link success when unlinking either entity', async (t) => {
+  const page = await browser.newPage()
+  t.after(() => page.close())
+  const errors = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.setContent('<div id="root"></div>')
+  await page.addScriptTag({ content: bundle })
+  await page.evaluate(({ react, dom, component }) => {
+    const React = window.loadTestModule(react)
+    const { createRoot } = window.loadTestModule(dom)
+    const { ProjectLinks } = window.loadTestModule(component)
+    function Fixture() {
+      const [opportunityLinks, setOpportunities] = React.useState([])
+      const [articulationLinks, setArticulations] = React.useState([])
+      window.projectActions = {
+        linkProjectOpportunityAction: async () => {
+          setOpportunities([{ link_id: 'ol', opportunity_id: 'o', opportunity_title: 'Oportunidad prueba', opportunity_status: 'open', relation_type: 'related' }])
+          return { status: 'success', message: 'Oportunidad vinculada correctamente' }
+        },
+        unlinkProjectOpportunityAction: async () => {
+          setOpportunities([])
+          return { status: 'success', message: 'Oportunidad desvinculada' }
+        },
+        linkProjectArticulationAction: async () => {
+          setArticulations([{ link_id: 'al', articulation_id: 'a', articulation_title: 'Articulación autónoma', articulation_status: 'draft', opportunity_id: null, opportunity_title: null, relation_type: 'related' }])
+          return { status: 'success', message: 'Articulación vinculada correctamente' }
+        },
+        unlinkProjectArticulationAction: async () => {
+          setArticulations([])
+          return { status: 'success', message: 'Articulación desvinculada' }
+        },
+      }
+      return React.createElement(ProjectLinks, {
+        projectId: 'p', opportunityLinks, articulationLinks,
+        opportunityOptions: [{ id: 'o', title: 'Oportunidad prueba', status: 'open' }],
+        articulationOptions: [{ articulation_id: 'a', title: 'Articulación autónoma', status: 'draft' }],
+      })
+    }
+    createRoot(document.getElementById('root')).render(React.createElement(Fixture))
+  }, { react: aliases.react, dom: aliases['react-dom/client'], component: ids.projectLinks })
+  for (const [name, value, message] of [
+    ['opportunity_id', 'o', 'Oportunidad vinculada correctamente'],
+    ['articulation_id', 'a', 'Articulación vinculada correctamente'],
+  ]) {
+    const form = page.locator('form').filter({ has: page.locator(`select[name="${name}"]`) })
+    await form.locator(`select[name="${name}"]`).selectOption(value)
+    await form.getByRole('button').click()
+    await page.getByText(message, { exact: true }).waitFor()
+    assert.equal(await page.getByText('Oportunidad:', { exact: true }).count(), 0)
+    await page.getByText('Desvincular', { exact: true }).click()
+    await page.locator('textarea[name="rationale"]').fill('Fin del vínculo')
+    await page.getByRole('button', { name: 'Confirmar desvinculación' }).click()
+    await page.getByText(message, { exact: true }).waitFor({ state: 'detached' })
+  }
+  assert.deepEqual(errors, [])
 })

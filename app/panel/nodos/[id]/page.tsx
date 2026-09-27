@@ -31,7 +31,7 @@ function formatDate(value: string | null) {
   }).format(new Date(`${value}T12:00:00`))
 }
 
-function articulationKindLabel(
+function opportunityKindLabel(
   kind: 'opportunity' | 'need'
 ) {
   return kind === 'need'
@@ -39,7 +39,7 @@ function articulationKindLabel(
     : 'Oportunidad / oferta'
 }
 
-function articulationStatusLabel(value: string) {
+function opportunityStatusLabel(value: string) {
   const labels: Record<string, string> = {
     draft: 'Borrador',
     open: 'Abierta',
@@ -116,7 +116,7 @@ export default async function NodeProfilePage({
     jurisdictions,
     participants,
     skills,
-    articulations,
+    opportunities,
     organizations,
     pendingOrganizations,
   } = profile
@@ -562,30 +562,30 @@ export default async function NodeProfilePage({
         </p>
 
         <div className="mt-5 space-y-3">
-          {articulations.length === 0 ? (
+          {opportunities.length === 0 ? (
             <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
               No hay oportunidades vinculadas con este nodo.
             </div>
           ) : (
-            articulations.map((articulation) => (
+            opportunities.map((opportunity) => (
               <Link
-                key={articulation.opportunity_id}
-                href={`/panel/oportunidades/${articulation.opportunity_id}`}
+                key={opportunity.opportunity_id}
+                href={`/panel/oportunidades/${opportunity.opportunity_id}`}
                 className="block rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition hover:border-[#2F5D8C]/40 sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none sm:hover:bg-white"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="break-words font-semibold text-slate-950">
-                      {articulation.title}
+                      {opportunity.title}
                     </p>
 
                     <p className="mt-1 text-xs font-semibold text-[#2F5D8C]">
-                      {articulationKindLabel(
-                        articulation.kind
+                      {opportunityKindLabel(
+                        opportunity.kind
                       )}
                       {' · '}
-                      {articulationStatusLabel(
-                        articulation.status
+                      {opportunityStatusLabel(
+                        opportunity.status
                       )}
                     </p>
                   </div>
@@ -596,13 +596,13 @@ export default async function NodeProfilePage({
                 </div>
 
                 <p className="mt-3 break-words text-sm leading-6 text-slate-600">
-                  {articulation.description}
+                  {opportunity.description}
                 </p>
 
-                {articulation.due_date ? (
+                {opportunity.due_date ? (
                   <p className="mt-2 text-xs text-slate-500">
                     Fecha prevista:{' '}
-                    {formatDate(articulation.due_date)}
+                    {formatDate(opportunity.due_date)}
                   </p>
                 ) : null}
               </Link>

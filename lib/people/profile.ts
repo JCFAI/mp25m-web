@@ -36,7 +36,7 @@ export type PersonTerritory = {
   role_verification_statuses: string[]
 }
 
-export type PersonArticulation = {
+export type PersonOpportunity = {
   person_id: string
   opportunity_id: string
   title: string
@@ -97,7 +97,7 @@ export type PersonContact = {
 export type CanonicalPersonProfile = {
   person: PersonProfile
   territories: PersonTerritory[]
-  articulations: PersonArticulation[]
+  opportunities: PersonOpportunity[]
   aliases: PersonIdentityAlias[]
   skills: PersonSkill[]
   contacts: PersonContact[]
@@ -119,7 +119,7 @@ export async function getCanonicalPersonProfile(
   const [
     personResult,
     territoriesResult,
-    articulationsResult,
+    opportunitiesResult,
     aliasesResult,
     skillsResult,
     contactsResult,
@@ -196,9 +196,9 @@ export async function getCanonicalPersonProfile(
     )
   }
 
-  if (articulationsResult.error) {
+  if (opportunitiesResult.error) {
     throw new Error(
-      `Unable to load person articulations: ${articulationsResult.error.message}`
+      `Unable to load person opportunities: ${opportunitiesResult.error.message}`
     )
   }
 
@@ -227,8 +227,8 @@ export async function getCanonicalPersonProfile(
     territories:
       (territoriesResult.data ?? []) as PersonTerritory[],
 
-    articulations:
-      (articulationsResult.data ?? []) as PersonArticulation[],
+    opportunities:
+      (opportunitiesResult.data ?? []) as PersonOpportunity[],
 
     aliases:
       (aliasesResult.data ?? []) as PersonIdentityAlias[],

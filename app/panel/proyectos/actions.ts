@@ -3,7 +3,23 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getInternalAccess } from '../../../lib/auth/internal-access'
-import { addProjectParticipant, createProject, createProjectDeliverable, createProjectFollowup, removeProjectParticipant, transitionProject, transitionProjectDeliverable, type ProjectDeliverable, type ProjectStatus } from '../../../lib/projects/projects'
+import {
+  addProjectParticipant,
+  createProject,
+  createProjectDeliverable,
+  createProjectFollowup,
+  linkProjectArticulation,
+  linkProjectOpportunity,
+  removeProjectParticipant,
+  transitionProject,
+  transitionProjectDeliverable,
+  unlinkProjectArticulation,
+  unlinkProjectOpportunity,
+  type ProjectArticulationRelationType,
+  type ProjectDeliverable,
+  type ProjectOpportunityRelationType,
+  type ProjectStatus,
+} from '../../../lib/projects/projects'
 import { createClient } from '../../../lib/supabase/server'
 
 export type ProjectActionState = { status: 'idle' | 'success' | 'error'; message: string | null }
@@ -17,16 +33,295 @@ async function getCurrentAccess() {
   return access
 }
 
-export async function createProjectAction(_state: ProjectActionState, formData: FormData): Promise<ProjectActionState> {
-  const sourceArticulationId = String(formData.get('source_articulation_id') ?? '')
-  const title = String(formData.get('title') ?? '').trim()
-  const objective = String(formData.get('objective') ?? '').trim()
-  const responsibleInternalUserId = String(formData.get('responsible_internal_user_id') ?? '').trim() || null
-  if (!sourceArticulationId || title.length < 3 || objective.length < 3) return { status: 'error', message: 'Elegí una articulación cerrada y completá título y objetivo.' }
-  try { await createProject(await getCurrentAccess(), { sourceArticulationId, title, objective, responsibleInternalUserId }) }
-  catch (error) { console.error('[MP25M] Project creation failed:', error); return { status: 'error', message: 'No se pudo crear el proyecto. Confirmá que la articulación siga disponible.' } }
+export async function createProjectAction(
+  _state: ProjectActionState,
+  formData: FormData
+): Promise<ProjectActionState> {
+  const title = String(
+    formData.get('title') ?? ''
+  ).trim()
+
+  const objective = String(
+    formData.get('objective') ?? ''
+  ).trim()
+
+  const responsibleInternalUserId =
+    String(
+      formData.get(
+        'responsible_internal_user_id'
+      ) ?? ''
+    ).trim() || null
+
+  if (
+    title.length < 3 ||
+    objective.length < 3
+  ) {
+    return {
+      status: 'error',
+      message:
+        'Completá el nombre y el objetivo del proyecto.',
+    }
+  }
+
+  let projectId: string
+
+  try {
+    projectId = await createProject(
+      await getCurrentAccess(),
+      {
+        title,
+        objective,
+        responsibleInternalUserId,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Project creation failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message:
+        'No se pudo crear el proyecto.',
+    }
+  }
+
   revalidatePath('/panel/proyectos')
-  return { status: 'success', message: 'El proyecto quedó creado en borrador.' }
+
+  redirect(
+    `/panel/proyectos/${projectId}`
+  )
+}
+
+const opportunityRelationTypes = new Set([
+  'origin',
+  'context',
+  'resource',
+  'dependency',
+  'related',
+])
+
+const articulationRelationTypes = new Set([
+  'origin',
+  'context',
+  'coordination',
+  'resource',
+  'related',
+])
+
+export async function linkProjectOpportunityAction(
+  projectId: string,
+  _state: ProjectActionState,
+  formData: FormData
+): Promise<ProjectActionState> {
+  const opportunityId = String(
+    formData.get('opportunity_id') ?? ''
+  ).trim()
+
+  const relationType = String(
+    formData.get('relation_type') ?? 'related'
+  ) as ProjectOpportunityRelationType
+
+  const relationshipNote =
+    String(
+      formData.get('relationship_note') ?? ''
+    ).trim() || null
+
+  if (
+    !opportunityId ||
+    !opportunityRelationTypes.has(relationType)
+  ) {
+    return {
+      status: 'error',
+      message: 'Elegí una oportunidad y un tipo de vínculo válido.',
+    }
+  }
+
+  try {
+    await linkProjectOpportunity(
+      await getCurrentAccess(),
+      {
+        projectId,
+        opportunityId,
+        relationType,
+        relationshipNote,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Project opportunity link failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message:
+        'No se pudo vincular la oportunidad. Puede que ya esté vinculada o que no tengas permiso para operarla.',
+    }
+  }
+
+  revalidatePath(`/panel/proyectos/${projectId}`)
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+
+  return {
+    status: 'success',
+    message: 'La oportunidad quedó vinculada al proyecto.',
+  }
+}
+
+export async function unlinkProjectOpportunityAction(
+  projectId: string,
+  opportunityId: string,
+  _state: ProjectActionState,
+  formData: FormData
+): Promise<ProjectActionState> {
+  const rationale = String(
+    formData.get('rationale') ?? ''
+  ).trim()
+
+  if (rationale.length < 3) {
+    return {
+      status: 'error',
+      message: 'Indicá brevemente el motivo de la desvinculación.',
+    }
+  }
+
+  try {
+    await unlinkProjectOpportunity(
+      await getCurrentAccess(),
+      {
+        projectId,
+        opportunityId,
+        rationale,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Project opportunity unlink failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message: 'No se pudo desvincular la oportunidad.',
+    }
+  }
+
+  revalidatePath(`/panel/proyectos/${projectId}`)
+  revalidatePath(`/panel/oportunidades/${opportunityId}`)
+
+  return {
+    status: 'success',
+    message: 'La oportunidad fue desvinculada.',
+  }
+}
+
+export async function linkProjectArticulationAction(
+  projectId: string,
+  _state: ProjectActionState,
+  formData: FormData
+): Promise<ProjectActionState> {
+  const articulationId = String(
+    formData.get('articulation_id') ?? ''
+  ).trim()
+
+  const relationType = String(
+    formData.get('relation_type') ?? 'related'
+  ) as ProjectArticulationRelationType
+
+  const relationshipNote =
+    String(
+      formData.get('relationship_note') ?? ''
+    ).trim() || null
+
+  if (
+    !articulationId ||
+    !articulationRelationTypes.has(relationType)
+  ) {
+    return {
+      status: 'error',
+      message: 'Elegí una articulación y un tipo de vínculo válido.',
+    }
+  }
+
+  try {
+    await linkProjectArticulation(
+      await getCurrentAccess(),
+      {
+        projectId,
+        articulationId,
+        relationType,
+        relationshipNote,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Project articulation link failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message:
+        'No se pudo vincular la articulación. Puede que ya esté vinculada o que no tengas permiso para operarla.',
+    }
+  }
+
+  revalidatePath(`/panel/proyectos/${projectId}`)
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
+
+  return {
+    status: 'success',
+    message: 'La articulación quedó vinculada al proyecto.',
+  }
+}
+
+export async function unlinkProjectArticulationAction(
+  projectId: string,
+  articulationId: string,
+  _state: ProjectActionState,
+  formData: FormData
+): Promise<ProjectActionState> {
+  const rationale = String(
+    formData.get('rationale') ?? ''
+  ).trim()
+
+  if (rationale.length < 3) {
+    return {
+      status: 'error',
+      message: 'Indicá brevemente el motivo de la desvinculación.',
+    }
+  }
+
+  try {
+    await unlinkProjectArticulation(
+      await getCurrentAccess(),
+      {
+        projectId,
+        articulationId,
+        rationale,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Project articulation unlink failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message: 'No se pudo desvincular la articulación.',
+    }
+  }
+
+  revalidatePath(`/panel/proyectos/${projectId}`)
+  revalidatePath(`/panel/articulaciones/${articulationId}`)
+
+  return {
+    status: 'success',
+    message: 'La articulación fue desvinculada.',
+  }
 }
 
 export async function transitionProjectAction(projectId: string, _state: ProjectActionState, formData: FormData): Promise<ProjectActionState> {

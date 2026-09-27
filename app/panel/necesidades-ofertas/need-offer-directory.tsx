@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
+import { RemoteListPagination } from '../../../components/remote-list-pagination'
 import type {
   NeedOfferNodeOption,
   NeedOfferRecordType,
@@ -69,7 +70,7 @@ export function NeedOfferDirectory({
       const params =
         new URLSearchParams({
           q: query,
-          limit: '25',
+          limit: '50',
         })
 
       if (cursor) {
@@ -327,38 +328,26 @@ export function NeedOfferDirectory({
         </div>
       </div>
 
-      {directory.initialLoading ? (
-        <p className="mt-5 text-sm text-slate-500">
-          Cargando necesidades y ofertas...
-        </p>
-      ) : null}
+      <p role="status" aria-atomic="true" className="mt-5 text-sm text-slate-500">
+        {directory.status === 'idle' ? 'Explorá las necesidades y ofertas o ingresá una búsqueda.'
+          : directory.minimumQueryMessage ?? (directory.initialLoading ? 'Cargando necesidades y ofertas...'
+            : directory.status === 'empty' ? 'No hay necesidades u ofertas que coincidan con los filtros.'
+              : directory.initialError ?? `${directory.items.length} resultados disponibles.`)}
+      </p>
 
       {directory.initialError ? (
         <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-          {
-            directory.initialError
-          }
-
           <button
             onClick={
               directory.retry
             }
-            className="ml-3 font-semibold underline"
+            type="button"
+            className="ux-button ml-3 rounded-lg px-3 py-2 font-semibold underline"
           >
             Reintentar
           </button>
         </div>
       ) : null}
-
-      {!directory.initialLoading &&
-      !directory.initialError &&
-      directory.items.length ===
-        0 ? (
-        <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-          No hay necesidades u ofertas que coincidan con los filtros.
-        </p>
-      ) : null}
-
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
         {directory.items.map(
           (item) => (
@@ -428,31 +417,13 @@ export function NeedOfferDirectory({
         )}
       </div>
 
-      {directory.hasMore ? (
-        <div className="mt-5 text-center">
-          <button
-            onClick={
-              directory.loadMore
-            }
-            disabled={
-              directory.loadingMore
-            }
-            className="rounded-xl border border-[#2F5D8C] px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] disabled:opacity-50"
-          >
-            {directory.loadingMore
-              ? 'Cargando...'
-              : 'Cargar más'}
-          </button>
-
-          {directory.loadMoreError ? (
-            <p className="mt-2 text-sm text-red-700">
-              {
-                directory.loadMoreError
-              }
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      <RemoteListPagination
+        key={directory.paginationKey}
+        hasMore={directory.hasMore}
+        loadingMore={directory.loadingMore}
+        error={directory.loadMoreError}
+        onLoadMore={directory.loadMore}
+      />
     </section>
   )
 }

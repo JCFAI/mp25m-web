@@ -95,7 +95,7 @@ export type OrganizationActivityProposal = {
   resolved_at: string | null
 }
 
-export type OrganizationArticulation = {
+export type OrganizationOpportunity = {
   organization_id: string
   opportunity_id: string
   title: string
@@ -135,7 +135,7 @@ export type CanonicalOrganizationProfile = {
   activitySkillSuggestions: ActivitySkillSuggestion[]
   activityProposals: OrganizationActivityProposal[]
   capabilities: OrganizationCapability[]
-  articulations: OrganizationArticulation[]
+  opportunities: OrganizationOpportunity[]
   typeProposals: OrganizationTypeProposal[]
 }
 
@@ -150,7 +150,7 @@ export async function getCanonicalOrganizationProfile(
     activitiesResult,
     activityProposalsResult,
     capabilitiesResult,
-    articulationsResult,
+    opportunitiesResult,
     typeProposalsResult,
   ] = await Promise.all([
     supabase
@@ -242,9 +242,9 @@ export async function getCanonicalOrganizationProfile(
     )
   }
 
-  if (articulationsResult.error) {
+  if (opportunitiesResult.error) {
     throw new Error(
-      `Unable to load organization articulations: ${articulationsResult.error.message}`
+      `Unable to load organization opportunities: ${opportunitiesResult.error.message}`
     )
   }
 
@@ -317,10 +317,10 @@ export async function getCanonicalOrganizationProfile(
         capabilitiesResult.data ?? []
       ) as OrganizationCapability[],
 
-    articulations:
+    opportunities:
       (
-        articulationsResult.data ?? []
-      ) as OrganizationArticulation[],
+        opportunitiesResult.data ?? []
+      ) as OrganizationOpportunity[],
 
     typeProposals:
       (

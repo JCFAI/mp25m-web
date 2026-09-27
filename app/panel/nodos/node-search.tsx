@@ -3,26 +3,21 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  useCallback,
   useEffect,
   useId,
+  useMemo,
   useState,
 } from 'react'
 
 import { ReferenceListDialog } from '../../../components/reference-list-dialog'
-import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
-type NodeSearchResult = {
-  id: string
-  node_number: number | null
-  display_name: string
-  status: string
-  jurisdiction_name: string | null
-  jurisdiction_type_name: string | null
-}
+import {
+  loadNodeDirectory,
+  type NodeDirectoryItem,
+} from '../../../lib/nodes/client-directory-cache'
 
-const MINIMUM_QUERY_LENGTH = 2
-
-function nodeMetadata(node: NodeSearchResult) {
+function nodeMetadata(
+  node: NodeDirectoryItem
+) {
   const parts: string[] = []
 
   if (node.node_number !== null) {
@@ -42,140 +37,148 @@ function nodeMetadata(node: NodeSearchResult) {
     : 'Cobertura territorial pendiente de completar'
 }
 
+function normalizeNodeFilter(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function matchesNodeFilter(
+  node: NodeDirectoryItem,
+  normalizedQuery: string
+) {
+  if (!normalizedQuery) {
+    return true
+  }
+
+  const textualIdentity =
+    normalizeNodeFilter(
+      [
+        node.display_name,
+        node.jurisdiction_name,
+        node.jurisdiction_type_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    )
+
+  const explicitNodeNumber =
+    normalizedQuery.match(/^nodo\s+(\d+)$/)
+
+  if (explicitNodeNumber) {
+    return (
+      node.node_number !== null &&
+      String(node.node_number) ===
+        explicitNodeNumber[1]
+    )
+  }
+
+  // Una consulta puramente numérica puede referirse
+  // tanto a una jurisdicción como al número del nodo.
+  if (/^\d+$/.test(normalizedQuery)) {
+    return (
+      textualIdentity.includes(
+        normalizedQuery
+      ) ||
+      (
+        node.node_number !== null &&
+        String(node.node_number) ===
+          normalizedQuery
+      )
+    )
+  }
+
+  // En consultas mixtas como "CABA 12", los términos
+  // se buscan dentro de la identidad territorial.
+  // Así evitamos mezclar accidentalmente "CABA"
+  // con el número técnico de otro nodo.
+  const terms =
+    normalizedQuery
+      .split(' ')
+      .filter(Boolean)
+
+  return terms.every((term) =>
+    textualIdentity.includes(term)
+  )
+}
+
 export function NodeSearch() {
   const router = useRouter()
   const inputId = useId()
   const resultsId = useId()
 
   const [query, setQuery] = useState('')
-  const [results, setResults] =
-    useState<NodeSearchResult[]>([])
+  const [inputFocused, setInputFocused] =
+    useState(false)
+  const [nodes, setNodes] =
+    useState<NodeDirectoryItem[]>([])
   const [loading, setLoading] =
-    useState(false)
-  const [hasSearched, setHasSearched] =
-    useState(false)
+    useState(true)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
-  const fetchReferencePage = useCallback(
-    async ({
-      query: referenceQuery,
-      cursor,
-      signal,
-    }: {
-      query: string
-      cursor: string | null
-      signal: AbortSignal
-    }) => {
-      const params = new URLSearchParams({
-        mode: 'reference',
-        q: referenceQuery,
-        limit: '25',
-      })
-
-      if (cursor) {
-        params.set('cursor', cursor)
-      }
-
-      const response = await fetch(
-        `/api/panel/nodos?${params.toString()}`,
-        {
-          signal,
-          cache: 'no-store',
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('No se pudo cargar la lista.')
-      }
-
-      return (await response.json()) as {
-        items: NodeSearchResult[]
-        nextCursor: string | null
-      }
-    },
-    []
-  )
-  const referenceList = useRemoteReferenceList({
-    contextKey: 'node-directory',
-    getItemKey: (node: NodeSearchResult) => node.id,
-    fetchPage: fetchReferencePage,
-  })
-
-  const term = query.trim()
-  const searchIsOpen =
-    term.length >= MINIMUM_QUERY_LENGTH
+  const [reloadKey, setReloadKey] =
+    useState(0)
 
   useEffect(() => {
-    const currentTerm = query.trim()
+    let active = true
 
-    setResults([])
-    setHasSearched(false)
-    setErrorMessage(null)
+    async function loadNodes() {
+      try {
+        const data =
+          await loadNodeDirectory({
+            force: reloadKey > 0,
+          })
 
-    if (
-      currentTerm.length <
-      MINIMUM_QUERY_LENGTH
-    ) {
-      setLoading(false)
-      return
+        if (active) {
+          setNodes(data)
+          setErrorMessage(null)
+        }
+      } catch {
+        if (active) {
+          setNodes([])
+          setErrorMessage(
+            'No se pudo cargar el directorio de nodos. Intentá nuevamente.'
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
     }
 
-    const controller = new AbortController()
-
-    setLoading(true)
-
-    const timeout = window.setTimeout(
-      async () => {
-        try {
-          const response = await fetch(
-            `/api/panel/nodos?q=${encodeURIComponent(currentTerm)}`,
-            {
-              signal: controller.signal,
-              cache: 'no-store',
-            }
-          )
-
-          if (!response.ok) {
-            throw new Error(
-              'No se pudo completar la búsqueda.'
-            )
-          }
-
-          const data =
-            (await response.json()) as NodeSearchResult[]
-
-          if (!controller.signal.aborted) {
-            setResults(data)
-          }
-        } catch (error) {
-          if (
-            error instanceof DOMException &&
-            error.name === 'AbortError'
-          ) {
-            return
-          }
-
-          if (!controller.signal.aborted) {
-            setResults([])
-            setErrorMessage(
-              'No se pudo completar la búsqueda. Intentá nuevamente.'
-            )
-          }
-        } finally {
-          if (!controller.signal.aborted) {
-            setLoading(false)
-            setHasSearched(true)
-          }
-        }
-      },
-      250
-    )
+    void loadNodes()
 
     return () => {
-      window.clearTimeout(timeout)
-      controller.abort()
+      active = false
     }
-  }, [query])
+  }, [reloadKey])
+
+  const normalizedQuery =
+    normalizeNodeFilter(query)
+
+  const visibleNodes = useMemo(() => {
+    if (!normalizedQuery) {
+      return nodes
+    }
+
+    return nodes.filter((node) =>
+      matchesNodeFilter(
+        node,
+        normalizedQuery
+      )
+    )
+  }, [nodes, normalizedQuery])
+
+  function retryLoad() {
+    setLoading(true)
+    setErrorMessage(null)
+    setReloadKey((current) => current + 1)
+  }
 
   return (
     <div>
@@ -187,10 +190,30 @@ export function NodeSearch() {
       </label>
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
-        Buscá por nombre o jurisdicción territorial.
+        Explorá el directorio o escribí desde el primer
+        carácter para filtrar por nombre, número o
+        jurisdicción.
       </p>
 
-      <div className="relative mt-3 sm:mt-4">
+      <div
+        className="relative mt-3 sm:mt-4"
+        onFocusCapture={() =>
+          setInputFocused(true)
+        }
+        onBlurCapture={(event) => {
+          const nextTarget =
+            event.relatedTarget as Node | null
+
+          if (
+            !nextTarget ||
+            !event.currentTarget.contains(
+              nextTarget
+            )
+          ) {
+            setInputFocused(false)
+          }
+        }}
+      >
         <input
           id={inputId}
           value={query}
@@ -201,27 +224,43 @@ export function NodeSearch() {
           autoComplete="off"
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={searchIsOpen}
+          aria-expanded={inputFocused}
           aria-controls={resultsId}
           aria-busy={loading}
           className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
         />
 
-        {searchIsOpen ? (
+        {inputFocused ? (
           <div
             id={resultsId}
             className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
           >
+            <p className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500">
+              {normalizedQuery
+                ? `${visibleNodes.length} nodo${visibleNodes.length === 1 ? '' : 's'} coincide${visibleNodes.length === 1 ? '' : 'n'} con “${query.trim()}”.`
+                : `${nodes.length} nodos disponibles. Desplazate para explorar o escribí para filtrar.`}
+            </p>
+
             {loading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
-                Buscando nodos...
+                Cargando nodos...
               </p>
             ) : errorMessage ? (
-              <p className="px-4 py-3 text-sm text-red-600">
-                {errorMessage}
-              </p>
-            ) : results.length > 0 ? (
-              results.map((node) => (
+              <div className="px-4 py-3">
+                <p className="text-sm text-red-600">
+                  {errorMessage}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={retryLoad}
+                  className="ux-button mt-3 min-h-10 rounded-lg border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 hover:bg-red-50"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : visibleNodes.length > 0 ? (
+              visibleNodes.map((node) => (
                 <Link
                   key={node.id}
                   href={`/panel/nodos/${node.id}`}
@@ -237,11 +276,11 @@ export function NodeSearch() {
                   </p>
                 </Link>
               ))
-            ) : hasSearched ? (
+            ) : (
               <p className="px-4 py-3 text-sm text-slate-500">
                 No se encontraron nodos coincidentes.
               </p>
-            ) : null}
+            )}
           </div>
         ) : null}
       </div>
@@ -249,19 +288,27 @@ export function NodeSearch() {
       <ReferenceListDialog
         buttonClassName="mt-3"
         title="Directorio de nodos"
-        description="Explorá los nodos disponibles o buscá por nombre y jurisdicción territorial."
-        items={referenceList.items}
-        searchPlaceholder="Buscar nodo o jurisdicción..."
+        description="Explorá el directorio completo de nodos o filtralo localmente."
+        items={nodes}
+        loading={loading}
+        errorMessage={errorMessage}
+        searchPlaceholder="Filtrar nodo o jurisdicción..."
         emptyMessage="No se encontraron nodos para esta búsqueda."
         getItemKey={(node) => node.id}
         getItemSearchText={(node) =>
           [
             node.display_name,
+            node.node_number !== null
+              ? `Nodo ${node.node_number}`
+              : null,
             node.jurisdiction_name,
             node.jurisdiction_type_name,
           ]
             .filter(Boolean)
             .join(' ')
+        }
+        matchesFilter={
+          matchesNodeFilter
         }
         renderItem={(node) => (
           <div>
@@ -274,27 +321,23 @@ export function NodeSearch() {
             </p>
           </div>
         )}
-        onOpen={referenceList.open}
-        onSelect={(node) => {
-          router.push(`/panel/nodos/${node.id}`)
+        onOpen={() => {
+          if (errorMessage && !loading) {
+            retryLoad()
+          }
         }}
-        remote={{
-          query: referenceList.query,
-          onQueryChange: referenceList.setQuery,
-          initialLoading: referenceList.initialLoading,
-          loadingMore: referenceList.loadingMore,
-          hasMore: referenceList.hasMore,
-          initialError: referenceList.initialError,
-          loadMoreError: referenceList.loadMoreError,
-          onRetry: referenceList.retry,
-          onLoadMore: referenceList.loadMore,
+        onSelect={(node) => {
+          router.push(
+            `/panel/nodos/${node.id}`
+          )
         }}
       />
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        Escribí al menos dos caracteres. Se muestran
-        hasta diez coincidencias y no se carga el
-        directorio completo.
+        El directorio queda disponible durante esta
+        sesión y el filtro es inmediato. Para buscar
+        específicamente por número, escribí por ejemplo
+        “nodo 12”.
       </p>
     </div>
   )

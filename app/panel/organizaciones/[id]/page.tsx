@@ -171,7 +171,7 @@ function OrganizationNodeCard({
   )
 }
 
-function articulationKindLabel(
+function opportunityKindLabel(
   kind: 'opportunity' | 'need'
 ) {
   return kind === 'need'
@@ -488,7 +488,7 @@ export default async function OrganizationProfilePage({
     activitySkillSuggestions,
     activityProposals,
     capabilities,
-    articulations,
+    opportunities,
     typeProposals,
   } = profile
 
@@ -1030,26 +1030,26 @@ export default async function OrganizationProfilePage({
         </p>
 
         <div className="mt-4 space-y-3 sm:mt-5">
-          {articulations.length === 0 ? (
+          {opportunities.length === 0 ? (
             <div className="rounded-xl border border-slate-100 bg-white p-3 text-sm text-slate-600 shadow-sm sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none">
               No hay oportunidades vinculadas con esta organización.
             </div>
           ) : (
-            articulations.map((articulation) => (
+            opportunities.map((opportunity) => (
               <Link
-                key={articulation.opportunity_id}
-                href={`/panel/oportunidades/${articulation.opportunity_id}`}
+                key={opportunity.opportunity_id}
+                href={`/panel/oportunidades/${opportunity.opportunity_id}`}
                 className="block rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition hover:border-[#2F5D8C]/40 sm:border-slate-200 sm:bg-slate-50 sm:p-4 sm:shadow-none sm:hover:bg-white"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="break-words font-semibold text-slate-950">
-                      {articulation.title}
+                      {opportunity.title}
                     </p>
 
                     <p className="mt-1 text-xs font-semibold text-[#2F5D8C]">
-                      {articulationKindLabel(
-                        articulation.kind
+                      {opportunityKindLabel(
+                        opportunity.kind
                       )}
                     </p>
                   </div>
@@ -1060,7 +1060,7 @@ export default async function OrganizationProfilePage({
                 </div>
 
                 <p className="mt-3 break-words text-sm leading-6 text-slate-600">
-                  {articulation.description}
+                  {opportunity.description}
                 </p>
               </Link>
             ))

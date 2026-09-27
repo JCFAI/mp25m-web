@@ -8,6 +8,7 @@ import {
   getOpportunityDetail,
   listOpportunityAssigneeOptions,
 } from '../../../../lib/opportunities/detail'
+import { listProjectsByOpportunity } from '../../../../lib/projects/projects'
 import { createClient } from '../../../../lib/supabase/server'
 import { OpportunityAssigneeForm } from './assignee-form'
 import { OpportunityFollowupForm } from './followup-form'
@@ -15,8 +16,6 @@ import { OpportunityStatusForm } from './status-form'
 import { OpportunityRequirementsSection } from './requirements-section'
 import { OpportunityArticulationsSection } from './opportunity-articulations-section'
 import {
-  listOpportunityArticulationFollowups,
-  listOpportunityArticulationParticipants,
   listOpportunityArticulations,
 } from '../../../../lib/opportunities/articulations'
 
@@ -50,6 +49,16 @@ const priorityLabels = {
   normal: 'Normal',
   high: 'Alta',
   urgent: 'Urgente',
+}
+
+const articulationStatusLabels = {
+  draft: 'Borrador',
+  active: 'Activa',
+  follow_up: 'En seguimiento',
+  paused: 'Pausada',
+  closed_with_result: 'Cerrada con resultado',
+  closed_without_result: 'Cerrada sin resultado',
+  cancelled: 'Cancelada',
 }
 
 const provenanceOriginLabels = {
@@ -753,15 +762,13 @@ export default async function OpportunityDetailPage({
     detail,
     assigneeOptions,
     articulations,
-    articulationParticipants,
-    articulationFollowups,
+    projects,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
     listOpportunityAssigneeOptions(),
     listOpportunityArticulations(id),
-    listOpportunityArticulationParticipants(id),
-    listOpportunityArticulationFollowups(id),
+    listProjectsByOpportunity(id),
   ])
 
   if (!detail) {
@@ -787,6 +794,26 @@ export default async function OpportunityDetailPage({
     origins,
     history,
   } = detail
+
+  const primaryArticulation =
+    articulations[0] ?? null
+
+  const articulationSummary =
+    articulations.length === 0
+      ? 'Sin articulaciones vinculadas'
+      : articulations.length === 1 &&
+          primaryArticulation
+        ? articulationStatusLabels[
+            primaryArticulation.status
+          ]
+        : `${articulations.length} articulaciones`
+
+  const projectSummary =
+    projects.length === 0
+      ? 'Sin proyectos vinculados'
+      : projects.length === 1
+        ? '1 proyecto vinculado'
+        : `${projects.length} proyectos vinculados`
 
   return (
     <div className="space-y-7">
@@ -847,6 +874,149 @@ export default async function OpportunityDetailPage({
         </div>
       </section>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
+          Relaciones de trabajo
+        </p>
+
+        <h2 className="mt-2 text-xl font-semibold text-slate-950">
+          Entidades relacionadas con esta oportunidad
+        </h2>
+
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+          La oportunidad, las articulaciones y los
+          proyectos conservan identidad propia. Una
+          articulación puede coordinar acciones concretas
+          sin convertirse en proyecto, y un proyecto
+          puede existir independientemente y vincularse
+          a esta oportunidad cuando resulte útil.
+        </p>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
+                  Articulaciones vinculadas
+                </p>
+
+                <h3 className="mt-2 font-semibold text-slate-950">
+                  Entidades autónomas relacionadas
+                </h3>
+              </div>
+
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                {articulationSummary}
+              </span>
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Cada articulación conserva identidad y gestión
+              propias. El vínculo con esta oportunidad es
+              opcional y no implica que una entidad dependa
+              de la otra.
+            </p>
+
+            {articulations.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {articulations
+                  .slice(0, 3)
+                  .map((articulation) => (
+                    <Link
+                      key={
+                        articulation.articulation_id
+                      }
+                      href={`/panel/articulaciones/${articulation.articulation_id}`}
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-[#2F5D8C]/40"
+                    >
+                      <span className="font-semibold text-[#1E3A5F]">
+                        {articulation.title}
+                      </span>
+                      {' · '}
+                      {
+                        articulationStatusLabels[
+                          articulation.status
+                        ]
+                      }
+                    </Link>
+                  ))}
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              {canManage &&
+              !['resolved', 'discarded'].includes(
+                opportunity.status,
+              ) ? (
+                <a
+                  href="#crear-vincular-articulacion"
+                  className="ux-button inline-flex min-h-10 items-center rounded-lg bg-[#1E3A5F] px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Crear y vincular articulación
+                </a>
+              ) : null}
+
+              {articulations.length > 0 ? (
+                <a
+                  href="#articulaciones"
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                >
+                  Ver sección completa
+                </a>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-[#2F5D8C]/20 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
+                  Proyectos relacionados
+                </p>
+
+                <h3 className="mt-2 font-semibold text-slate-950">
+                  Unidades de trabajo autónomas
+                </h3>
+              </div>
+
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                {projectSummary}
+              </span>
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Un proyecto puede comenzar sin oportunidad
+              ni articulación. Después puede vincularse
+              con esta oportunidad y sumar los recursos
+              que necesite.
+            </p>
+
+            {projects.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {projects
+                  .slice(0, 3)
+                  .map((project) => (
+                    <Link
+                      key={project.project_id}
+                      href={`/panel/proyectos/${project.project_id}`}
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#1E3A5F] hover:border-[#2F5D8C]/40"
+                    >
+                      {project.title}
+                    </Link>
+                  ))}
+              </div>
+            ) : null}
+
+            <Link
+              href="/panel/proyectos"
+              className="ux-button mt-4 inline-flex min-h-10 items-center rounded-lg border border-[#2F5D8C] px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
+            >
+              Ir a proyectos
+            </Link>
+          </article>
+        </div>
+      </section>
+
       <OpportunityRequirementsSection
         opportunityId={opportunity.id}
         access={access}
@@ -860,10 +1030,8 @@ export default async function OpportunityDetailPage({
       />
       <OpportunityArticulationsSection
         opportunityId={opportunity.id}
+        opportunityStatus={opportunity.status}
         articulations={articulations}
-        participants={articulationParticipants}
-        followups={articulationFollowups}
-        origins={origins}
         canOperate={canManage}
         assigneeOptions={assigneeOptions}
       />

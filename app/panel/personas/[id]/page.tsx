@@ -20,7 +20,7 @@ type PageProps = {
   }>
 }
 
-function articulationKindLabel(
+function opportunityKindLabel(
   kind: 'opportunity' | 'need'
 ) {
   return kind === 'need'
@@ -167,7 +167,7 @@ export default async function PersonProfilePage({
   const {
     person,
     territories,
-    articulations,
+    opportunities,
     aliases,
     skills,
     contacts,
@@ -619,27 +619,27 @@ export default async function PersonProfilePage({
         </p>
 
         <div className="mt-5 space-y-3">
-          {articulations.length === 0 ? (
+          {opportunities.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               No hay oportunidades vinculadas con esta persona.
             </div>
           ) : (
-            articulations.map(
-              (articulation) => (
+            opportunities.map(
+              (opportunity) => (
                 <Link
-                  key={articulation.opportunity_id}
-                  href={`/panel/oportunidades/${articulation.opportunity_id}`}
+                  key={opportunity.opportunity_id}
+                  href={`/panel/oportunidades/${opportunity.opportunity_id}`}
                   className="block rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-slate-950">
-                        {articulation.title}
+                        {opportunity.title}
                       </p>
 
                       <p className="mt-1 text-xs font-semibold text-[#2F5D8C]">
-                        {articulationKindLabel(
-                          articulation.kind
+                        {opportunityKindLabel(
+                          opportunity.kind
                         )}
                       </p>
                     </div>
@@ -650,12 +650,12 @@ export default async function PersonProfilePage({
                   </div>
 
                   <p className="mt-3 text-sm leading-6 text-slate-600">
-                    {articulation.description}
+                    {opportunity.description}
                   </p>
 
-                  {articulation.node_names.length > 0 ? (
+                  {opportunity.node_names.length > 0 ? (
                     <p className="mt-2 text-xs text-slate-500">
-                      {articulation.node_names.join(' · ')}
+                      {opportunity.node_names.join(' · ')}
                     </p>
                   ) : null}
                 </Link>

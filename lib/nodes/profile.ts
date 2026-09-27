@@ -65,7 +65,7 @@ export type NodeSkillSummary = {
   pending_person_count: number
 }
 
-export type NodeArticulation = {
+export type NodeOpportunity = {
   node_id: string
   opportunity_id: string
   title: string
@@ -109,7 +109,7 @@ export type CanonicalNodeProfile = {
   jurisdictions: NodeJurisdiction[]
   participants: NodeParticipant[]
   skills: NodeSkillSummary[]
-  articulations: NodeArticulation[]
+  opportunities: NodeOpportunity[]
   organizations: NodeOrganization[]
   pendingOrganizations: NodePendingOrganization[]
 }
@@ -124,7 +124,7 @@ export async function getCanonicalNodeProfile(
     jurisdictionsResult,
     participantsResult,
     skillsResult,
-    articulationsResult,
+    opportunitiesResult,
     organizationsResult,
     pendingOrganizationsResult,
   ] = await Promise.all([
@@ -218,9 +218,9 @@ export async function getCanonicalNodeProfile(
     )
   }
 
-  if (articulationsResult.error) {
+  if (opportunitiesResult.error) {
     throw new Error(
-      `Unable to load node articulations: ${articulationsResult.error.message}`
+      `Unable to load node opportunities: ${opportunitiesResult.error.message}`
     )
   }
 
@@ -244,8 +244,8 @@ export async function getCanonicalNodeProfile(
       (participantsResult.data ?? []) as NodeParticipant[],
     skills:
       (skillsResult.data ?? []) as NodeSkillSummary[],
-    articulations:
-      (articulationsResult.data ?? []) as NodeArticulation[],
+    opportunities:
+      (opportunitiesResult.data ?? []) as NodeOpportunity[],
     organizations:
       (organizationsResult.data ?? []) as NodeOrganization[],
     pendingOrganizations:

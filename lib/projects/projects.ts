@@ -7,10 +7,10 @@ export type ProjectStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cance
 
 export type Project = {
   project_id: string
-  opportunity_id: string
-  opportunity_title: string
-  source_articulation_id: string
-  source_articulation_title: string
+  opportunity_id: string | null
+  opportunity_title: string | null
+  source_articulation_id: string | null
+  source_articulation_title: string | null
   title: string
   objective: string
   status: ProjectStatus
@@ -25,15 +25,44 @@ export type Project = {
   latest_followup_at: string | null
 }
 
-export type ProjectSourceArticulation = {
-  articulation_id: string
+export type ProjectOpportunityRelationType =
+  | 'origin'
+  | 'context'
+  | 'resource'
+  | 'dependency'
+  | 'related'
+
+export type ProjectArticulationRelationType =
+  | 'origin'
+  | 'context'
+  | 'coordination'
+  | 'resource'
+  | 'related'
+
+export type ProjectOpportunityLink = {
+  link_id: string
+  project_id: string
   opportunity_id: string
   opportunity_title: string
+  opportunity_status: string
+  relation_type: ProjectOpportunityRelationType
+  relationship_note: string | null
+  added_at: string
+  added_by_display_name: string
+}
+
+export type ProjectArticulationLink = {
+  link_id: string
+  project_id: string
+  articulation_id: string
   articulation_title: string
-  articulation_objective: string
-  closing_summary: string | null
-  closed_at: string
-  project_id: string | null
+  articulation_status: string
+  opportunity_id: string | null
+  opportunity_title: string | null
+  relation_type: ProjectArticulationRelationType
+  relationship_note: string | null
+  added_at: string
+  added_by_display_name: string
 }
 
 export type ProjectFollowup = {
@@ -97,10 +126,132 @@ export async function getProject(projectId: string) {
   return data as Project | null
 }
 
-export async function listProjectSourceArticulations() {
-  const { data, error } = await createAdminClient().from('project_source_articulation_list').select('*').order('closed_at', { ascending: false })
-  if (error) throw new Error(`Unable to load project sources: ${error.message}`)
-  return (data ?? []) as ProjectSourceArticulation[]
+export async function listProjectOpportunityLinks(
+  projectId: string
+) {
+  const { data, error } = await createAdminClient()
+    .from('project_opportunity_link_list')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('added_at', { ascending: true })
+
+  if (error) {
+    throw new Error(
+      `Unable to load project opportunity links: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as ProjectOpportunityLink[]
+}
+
+export async function listProjectArticulationLinks(
+  projectId: string
+) {
+  const { data, error } = await createAdminClient()
+    .from('project_articulation_link_list')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('added_at', { ascending: true })
+
+  if (error) {
+    throw new Error(
+      `Unable to load project articulation links: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as ProjectArticulationLink[]
+}
+
+export async function listProjectsByOpportunity(
+  opportunityId: string
+) {
+  const supabase = createAdminClient()
+
+  const { data: links, error: linksError } =
+    await supabase
+      .from('project_opportunity_link_list')
+      .select('project_id')
+      .eq('opportunity_id', opportunityId)
+
+  if (linksError) {
+    throw new Error(
+      `Unable to load opportunity project links: ${linksError.message}`
+    )
+  }
+
+  const projectIds = [
+    ...new Set(
+      (links ?? []).map(
+        (link) => link.project_id
+      )
+    ),
+  ]
+
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('project_list')
+    .select('*')
+    .in('project_id', projectIds)
+    .order('updated_at', {
+      ascending: false,
+    })
+
+  if (error) {
+    throw new Error(
+      `Unable to load opportunity projects: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as Project[]
+}
+
+export async function listProjectsByArticulation(
+  articulationId: string
+) {
+  const supabase = createAdminClient()
+
+  const { data: links, error: linksError } =
+    await supabase
+      .from('project_articulation_link_list')
+      .select('project_id')
+      .eq('articulation_id', articulationId)
+
+  if (linksError) {
+    throw new Error(
+      `Unable to load articulation project links: ${linksError.message}`
+    )
+  }
+
+  const projectIds = [
+    ...new Set(
+      (links ?? []).map(
+        (link) => link.project_id
+      )
+    ),
+  ]
+
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('project_list')
+    .select('*')
+    .in('project_id', projectIds)
+    .order('updated_at', {
+      ascending: false,
+    })
+
+  if (error) {
+    throw new Error(
+      `Unable to load articulation projects: ${error.message}`
+    )
+  }
+
+  return (data ?? []) as Project[]
 }
 
 export async function listProjectFollowups(projectId: string) {
@@ -127,12 +278,143 @@ export async function listProjectDeliverables(projectId: string) {
   return (data ?? []) as ProjectDeliverable[]
 }
 
-export async function createProject(access: InternalAccess[], input: { sourceArticulationId: string; title: string; objective: string; responsibleInternalUserId: string | null }) {
-  const { error } = await createAdminClient().rpc('create_project_from_articulation', {
-    p_actor_internal_user_id: actorId(access), p_source_articulation_id: input.sourceArticulationId,
-    p_title: input.title, p_objective: input.objective, p_responsible_internal_user_id: input.responsibleInternalUserId,
-  })
-  if (error) throw new Error(error.message)
+export async function createProject(
+  access: InternalAccess[],
+  input: {
+    title: string
+    objective: string
+    responsibleInternalUserId: string | null
+  }
+) {
+  const { data, error } = await createAdminClient().rpc(
+    'create_project',
+    {
+      p_actor_internal_user_id: actorId(access),
+      p_title: input.title,
+      p_objective: input.objective,
+      p_responsible_internal_user_id:
+        input.responsibleInternalUserId,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const created = Array.isArray(data)
+    ? data[0]
+    : data
+
+  const projectId =
+    created &&
+    typeof created === 'object' &&
+    'project_id' in created
+      ? String(created.project_id)
+      : null
+
+  if (!projectId) {
+    throw new Error(
+      'Project creation did not return an id'
+    )
+  }
+
+  return projectId
+}
+
+export async function linkProjectOpportunity(
+  access: InternalAccess[],
+  input: {
+    projectId: string
+    opportunityId: string
+    relationType: ProjectOpportunityRelationType
+    relationshipNote: string | null
+  }
+) {
+  const { error } = await createAdminClient().rpc(
+    'link_project_opportunity',
+    {
+      p_actor_internal_user_id: actorId(access),
+      p_project_id: input.projectId,
+      p_opportunity_id: input.opportunityId,
+      p_relation_type: input.relationType,
+      p_relationship_note: input.relationshipNote,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function unlinkProjectOpportunity(
+  access: InternalAccess[],
+  input: {
+    projectId: string
+    opportunityId: string
+    rationale: string
+  }
+) {
+  const { error } = await createAdminClient().rpc(
+    'unlink_project_opportunity',
+    {
+      p_actor_internal_user_id: actorId(access),
+      p_project_id: input.projectId,
+      p_opportunity_id: input.opportunityId,
+      p_rationale: input.rationale,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function linkProjectArticulation(
+  access: InternalAccess[],
+  input: {
+    projectId: string
+    articulationId: string
+    relationType: ProjectArticulationRelationType
+    relationshipNote: string | null
+  }
+) {
+  const { error } = await createAdminClient().rpc(
+    'link_project_articulation',
+    {
+      p_actor_internal_user_id: actorId(access),
+      p_project_id: input.projectId,
+      p_articulation_id: input.articulationId,
+      p_relation_type: input.relationType,
+      p_relationship_note: input.relationshipNote,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function unlinkProjectArticulation(
+  access: InternalAccess[],
+  input: {
+    projectId: string
+    articulationId: string
+    rationale: string
+  }
+) {
+  const { error } = await createAdminClient().rpc(
+    'unlink_project_articulation',
+    {
+      p_actor_internal_user_id: actorId(access),
+      p_project_id: input.projectId,
+      p_articulation_id: input.articulationId,
+      p_rationale: input.rationale,
+    }
+  )
+
+  if (error) {
+    throw new Error(error.message)
+  }
 }
 
 export async function transitionProject(access: InternalAccess[], input: { projectId: string; status: ProjectStatus; rationale: string; responsibleInternalUserId: string | null; completionSummary: string | null }) {

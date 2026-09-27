@@ -28,7 +28,10 @@ export class ReferenceRequestError extends Error {
   }
 }
 
-export function normalizeReferenceQuery(value: string) {
+export function normalizeReferenceQuery(
+  value: string,
+  minimumQueryLength = 2
+) {
   const normalized = value
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -37,10 +40,13 @@ export function normalizeReferenceQuery(value: string) {
     .replace(/\s+/g, ' ')
     .trim()
 
-  if (normalized.length === 1) {
+  if (
+    normalized.length > 0 &&
+    normalized.length < minimumQueryLength
+  ) {
     throw new ReferenceRequestError(
       'invalid_query',
-      'La búsqueda debe estar vacía o tener al menos dos caracteres.'
+      `La búsqueda debe estar vacía o tener al menos ${minimumQueryLength} caracteres.`
     )
   }
 

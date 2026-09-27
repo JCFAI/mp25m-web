@@ -42,6 +42,7 @@ export async function listPersonReferencePage({
     actorTypes: ['person'],
     cursor,
     limit,
+    minimumQueryLength: 1,
   })
 
   return {

@@ -7,7 +7,7 @@ import {
   useRemoteReferenceList,
   type RemoteReferencePage,
 } from '../../../hooks/use-remote-reference-list'
-import type { CanonicalActorReference } from '../../../lib/opportunities/actors'
+import type { ResultContributorReference } from '../../../lib/results/contributor-references'
 import type { ResultContributorCandidate } from '../../../lib/results/results'
 
 type ActorOption = {
@@ -43,7 +43,6 @@ export function ResultActorPicker({
           new URLSearchParams({
             q: query,
             limit: '50',
-            mode: 'reference',
           })
 
         if (cursor) {
@@ -52,7 +51,7 @@ export function ResultActorPicker({
 
         const response =
           await fetch(
-            `/api/panel/oportunidades/actores?${params}`,
+            `/api/panel/resultados/actores?${params}`,
             { signal },
           )
 
@@ -63,7 +62,7 @@ export function ResultActorPicker({
         }
 
         const page:
-          RemoteReferencePage<CanonicalActorReference> =
+          RemoteReferencePage<ResultContributorReference> =
           await response.json()
 
         return {
@@ -75,7 +74,10 @@ export function ResultActorPicker({
               label:
                 actor.display_name,
               description:
-                actor.type_label,
+                actor.record_status ===
+                'archived'
+                  ? `${actor.type_label} · Registro archivado`
+                  : actor.type_label,
             }),
           ),
         }
@@ -153,7 +155,7 @@ export function ResultActorPicker({
             className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
           >
             <option value="">
-              Elegir participante histórico...
+              Elegir participante...
             </option>
 
             {candidateOptions.map(
@@ -183,8 +185,8 @@ export function ResultActorPicker({
       ) : (
         <p className="text-sm text-slate-500">
           Este origen todavía no tiene
-          participantes históricos para
-          sugerir.
+          participantes actuales o históricos
+          para sugerir.
         </p>
       )}
 

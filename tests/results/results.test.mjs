@@ -13,6 +13,14 @@ const migration = readFileSync(
   'utf8'
 )
 
+const contributorReferenceMigration = readFileSync(
+  resolve(
+    root,
+    'supabase/migrations/20260928233000_result_contributor_reference_page.sql'
+  ),
+  'utf8'
+)
+
 function functionBody(name) {
   const pattern = new RegExp(
     `create\\s+or\\s+replace\\s+function\\s+mp25m_api\\.${name}\\s*\\(`,
@@ -268,5 +276,43 @@ test('11A restricts direct database privileges to the application contract', () 
   assert.doesNotMatch(
     migration,
     /grant\s+delete[\s\S]*mp25m\.(results|result_contributions)/i
+  )
+})
+
+
+test('Result contributor reference search includes archived canonical actors without changing opportunity search', () => {
+  assert.match(
+    contributorReferenceMigration,
+    /create or replace function mp25m_api\.result_contributor_reference_page/
+  )
+
+  assert.match(
+    contributorReferenceMigration,
+    /person_record\.record_status\s+in\s+\('active',\s*'archived'\)/
+  )
+
+  assert.match(
+    contributorReferenceMigration,
+    /organization_record\.record_status\s+in\s+\('active',\s*'archived'\)/
+  )
+
+  assert.doesNotMatch(
+    contributorReferenceMigration,
+    /canonical_actor_reference_page/
+  )
+
+  assert.doesNotMatch(
+    contributorReferenceMigration,
+    /record_status\s*=\s*'active'/
+  )
+
+  assert.match(
+    contributorReferenceMigration,
+    /revoke all[\s\S]*result_contributor_reference_page[\s\S]*from public, anon, authenticated, service_role;/
+  )
+
+  assert.match(
+    contributorReferenceMigration,
+    /grant execute[\s\S]*result_contributor_reference_page[\s\S]*to service_role;/
   )
 })

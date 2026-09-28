@@ -1023,3 +1023,60 @@ test('both source detail pages mount ResultSection with their own identity', () 
     /canManageResultSource\([\s\S]*'project',[\s\S]*id/,
   )
 })
+
+
+test('Result contributor picker uses the dedicated archived-capable canonical search', () => {
+  const picker = readFileSync(
+    resolve(
+      root,
+      'app/panel/resultados/result-actor-picker.tsx',
+    ),
+    'utf8',
+  )
+
+  const route = readFileSync(
+    resolve(
+      root,
+      'app/api/panel/resultados/actores/route.ts',
+    ),
+    'utf8',
+  )
+
+  const referenceHelper = readFileSync(
+    resolve(
+      root,
+      'lib/results/contributor-references.ts',
+    ),
+    'utf8',
+  )
+
+  assert.match(
+    picker,
+    /\/api\/panel\/resultados\/actores/,
+  )
+
+  assert.doesNotMatch(
+    picker,
+    /\/api\/panel\/oportunidades\/actores/,
+  )
+
+  assert.match(
+    picker,
+    /actor\.record_status ===[\s\S]*'archived'/,
+  )
+
+  assert.match(
+    route,
+    /listResultContributorReferencePage/,
+  )
+
+  assert.match(
+    referenceHelper,
+    /result_contributor_reference_page/,
+  )
+
+  assert.doesNotMatch(
+    referenceHelper,
+    /canonical_actor_reference_page/,
+  )
+})

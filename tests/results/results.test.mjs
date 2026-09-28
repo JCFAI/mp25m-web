@@ -16,7 +16,7 @@ const migration = readFileSync(
 const contributorReferenceMigration = readFileSync(
   resolve(
     root,
-    'supabase/migrations/20260928233000_result_contributor_reference_page.sql'
+    'supabase/migrations/20260928232137_result_contributor_reference_page.sql'
   ),
   'utf8'
 )

@@ -13,7 +13,13 @@ import {
   listOpportunityAssigneeOptions,
 } from '../../../../lib/opportunities/detail'
 import { listProjectsByArticulation } from '../../../../lib/projects/projects'
+import {
+  listResultContributions,
+  listResultContributorCandidates,
+  listResultsForSource,
+} from '../../../../lib/results/results'
 import { createClient } from '../../../../lib/supabase/server'
+import { ResultSection } from '../../resultados/result-section'
 import { AutonomousArticulationControls } from '../articulation-controls'
 
 const statusLabels = { draft: 'Borrador', active: 'Activa', follow_up: 'En seguimiento', paused: 'Pausada', closed_with_result: 'Cerrada con resultado', closed_without_result: 'Cerrada sin resultado', cancelled: 'Cancelada' }
@@ -28,14 +34,30 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
   const articulation = await getArticulation(id)
   if (!articulation) notFound()
 
-  const [articulationParticipants, articulationFollowups, opportunityLinks, supabase, assigneeOptions, linkedProjects] = await Promise.all([
+  const [
+    articulationParticipants,
+    articulationFollowups,
+    opportunityLinks,
+    supabase,
+    assigneeOptions,
+    linkedProjects,
+    results,
+    resultCandidates,
+  ] = await Promise.all([
     listArticulationParticipants(id),
     listArticulationFollowups(id),
     listArticulationOpportunityLinks(id),
     createClient(),
     listOpportunityAssigneeOptions(),
     listProjectsByArticulation(id),
+    listResultsForSource('articulation', id),
+    listResultContributorCandidates('articulation', id),
   ])
+
+  const resultContributions =
+    await listResultContributions(
+      results.map((result) => result.result_id),
+    )
   const { data: claimsData } = await supabase.auth.getClaims()
   const authUserId = claimsData?.claims?.sub
   const access = authUserId ? await getInternalAccess(authUserId) : []
@@ -106,6 +128,15 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           assigneeOptions={assigneeOptions}
         />
       ) : null}
+      <ResultSection
+        sourceType="articulation"
+        sourceId={id}
+        results={results}
+        contributions={resultContributions}
+        candidates={resultCandidates}
+        canManage={canManage}
+      />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Participantes ({articulationParticipants.length})</h2>
         {articulationParticipants.length ? (

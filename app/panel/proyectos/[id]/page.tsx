@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
+import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
   listArticulations,
 } from '../../../../lib/opportunities/articulations'
@@ -18,6 +20,14 @@ import {
   listProjectParticipants,
   listProjectSourceParticipants,
 } from '../../../../lib/projects/projects'
+import {
+  canManageResultSource,
+  listResultContributions,
+  listResultContributorCandidates,
+  listResultsForSource,
+} from '../../../../lib/results/results'
+import { createClient } from '../../../../lib/supabase/server'
+import { ResultSection } from '../../resultados/result-section'
 import { ProjectDetailForms } from '../project-forms'
 import { ProjectLinks } from '../project-links'
 import { ProjectOperationForms } from '../project-operation-forms'
@@ -54,6 +64,9 @@ export default async function ProjectDetailPage({
     articulationLinks,
     opportunities,
     articulations,
+    results,
+    resultCandidates,
+    supabase,
   ] = await Promise.all([
     listOpportunityAssigneeOptions(),
     listProjectFollowups(id),
@@ -64,7 +77,33 @@ export default async function ProjectDetailPage({
     listProjectArticulationLinks(id),
     listOpportunities(),
     listArticulations(),
+    listResultsForSource('project', id),
+    listResultContributorCandidates('project', id),
+    createClient(),
   ])
+
+  const resultContributions =
+    await listResultContributions(
+      results.map((result) => result.result_id),
+    )
+
+  const { data: claimsData } =
+    await supabase.auth.getClaims()
+
+  const authUserId =
+    claimsData?.claims?.sub
+
+  const access =
+    authUserId
+      ? await getInternalAccess(authUserId)
+      : []
+
+  const canManageResults =
+    await canManageResultSource(
+      access,
+      'project',
+      id,
+    )
 
   return (
     <div className="space-y-6">
@@ -146,6 +185,15 @@ export default async function ProjectDetailPage({
             status: articulation.status,
           })
         )}
+      />
+
+      <ResultSection
+        sourceType="project"
+        sourceId={id}
+        results={results}
+        contributions={resultContributions}
+        candidates={resultCandidates}
+        canManage={canManageResults}
       />
 
       <ProjectOperationForms

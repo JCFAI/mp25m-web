@@ -251,7 +251,7 @@ Estado alineado con el cierre del Incremento 6. Las entidades marcadas como nuev
 | Articulaciones | Implementado y ampliable | Gestión autónoma y trazable, con participantes, seguimiento, cierre y vínculos explícitos opcionales. |
 | Proyectos | Implementado y ampliable | Pueden crearse de forma autónoma y vincularse explícitamente con articulaciones y oportunidades; incluyen responsable, estado, participantes, entregables y seguimiento manual. |
 | Actividades de seguimiento | Nuevo | Registran reuniones, tareas, llamadas, vencimientos y proximas acciones. |
-| Resultados | Implementado en 11A, pendiente de despliegue | Registro estructurado de resultados y aprendizaje en Articulaciones y Proyectos, sin economía monetaria. |
+| Resultados | Implementado en 11A | Registro estructurado de resultados y aprendizaje en Articulaciones y Proyectos, sin economía monetaria. |
 
 ## 10. Modulos funcionales
 
@@ -616,7 +616,7 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 9B | Implementado: participantes, entregables y evidencia trazable de proyectos, sin automatización ni economía. |
 | Incremento 10A | Implementado: registro manual y trazable de necesidades y ofertas, sin cruces automáticos ni economía. |
 | Incremento 10B.A | Implementado: núcleo de Temas transversales, con responsabilidades, estados, historial y seguimientos trazables. |
-| Incremento 11A | Implementado en rama: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria; pendiente de despliegue. |
+| Incremento 11A | Implementado: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria. |
 
 Posteriores, sin fijar números rígidos: economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9B completa el circuito operativo básico de Proyectos sin adelantar módulos de economía o automatización.
 

@@ -53,11 +53,35 @@ test('standalone and N:M detail render without reading the legacy opportunity', 
       '../../../../lib/auth/internal-access': { getInternalAccess: async () => access },
       '../../../../lib/opportunities/detail': { canManageOpportunity: () => true, listOpportunityAssigneeOptions: async () => [] },
       '../../../../lib/projects/projects': { listProjectsByArticulation: list('projects', Array.from({ length: count }, (_, index) => ({ project_id: `project${index}`, title: `Proyecto ${index}` }))) },
+      '../../../../lib/results/results': {
+        listResultsForSource: async (sourceType, sourceId) => {
+          assert.equal(sourceType, 'articulation')
+          assert.equal(sourceId, id)
+          return []
+        },
+        listResultContributorCandidates: async (sourceType, sourceId) => {
+          assert.equal(sourceType, 'articulation')
+          assert.equal(sourceId, id)
+          return []
+        },
+        listResultContributions: async (resultIds) => {
+          assert.deepEqual(resultIds, [])
+          return []
+        },
+      },
       '../../../../lib/supabase/server': auth,
+      '../../resultados/result-section': {
+        ResultSection: ({ sourceType, sourceId }) => {
+          assert.equal(sourceType, 'articulation')
+          assert.equal(sourceId, id)
+          return React.createElement('span', null, 'Resultados estructurados')
+        },
+      },
       '../articulation-controls': { AutonomousArticulationControls: () => React.createElement('span', null, 'Controles autónomos') },
     })
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ id }) }))
     assert.match(html, /Controles autónomos/)
+    assert.match(html, /Resultados estructurados/)
     assert.equal(reads.length, 4)
     for (const [, readId] of reads) assert.equal(readId, id)
     if (!count) assert.match(html, /No hay oportunidades vinculadas/)

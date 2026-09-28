@@ -200,9 +200,9 @@ Representa el proceso de conectar personas, nodos, organizaciones, recursos y op
 
 ### Proyecto
 
-Representa una oportunidad acordada y en ejecucion. Incluye objetivos, alcance, responsables, participantes, cronograma, presupuesto, entregables, riesgos, ingresos, contribuciones y resultados.
+Representa una ejecución organizada con objetivos, alcance, responsables, participantes, cronograma, entregables, riesgos, contribuciones y resultados. Puede existir de forma independiente y vincularse explícitamente con ninguna, una o varias oportunidades y articulaciones.
 
-**Oportunidad ≠ Articulación ≠ Proyecto.** La ruta actual `/panel/oportunidades` corresponde a oportunidades. La articulación es el proceso operativo posterior al análisis; el proyecto corresponde al acuerdo que entra en ejecución. Ningún análisis crea esas relaciones automáticamente.
+**Oportunidad ≠ Articulación ≠ Proyecto.** Son entidades autónomas que pueden relacionarse explícitamente cuando existe una razón operativa para hacerlo. Ningún análisis, cierre o vínculo entre otras entidades crea esas relaciones automáticamente ni obliga a recorrer una secuencia determinada.
 
 ### Actividad canónica
 
@@ -243,15 +243,15 @@ Estado alineado con el cierre del Incremento 6. Las entidades marcadas como nuev
 | Nodos | Existente y ampliable | Se usan para alcance territorial, referentes y busqueda de capacidades. |
 | Capacidades | Implementado y ampliable | Habilidades personales, capacidades organizacionales, mapa por nodo y gobernanza de catálogos. Capacidad registrada no demuestra disponibilidad. |
 | Recursos productivos | Nuevo | Se agregan incrementalmente cuando un requerimiento lo demande. |
-| Necesidades y ofertas | Nuevo | Se amplian luego de la vertical de oportunidad manual. |
+| Necesidades y ofertas | Implementado y ampliable | Registro manual y trazable, independiente de oportunidades, articulaciones y proyectos; sin cruces automáticos. |
 | Oportunidades | Implementado y ampliable | Registro manual, actores de origen, responsable y seguimiento; el análisis de requerimientos queda para el Incremento 7. |
 | Requerimientos de oportunidades | Nuevo | Base del analisis explicable. |
 | Coincidencias | Nuevo | Relacionan requerimientos con capacidades existentes. |
 | Brechas | Nuevo | Identifican faltantes y acciones para resolverlos. |
-| Articulaciones | Nuevo | Gestionan la conexion operativa posterior al analisis. |
-| Proyectos | Implementado y ampliable | Nacen explícitamente desde una articulación cerrada con resultado; incluyen responsable, estado y seguimiento manual. |
+| Articulaciones | Implementado y ampliable | Gestión autónoma y trazable, con participantes, seguimiento, cierre y vínculos explícitos opcionales. |
+| Proyectos | Implementado y ampliable | Pueden crearse de forma autónoma y vincularse explícitamente con articulaciones y oportunidades; incluyen responsable, estado, participantes, entregables y seguimiento manual. |
 | Actividades de seguimiento | Nuevo | Registran reuniones, tareas, llamadas, vencimientos y proximas acciones. |
-| Resultados | Nuevo | Registran cierre economico, territorial, estrategico u organizativo. |
+| Resultados | Implementado en 11A, pendiente de despliegue | Registro estructurado de resultados y aprendizaje en Articulaciones y Proyectos, sin economía monetaria. |
 
 ## 10. Modulos funcionales
 
@@ -614,10 +614,11 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 8 | Implementado: articulaciones manuales y trazables posteriores al análisis. |
 | Incremento 9A | Implementado: proyectos de ejecución explícitos, con responsable, estado, novedades y auditoría. |
 | Incremento 9B | Implementado: participantes, entregables y evidencia trazable de proyectos, sin automatización ni economía. |
-| Incremento 10A | En preparación: registro manual y trazable de necesidades y ofertas, sin cruces automáticos ni economía. |
+| Incremento 10A | Implementado: registro manual y trazable de necesidades y ofertas, sin cruces automáticos ni economía. |
 | Incremento 10B.A | Implementado: núcleo de Temas transversales, con responsabilidades, estados, historial y seguimientos trazables. |
+| Incremento 11A | Implementado en rama: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria; pendiente de despliegue. |
 
-Posteriores, sin fijar números rígidos: resultados/economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9B completa el circuito operativo básico de Proyectos sin adelantar módulos de economía o automatización.
+Posteriores, sin fijar números rígidos: economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9B completa el circuito operativo básico de Proyectos sin adelantar módulos de economía o automatización.
 
 ## 23. Decisiones pendientes
 

@@ -20,19 +20,29 @@ const navigationItems = [
     marker: 'I',
   },
   {
-    href: '/panel/oportunidades',
-    label: 'Oportunidades',
-    marker: 'O',
+    href: '/panel/articulaciones',
+    label: 'Articulaciones',
+    marker: 'A',
   },
   {
-    href: '/panel/personas',
-    label: 'Personas',
+    href: '/panel/proyectos',
+    label: 'Proyectos',
     marker: 'P',
+  },
+  {
+    href: '/panel/temas',
+    label: 'Temas',
+    marker: 'T',
   },
   {
     href: '/panel/nodos',
     label: 'Nodos',
     marker: 'N',
+  },
+  {
+    href: '/panel/personas',
+    label: 'Personas',
+    marker: 'P',
   },
   {
     href: '/panel/organizaciones',
@@ -45,19 +55,14 @@ const navigationItems = [
     marker: 'H',
   },
   {
-    href: '/panel/proyectos',
-    label: 'Proyectos',
-    marker: 'P',
-  },
-  {
-    href: '/panel/articulaciones',
-    label: 'Articulaciones',
+    href: '/panel/agenda',
+    label: 'Agenda',
     marker: 'A',
   },
   {
-    href: '/panel/temas',
-    label: 'Temas',
-    marker: 'T',
+    href: '/panel/oportunidades',
+    label: 'Oportunidades',
+    marker: 'O',
   },
   {
     href: '/panel/necesidades-ofertas',

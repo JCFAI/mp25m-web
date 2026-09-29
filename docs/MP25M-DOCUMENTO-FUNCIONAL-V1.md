@@ -285,7 +285,36 @@ Debe gestionar oportunidades acordadas, ejecucion, responsables, equipos, entreg
 
 ### Agenda
 
-Debe organizar reuniones, vencimientos, visitas, capacitaciones, demostraciones, acciones de seguimiento y fechas limite de oportunidades.
+La Agenda operativa reúne en una única superficie fechas, vencimientos y
+actividades programadas sin reemplazar a las entidades que las originan.
+
+Combina:
+
+- vencimientos vigentes de Oportunidades;
+- fechas objetivo pendientes de entregables de Proyectos;
+- el próximo vencimiento vigente registrado en Temas;
+- actividades manuales como reuniones, visitas, capacitaciones,
+  demostraciones, llamadas, seguimientos y vencimientos.
+
+Las fechas derivadas permanecen en su entidad de origen y no se duplican
+como entradas manuales.
+
+Una actividad manual puede existir sin origen o vincularse explícitamente
+con una única Oportunidad, Articulación, Proyecto, Tema o Necesidad/Oferta.
+Ese vínculo no genera relaciones transitivas.
+
+Las actividades manuales pueden programarse, completarse o cancelarse y sus
+correcciones y cambios de estado conservan trazabilidad.
+
+La Agenda permite búsqueda, filtros y paginación. Dentro de una misma fecha
+las actividades con hora se muestran primero, ordenadas por hora y título,
+y luego las actividades de todo el día ordenadas por título.
+
+Las reuniones pueden registrar modalidad presencial, virtual o híbrida,
+ubicación, proveedor y enlace cuando corresponda.
+
+La Agenda no envía convocatorias, no crea salas externas ni sincroniza
+calendarios. Esas funciones corresponden a incrementos posteriores.
 
 ### Comunicaciones y convocatorias
 
@@ -581,22 +610,25 @@ Los indicadores minimos son:
 
 Los indicadores deben poder filtrarse por periodo, territorio, nodo, vector productivo, estado, responsable y nivel de validacion.
 
-## 21. Menu propuesto
+## 21. Menú principal
 
-El menu principal propuesto es:
+El menú operativo actual es:
 
 - Inicio.
-- Red.
-- Capacidades.
-- Necesidades y ofertas.
-- Oportunidades.
 - Articulaciones.
 - Proyectos.
+- Temas.
+- Nodos.
+- Personas.
+- Organizaciones.
+- Habilidades.
 - Agenda.
+- Oportunidades.
+- Necesidades y ofertas.
 - Informes.
-- Administracion.
 
-El acceso a cada seccion debe depender del rol, permisos, territorio y visibilidad de los datos.
+El acceso a cada sección debe depender del rol, permisos, territorio y
+visibilidad de los datos.
 
 ## 22. Hoja de ruta corregida
 
@@ -617,8 +649,16 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 10A | Implementado: registro manual y trazable de necesidades y ofertas, sin cruces automáticos ni economía. |
 | Incremento 10B.A | Implementado: núcleo de Temas transversales, con responsabilidades, estados, historial y seguimientos trazables. |
 | Incremento 11A | Implementado: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria. |
+| Incremento 12A | Implementado: Agenda operativa transversal con fechas derivadas y actividades manuales trazables, búsqueda, filtros, paginación, edición y cambios de estado, sin convocatorias ni calendarios externos. |
+| Incremento 12B | Planificado: comunicaciones y convocatorias asistidas, con preparación explícita y control humano del envío. |
 
-Posteriores, sin fijar números rígidos: economía; agenda/convocatorias; informes/indicadores; Radar externo automatizado; automatización/IA; integración futura limitada con ClubSmart. La prioridad sigue siendo una vertical útil, verificable y ampliable. El Incremento 9B completa el circuito operativo básico de Proyectos sin adelantar módulos de economía o automatización.
+Posteriores: economía; informes/indicadores; Radar externo automatizado;
+automatización/IA; integraciones externas de comunicación y calendario;
+integración futura limitada con ClubSmart.
+
+La prioridad sigue siendo una vertical útil, verificable y ampliable, sin
+adelantar reglas económicas ni automatizaciones que todavía requieren
+definición institucional.
 
 ## 23. Decisiones pendientes
 

@@ -54,6 +54,10 @@ export function PanelNavigation() {
     pathname === '/panel/necesidades-ofertas' ||
     pathname.startsWith('/panel/necesidades-ofertas/')
 
+  const agendaActive =
+    pathname === '/panel/agenda' ||
+    pathname.startsWith('/panel/agenda/')
+
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -74,29 +78,37 @@ export function PanelNavigation() {
         </Link>
 
         <Link
-          href="/panel/oportunidades"
-          aria-current={
-            opportunitiesActive ? 'page' : undefined
-          }
-          className={activeClass(opportunitiesActive)}
+          href="/panel/articulaciones"
+          aria-current={articulationsActive ? 'page' : undefined}
+          className={activeClass(articulationsActive)}
         >
-          <span>Oportunidades</span>
+          <span>Articulaciones</span>
 
-          {opportunitiesActive ? (
+          {articulationsActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
 
         <Link
-          href="/panel/personas"
-          aria-current={
-            peopleActive ? 'page' : undefined
-          }
-          className={activeClass(peopleActive)}
+          href="/panel/proyectos"
+          aria-current={projectsActive ? 'page' : undefined}
+          className={activeClass(projectsActive)}
         >
-          <span>Personas</span>
+          <span>Proyectos</span>
 
-          {peopleActive ? (
+          {projectsActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
+        <Link
+          href="/panel/temas"
+          aria-current={themesActive ? 'page' : undefined}
+          className={activeClass(themesActive)}
+        >
+          <span>Temas</span>
+
+          {themesActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
@@ -111,6 +123,20 @@ export function PanelNavigation() {
           <span>Nodos</span>
 
           {nodesActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
+        <Link
+          href="/panel/personas"
+          aria-current={
+            peopleActive ? 'page' : undefined
+          }
+          className={activeClass(peopleActive)}
+        >
+          <span>Personas</span>
+
+          {peopleActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
@@ -146,36 +172,29 @@ export function PanelNavigation() {
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
-        <Link
-          href="/panel/proyectos"
-          aria-current={projectsActive ? 'page' : undefined}
-          className={activeClass(projectsActive)}
-        >
-          <span>Proyectos</span>
 
-          {projectsActive ? (
+        <Link
+          href="/panel/agenda"
+          aria-current={agendaActive ? 'page' : undefined}
+          className={activeClass(agendaActive)}
+        >
+          <span>Agenda</span>
+
+          {agendaActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
-        <Link
-          href="/panel/articulaciones"
-          aria-current={articulationsActive ? 'page' : undefined}
-          className={activeClass(articulationsActive)}
-        >
-          <span>Articulaciones</span>
 
-          {articulationsActive ? (
-            <span className="h-2 w-2 rounded-full bg-sky-300" />
-          ) : null}
-        </Link>
         <Link
-          href="/panel/temas"
-          aria-current={themesActive ? 'page' : undefined}
-          className={activeClass(themesActive)}
+          href="/panel/oportunidades"
+          aria-current={
+            opportunitiesActive ? 'page' : undefined
+          }
+          className={activeClass(opportunitiesActive)}
         >
-          <span>Temas</span>
+          <span>Oportunidades</span>
 
-          {themesActive ? (
+          {opportunitiesActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
@@ -191,7 +210,6 @@ export function PanelNavigation() {
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
-
         {futureModules.map((module) => (
           <div
             key={module}

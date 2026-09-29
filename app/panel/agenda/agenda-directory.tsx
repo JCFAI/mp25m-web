@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -172,11 +173,26 @@ export function AgendaDirectory({
   ] =
     useState(0)
 
+  const sectionRef =
+    useRef<HTMLElement | null>(
+      null
+    )
+
   const handleLifecycleChanged =
     useCallback(() => {
       setLifecycleRevision(
         (current) =>
           current + 1
+      )
+
+      window.requestAnimationFrame(
+        () => {
+          sectionRef.current
+            ?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            })
+        }
       )
     }, [])
 
@@ -385,7 +401,11 @@ export function AgendaDirectory({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section
+      id="agenda-directory"
+      ref={sectionRef}
+      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+    >
       <div className="border-b border-slate-100 pb-5">
         <div className="flex flex-wrap gap-2">
           {(

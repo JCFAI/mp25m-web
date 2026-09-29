@@ -3,6 +3,7 @@
 import {
   useActionState,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -84,6 +85,11 @@ export function AgendaCreateForm({
     createAgendaEntryAction,
     initialState
   )
+
+  const detailsRef =
+    useRef<HTMLDetailsElement | null>(
+      null
+    )
 
   const [
     entryType,
@@ -238,7 +244,25 @@ export function AgendaCreateForm({
       state.status ===
       'success'
     ) {
+      if (detailsRef.current) {
+        detailsRef.current.open =
+          false
+      }
+
       onCreated()
+
+      window.requestAnimationFrame(
+        () => {
+          document
+            .getElementById(
+              'agenda-directory'
+            )
+            ?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            })
+        }
+      )
     }
   }, [
     onCreated,
@@ -266,7 +290,10 @@ export function AgendaCreateForm({
   }
 
   return (
-    <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <details
+      ref={detailsRef}
+      className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[#1E3A5F]">
         + Registrar actividad
       </summary>

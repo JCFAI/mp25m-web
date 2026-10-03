@@ -358,9 +358,29 @@ export function ReferenceListDialog<Item>({
                 ) : null}
               </div>
             ) : (
-              <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                {emptyMessage}
-              </p>
+              <div className="space-y-3">
+                <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                  {remote?.hasMore
+                    ? 'No hay opciones seleccionables en esta página. Podés cargar más resultados.'
+                    : emptyMessage}
+                </p>
+
+                {remote?.onLoadMore && (
+                  remote.hasMore ||
+                  remote.loadingMore ||
+                  remote.loadMoreError
+                ) ? (
+                  <RemoteListPagination
+                    key={remote.paginationKey ?? remote.query}
+                    hasMore={remote.hasMore}
+                    loadingMore={remote.loadingMore}
+                    error={remote.loadMoreError}
+                    onLoadMore={remote.onLoadMore}
+                    autoLoad={open && remote.autoLoad === true}
+                    rootRef={scrollRef}
+                  />
+                ) : null}
+              </div>
             )}
           </div>
         </div>

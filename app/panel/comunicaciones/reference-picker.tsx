@@ -19,8 +19,53 @@ export function CommunicationReferencePicker({ kind, name, value, selectedLabel,
     else if (kind === 'opportunity') { const params = new URLSearchParams({ q: query, limit: '50' }); if (cursor) params.set('cursor', cursor); url = `/api/panel/oportunidades/referencias?${params}` }
     else if (kind === 'person_skill' || kind === 'organization_capability') { const params = new URLSearchParams({ mode: 'reference', application: kind === 'person_skill' ? 'people' : 'organizations', q: query }); url = `/api/panel/habilidades?${params}` }
     else { const params = new URLSearchParams({ kind, q: query }); url = `/api/panel/comunicaciones/referencias?${params}` }
-    const response = await fetch(url, { signal, cache: 'no-store' }); if (!response.ok) throw new Error('No se pudo cargar la lista.'); const page = await response.json() as { items: Record<string, unknown>[]; nextCursor?: string | null }
-    return { items: page.items.map((item: Record<string, unknown>) => ({ id: String(item.actor_id ?? item.id ?? item.node_id ?? item.theme_id ?? item.need_offer_id ?? item.articulation_id ?? item.project_id ?? item.agenda_entry_id ?? ''), label: String(item.display_name ?? item.title ?? item.name ?? item.label ?? ''), detail: typeof (item.type_label ?? item.status ?? item.detail) === 'string' ? String(item.type_label ?? item.status ?? item.detail) : undefined })), nextCursor: page.nextCursor ?? null } as RemoteReferencePage<Option>
+    const response = await fetch(url, { signal, cache: 'no-store' })
+    if (!response.ok) throw new Error('No se pudo cargar la lista.')
+
+    const payload = await response.json() as
+      | Record<string, unknown>[]
+      | {
+          items: Record<string, unknown>[]
+          nextCursor?: string | null
+        }
+
+    const rawItems =
+      Array.isArray(payload)
+        ? payload
+        : payload.items
+
+    const nextCursor =
+      Array.isArray(payload)
+        ? null
+        : payload.nextCursor ?? null
+
+    return {
+      items: rawItems.map((item: Record<string, unknown>) => ({
+        id: String(
+          item.actor_id ??
+          item.id ??
+          item.node_id ??
+          item.theme_id ??
+          item.need_offer_id ??
+          item.articulation_id ??
+          item.project_id ??
+          item.agenda_entry_id ??
+          ''
+        ),
+        label: String(
+          item.display_name ??
+          item.title ??
+          item.name ??
+          item.label ??
+          ''
+        ),
+        detail:
+          typeof (item.type_label ?? item.status ?? item.detail) === 'string'
+            ? String(item.type_label ?? item.status ?? item.detail)
+            : undefined,
+      })),
+      nextCursor,
+    } as RemoteReferencePage<Option>
   }, [kind])
   const references = useRemoteReferenceList({ contextKey: `communication-reference:${kind}`, getItemKey: (item) => item.id, fetchPage })
   const choose = (item: Option) => { setSelected(item); onChange?.(item.id) }

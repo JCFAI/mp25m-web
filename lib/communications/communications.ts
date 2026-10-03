@@ -6,7 +6,7 @@ import { createAdminClient } from '../supabase/admin'
 export type CommunicationType = 'general' | 'convocation' | 'reminder' | 'follow_up' | 'request_information' | 'update'
 export type CommunicationStatus = 'draft' | 'audience_resolved' | 'recipients_confirmed' | 'cancelled'
 export type CommunicationContextType = 'independent' | 'person' | 'node' | 'organization' | 'opportunity' | 'articulation' | 'project' | 'theme' | 'need_offer' | 'agenda_entry'
-export type CriterionType = 'person' | 'node_participants' | 'articulation_participants' | 'project_participants' | 'person_skill' | 'organization_capability' | 'theme_responsibles'
+export type CriterionType = 'person' | 'organization' | 'node_participants' | 'articulation_participants' | 'project_participants' | 'person_skill' | 'organization_capability' | 'theme_responsibles'
 export type CriterionOperation = 'include' | 'exclude'
 
 export type Communication = {
@@ -21,7 +21,7 @@ export type Communication = {
 export type CommunicationCriterion = {
   criterion_id: string; communication_id: string; audience_revision: number; group_no: number
   criterion_type: CriterionType; criterion_operation: CriterionOperation
-  person_id: string | null; node_id: string | null; articulation_id: string | null; project_id: string | null; skill_id: string | null; theme_id: string | null
+  person_id: string | null; organization_id: string | null; node_id: string | null; articulation_id: string | null; project_id: string | null; skill_id: string | null; theme_id: string | null
   verification_statuses: string[] | null; created_at: string
 }
 export type CommunicationResolution = {
@@ -63,16 +63,17 @@ export async function listCommunicationCriteria(access: InternalAccess[], id: st
 }
 export async function listCommunicationCriterionLabels(criteria: CommunicationCriterion[]) {
   const ids = (key: keyof CommunicationCriterion) => [...new Set(criteria.map((item) => item[key]).filter((value): value is string => typeof value === 'string'))]
-  const [people, nodes, articulations, projects, skills, themes] = await Promise.all([
+  const [people, organizations, nodes, articulations, projects, skills, themes] = await Promise.all([
     ids('person_id').length ? createAdminClient().from('person_profile').select('id, display_name').in('id', ids('person_id')) : Promise.resolve({ data: [], error: null }),
+    ids('organization_id').length ? createAdminClient().from('organization_directory').select('id, display_name').in('id', ids('organization_id')) : Promise.resolve({ data: [], error: null }),
     ids('node_id').length ? createAdminClient().from('node_directory').select('id, display_name').in('id', ids('node_id')) : Promise.resolve({ data: [], error: null }),
     ids('articulation_id').length ? createAdminClient().from('opportunity_articulation_list').select('articulation_id, title').in('articulation_id', ids('articulation_id')) : Promise.resolve({ data: [], error: null }),
     ids('project_id').length ? createAdminClient().from('project_list').select('project_id, title').in('project_id', ids('project_id')) : Promise.resolve({ data: [], error: null }),
     ids('skill_id').length ? createAdminClient().from('skill_directory').select('id, display_name').in('id', ids('skill_id')) : Promise.resolve({ data: [], error: null }),
     ids('theme_id').length ? createAdminClient().from('theme_list').select('theme_id, name').in('theme_id', ids('theme_id')) : Promise.resolve({ data: [], error: null }),
   ])
-  for (const result of [people, nodes, articulations, projects, skills, themes]) rpcError(result.error, 'Unable to load criterion references')
-  return Object.fromEntries([...(people.data ?? []).map((row) => [row.id, row.display_name]), ...(nodes.data ?? []).map((row) => [row.id, row.display_name]), ...(articulations.data ?? []).map((row) => [row.articulation_id, row.title]), ...(projects.data ?? []).map((row) => [row.project_id, row.title]), ...(skills.data ?? []).map((row) => [row.id, row.display_name]), ...(themes.data ?? []).map((row) => [row.theme_id, row.name])]) as Record<string, string>
+  for (const result of [people, organizations, nodes, articulations, projects, skills, themes]) rpcError(result.error, 'Unable to load criterion references')
+  return Object.fromEntries([...(people.data ?? []).map((row) => [row.id, row.display_name]), ...(organizations.data ?? []).map((row) => [row.id, row.display_name]), ...(nodes.data ?? []).map((row) => [row.id, row.display_name]), ...(articulations.data ?? []).map((row) => [row.articulation_id, row.title]), ...(projects.data ?? []).map((row) => [row.project_id, row.title]), ...(skills.data ?? []).map((row) => [row.id, row.display_name]), ...(themes.data ?? []).map((row) => [row.theme_id, row.name])]) as Record<string, string>
 }
 export async function listCommunicationResolutions(access: InternalAccess[], id: string) {
   const { data, error } = await createAdminClient().rpc('communication_resolution_list', { p_actor_internal_user_id: actorId(access), p_communication_id: id })

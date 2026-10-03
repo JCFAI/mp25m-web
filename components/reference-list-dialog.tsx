@@ -34,6 +34,7 @@ type ReferenceListDialogProps<Item> = {
   renderItem: (item: Item) => ReactNode
   onOpen?: () => void
   onSelect?: (item: Item) => void
+  closeOnSelect?: boolean
   remote?: {
     paginationKey?: string
     status?: RemoteReferenceStatus
@@ -77,6 +78,7 @@ export function ReferenceListDialog<Item>({
   renderItem,
   onOpen,
   onSelect,
+  closeOnSelect = true,
   remote,
 }: ReferenceListDialogProps<Item>) {
   const dialogRef =
@@ -336,7 +338,9 @@ export function ReferenceListDialog<Item>({
                       type="button"
                       onClick={() => {
                         onSelect(item)
-                        closeDialog()
+                        if (closeOnSelect) {
+                          closeDialog()
+                        }
                       }}
                       className="block min-h-14 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-[#2F5D8C]/40 hover:bg-slate-50 focus:border-[#2F5D8C]/40 focus:bg-slate-50 focus:outline-none"
                     >

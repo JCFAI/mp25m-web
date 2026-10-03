@@ -27,3 +27,178 @@ export function CommunicationReferencePicker({ kind, name, value, selectedLabel,
   const persistedLabel = selectedLabel ?? criterionLabels[value ?? '']
   return <div className="mt-2"><input type="hidden" name={name} value={value ?? selected?.id ?? ''} /><p role="status" className="text-sm text-slate-600">{selected ? `Seleccionado: ${selected.label}` : persistedLabel ? `Seleccionado: ${persistedLabel}` : value ? 'La referencia guardada ya no está disponible.' : 'Sin selección.'}</p><ReferenceListDialog buttonLabel={`Elegir ${titles[kind].toLowerCase()}`} title={titles[kind]} description="Buscá o explorá la lista. No se crean entidades nuevas." items={references.items} getItemKey={(item) => item.id} getItemSearchText={(item) => item.label} emptyMessage="No se encontraron opciones." onOpen={references.open} onSelect={choose} renderItem={(item) => <><strong>{item.label}</strong>{item.detail ? <p className="text-xs text-slate-500">{item.detail}</p> : null}</>} remote={{ ...references, autoLoad: true, onQueryChange: references.setQuery, onLoadMore: references.loadMore, onRetry: references.retry }} /></div>
 }
+
+
+export function CommunicationMultiReferencePicker({
+  kind,
+  values,
+  onChange,
+}: {
+  kind: CommunicationReferenceKind
+  values: string[]
+  onChange: (values: string[]) => void
+}) {
+  const criterionLabels = useContext(CommunicationCriterionLabelsContext)
+  const [selectedLabels, setSelectedLabels] = useState<Record<string, string>>({})
+
+  const fetchPage = useCallback(async ({
+    query,
+    cursor,
+    signal,
+  }: {
+    query: string
+    cursor: string | null
+    signal: AbortSignal
+  }) => {
+    let url: string
+
+    if (kind === 'person' || kind === 'organization') {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        actor_type: kind,
+        q: query,
+        limit: '50',
+      })
+      if (cursor) params.set('cursor', cursor)
+      url = `/api/panel/oportunidades/actores?${params}`
+    } else if (kind === 'node') {
+      const params = new URLSearchParams({
+        mode: 'reference',
+        q: query,
+        limit: '50',
+      })
+      if (cursor) params.set('cursor', cursor)
+      url = `/api/panel/nodos?${params}`
+    } else {
+      throw new Error('Este selector múltiple sólo admite Personas, Organizaciones o Nodos.')
+    }
+
+    const response = await fetch(url, {
+      signal,
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error('No se pudo cargar la lista.')
+    }
+
+    const page = await response.json() as {
+      items: Record<string, unknown>[]
+      nextCursor?: string | null
+    }
+
+    return {
+      items: page.items.map((item) => ({
+        id: String(
+          item.actor_id ??
+          item.id ??
+          item.node_id ??
+          ''
+        ),
+        label: String(
+          item.display_name ??
+          item.title ??
+          item.name ??
+          item.label ??
+          ''
+        ),
+        detail:
+          typeof (item.type_label ?? item.status ?? item.detail) === 'string'
+            ? String(item.type_label ?? item.status ?? item.detail)
+            : undefined,
+      })),
+      nextCursor: page.nextCursor ?? null,
+    } as RemoteReferencePage<Option>
+  }, [kind])
+
+  const references = useRemoteReferenceList({
+    contextKey: `communication-multi-reference:${kind}`,
+    getItemKey: (item) => item.id,
+    fetchPage,
+  })
+
+  const selectedSet = new Set(values)
+
+  const toggle = (item: Option) => {
+    setSelectedLabels((current) => ({
+      ...current,
+      [item.id]: item.label,
+    }))
+
+    if (selectedSet.has(item.id)) {
+      onChange(values.filter((id) => id !== item.id))
+      return
+    }
+
+    onChange([...values, item.id])
+  }
+
+  const title =
+    kind === 'person'
+      ? 'Personas'
+      : kind === 'organization'
+        ? 'Organizaciones'
+        : 'Nodos'
+
+  return (
+    <div className="mt-2">
+      {values.length > 0 ? (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {values.map((id) => (
+            <span
+              key={id}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
+            >
+              {selectedLabels[id] ?? criterionLabels[id] ?? 'Seleccionado'}
+              <button
+                type="button"
+                onClick={() => onChange(values.filter((value) => value !== id))}
+                className="font-semibold text-red-700"
+                aria-label="Quitar selección"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mb-2 text-sm text-slate-500">
+          Todavía no seleccionaste ninguno.
+        </p>
+      )}
+
+      <ReferenceListDialog
+        buttonLabel={`Elegir ${title.toLowerCase()}`}
+        title={title}
+        description="Podés seleccionar varias opciones. Volvé a tocar una opción para quitarla."
+        items={references.items}
+        getItemKey={(item) => item.id}
+        getItemSearchText={(item) => item.label}
+        emptyMessage="No se encontraron opciones."
+        onOpen={references.open}
+        onSelect={toggle}
+        closeOnSelect={false}
+        renderItem={(item) => (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <strong>{item.label}</strong>
+              {item.detail ? (
+                <p className="text-xs text-slate-500">{item.detail}</p>
+              ) : null}
+            </div>
+            <span className="text-sm font-semibold text-[#1E3A5F]">
+              {selectedSet.has(item.id) ? '✓ Seleccionado' : 'Seleccionar'}
+            </span>
+          </div>
+        )}
+        remote={{
+          ...references,
+          autoLoad: true,
+          onQueryChange: references.setQuery,
+          onLoadMore: references.loadMore,
+          onRetry: references.retry,
+        }}
+      />
+    </div>
+  )
+}

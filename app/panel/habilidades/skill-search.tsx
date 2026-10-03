@@ -30,7 +30,7 @@ type SkillCategoryOption = {
   skill_count: number
 }
 
-const MINIMUM_QUERY_LENGTH = 2
+const MINIMUM_QUERY_LENGTH = 1
 
 function countLabel(
   value: number,
@@ -318,6 +318,17 @@ export function SkillSearch({
                 setSelectedSkill(null)
                 setShowFullList(false)
                 setQuery(event.target.value)
+              }}
+              onFocus={() => {
+                if (
+                  !selectedSkill &&
+                  query.trim().length === 0 &&
+                  categoryCode === '' &&
+                  application === 'all' &&
+                  !showFullList
+                ) {
+                  void openFullSkillList()
+                }
               }}
               placeholder="Ej.: programación, soldadura..."
               autoComplete="off"

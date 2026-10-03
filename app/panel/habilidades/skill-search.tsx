@@ -1,14 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   useEffect,
   useId,
   useState,
 } from 'react'
 
-import { ReferenceListDialog } from '../../../components/reference-list-dialog'
 
 type SkillSearchResult = {
   id: string
@@ -71,7 +69,6 @@ export function SkillSearch({
 }: {
   categories: SkillCategoryOption[]
 }) {
-  const router = useRouter()
   const inputId = useId()
   const categoryId = useId()
   const applicationId = useId()
@@ -80,6 +77,8 @@ export function SkillSearch({
   const [query, setQuery] = useState('')
   const [selectedSkill, setSelectedSkill] =
     useState<SkillSearchResult | null>(null)
+  const [showFullList, setShowFullList] =
+    useState(false)
   const [categoryCode, setCategoryCode] =
     useState('')
   const [application, setApplication] =
@@ -92,20 +91,6 @@ export function SkillSearch({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
-  const [referenceSkills, setReferenceSkills] =
-    useState<SkillSearchResult[]>([])
-  const [
-    referenceLoading,
-    setReferenceLoading,
-  ] = useState(false)
-  const [
-    referenceLoaded,
-    setReferenceLoaded,
-  ] = useState(false)
-  const [
-    referenceErrorMessage,
-    setReferenceErrorMessage,
-  ] = useState<string | null>(null)
 
   const term = query.trim()
   const hasCategoryFilter =
@@ -120,6 +105,7 @@ export function SkillSearch({
   const canSearch =
     selectedSkill === null &&
     (
+      showFullList ||
       (hasFilter && termCanFilter) ||
       term.length >= MINIMUM_QUERY_LENGTH
     )
@@ -129,6 +115,7 @@ export function SkillSearch({
   function clearFilters() {
     setQuery('')
     setSelectedSkill(null)
+    setShowFullList(false)
     setCategoryCode('')
     setApplication('all')
     setResults([])
@@ -155,11 +142,14 @@ export function SkillSearch({
         MINIMUM_QUERY_LENGTH
 
     if (
-      (!hasCurrentFilter &&
-        currentTerm.length <
-          MINIMUM_QUERY_LENGTH) ||
-      (hasCurrentFilter &&
-        !currentTermCanFilter)
+      !showFullList &&
+      (
+        (!hasCurrentFilter &&
+          currentTerm.length <
+            MINIMUM_QUERY_LENGTH) ||
+        (hasCurrentFilter &&
+          !currentTermCanFilter)
+      )
     ) {
       return
     }
@@ -177,16 +167,31 @@ export function SkillSearch({
           const searchParams =
             new URLSearchParams()
 
-          searchParams.set('q', currentTerm)
+          searchParams.set(
+            'q',
+            showFullList ? '' : currentTerm
+          )
           searchParams.set(
             'application',
-            currentApplication
+            showFullList
+              ? 'all'
+              : currentApplication
           )
 
-          if (currentCategory) {
+          if (
+            !showFullList &&
+            currentCategory
+          ) {
             searchParams.set(
               'category',
               currentCategory
+            )
+          }
+
+          if (showFullList) {
+            searchParams.set(
+              'mode',
+              'reference'
             )
           }
 
@@ -238,59 +243,16 @@ export function SkillSearch({
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [query, categoryCode, application, selectedSkill])
+  }, [
+    query,
+    categoryCode,
+    application,
+    selectedSkill,
+    showFullList,
+  ])
 
-  async function loadSkillReferenceItems() {
-    if (
-      referenceLoaded ||
-      referenceLoading
-    ) {
-      return
-    }
 
-    setReferenceLoading(true)
-    setReferenceErrorMessage(null)
 
-    try {
-      const searchParams =
-        new URLSearchParams()
-
-      searchParams.set('mode', 'reference')
-      searchParams.set('application', 'all')
-
-      const response = await fetch(
-        `/api/panel/habilidades?${searchParams.toString()}`,
-        {
-          cache: 'no-store',
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(
-          'No se pudo cargar la lista.'
-        )
-      }
-
-      const data =
-        (await response.json()) as SkillSearchResult[]
-
-      setReferenceSkills(data)
-      setReferenceLoaded(true)
-    } catch {
-      setReferenceSkills([])
-      setReferenceErrorMessage(
-        'No se pudo cargar la lista de habilidades. Intentá nuevamente.'
-      )
-    } finally {
-      setReferenceLoading(false)
-    }
-  }
-
-  function openSkillProfile(
-    skill: SkillSearchResult
-  ) {
-    router.push(`/panel/habilidades/${skill.id}`)
-  }
 
   return (
     <div>
@@ -321,6 +283,7 @@ export function SkillSearch({
               value={query}
               onChange={(event) => {
                 setSelectedSkill(null)
+                setShowFullList(false)
                 setQuery(event.target.value)
               }}
               placeholder="Ej.: programación, soldadura..."
@@ -333,57 +296,19 @@ export function SkillSearch({
               className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
             />
 
-            <ReferenceListDialog
-              title="Habilidades"
-              description="Consultá habilidades canónicas activas y abrí su ficha sin modificar datos."
-              items={referenceSkills}
-              loading={referenceLoading}
-              errorMessage={
-                referenceErrorMessage
-              }
-              searchPlaceholder="Filtrar por nombre, categoría o descripción..."
-              emptyMessage={
-                referenceLoaded
-                  ? 'No hay habilidades disponibles.'
-                  : 'No se cargó la lista de habilidades.'
-              }
-              getItemKey={(skill) => skill.id}
-              getItemSearchText={(skill) =>
-                [
-                  skill.display_name,
-                  skill.category_name ?? '',
-                  skill.description ?? '',
-                ].join(' ')
-              }
-              renderItem={(skill) => (
-                <>
-                  <span className="block break-words text-sm font-semibold text-slate-950">
-                    {skill.display_name}
-                  </span>
-
-                  <span className="mt-1 block break-words text-xs leading-5 text-slate-500">
-                    {skill.category_name ??
-                      'Categoría pendiente'}
-                  </span>
-
-                  <span className="mt-2 flex flex-wrap gap-2">
-                    {skill.applies_to_person ? (
-                      <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-800">
-                        Personas
-                      </span>
-                    ) : null}
-
-                    {skill.applies_to_organization ? (
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
-                        Organizaciones
-                      </span>
-                    ) : null}
-                  </span>
-                </>
-              )}
-              onOpen={loadSkillReferenceItems}
-              onSelect={openSkillProfile}
-            />
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSkill(null)
+                setQuery('')
+                setCategoryCode('')
+                setApplication('all')
+                setShowFullList(true)
+              }}
+              className="ux-button inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 sm:w-auto"
+            >
+              Ver lista
+            </button>
           </div>
         </div>
 
@@ -481,7 +406,9 @@ export function SkillSearch({
           >
             {loading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
-                Buscando habilidades...
+                {showFullList
+                  ? 'Cargando lista de habilidades...'
+                  : 'Buscando habilidades...'}
               </p>
             ) : errorMessage ? (
               <p className="px-4 py-3 text-sm text-red-600">
@@ -494,6 +421,7 @@ export function SkillSearch({
                   type="button"
                   onClick={() => {
                     setSelectedSkill(skill)
+                    setShowFullList(false)
                     setQuery(skill.display_name)
                     setResults([])
                     setHasSearched(false)

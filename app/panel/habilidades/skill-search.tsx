@@ -141,15 +141,16 @@ export function SkillSearch({
       currentTerm.length >=
         MINIMUM_QUERY_LENGTH
 
+    if (showFullList) {
+      return
+    }
+
     if (
-      !showFullList &&
-      (
-        (!hasCurrentFilter &&
-          currentTerm.length <
-            MINIMUM_QUERY_LENGTH) ||
-        (hasCurrentFilter &&
-          !currentTermCanFilter)
-      )
+      (!hasCurrentFilter &&
+        currentTerm.length <
+          MINIMUM_QUERY_LENGTH) ||
+      (hasCurrentFilter &&
+        !currentTermCanFilter)
     ) {
       return
     }
@@ -167,31 +168,16 @@ export function SkillSearch({
           const searchParams =
             new URLSearchParams()
 
-          searchParams.set(
-            'q',
-            showFullList ? '' : currentTerm
-          )
+          searchParams.set('q', currentTerm)
           searchParams.set(
             'application',
-            showFullList
-              ? 'all'
-              : currentApplication
+            currentApplication
           )
 
-          if (
-            !showFullList &&
-            currentCategory
-          ) {
+          if (currentCategory) {
             searchParams.set(
               'category',
               currentCategory
-            )
-          }
-
-          if (showFullList) {
-            searchParams.set(
-              'mode',
-              'reference'
             )
           }
 
@@ -254,6 +240,53 @@ export function SkillSearch({
 
 
 
+  async function openFullSkillList() {
+    setSelectedSkill(null)
+    setQuery('')
+    setCategoryCode('')
+    setApplication('all')
+    setResults([])
+    setHasSearched(false)
+    setErrorMessage(null)
+    setLoading(true)
+    setShowFullList(true)
+
+    try {
+      const searchParams =
+        new URLSearchParams({
+          mode: 'reference',
+          application: 'all',
+        })
+
+      const response = await fetch(
+        `/api/panel/habilidades?${searchParams.toString()}`,
+        {
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          'No se pudo cargar la lista.'
+        )
+      }
+
+      const data =
+        (await response.json()) as SkillSearchResult[]
+
+      setResults(data)
+      setHasSearched(true)
+    } catch {
+      setResults([])
+      setHasSearched(true)
+      setErrorMessage(
+        'No se pudo cargar la lista de habilidades. Intentá nuevamente.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <label
@@ -299,11 +332,7 @@ export function SkillSearch({
             <button
               type="button"
               onClick={() => {
-                setSelectedSkill(null)
-                setQuery('')
-                setCategoryCode('')
-                setApplication('all')
-                setShowFullList(true)
+                void openFullSkillList()
               }}
               className="ux-button inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 sm:w-auto"
             >
@@ -396,6 +425,12 @@ export function SkillSearch({
             Ver ficha
           </Link>
         </div>
+      ) : null}
+
+      {showFullList && !loading && !errorMessage ? (
+        <p className="mt-3 text-xs font-medium text-slate-500">
+          {results.length} habilidades disponibles.
+        </p>
       ) : null}
 
       <div className="relative">

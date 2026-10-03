@@ -79,6 +79,8 @@ export function SkillSearch({
     useState<SkillSearchResult | null>(null)
   const [showFullList, setShowFullList] =
     useState(false)
+  const [resultsOpen, setResultsOpen] =
+    useState(false)
   const [categoryCode, setCategoryCode] =
     useState('')
   const [application, setApplication] =
@@ -111,11 +113,14 @@ export function SkillSearch({
     )
   const hasActiveFilters =
     term.length > 0 || hasFilter
+  const resultsVisible =
+    resultsOpen && canSearch
 
   function clearFilters() {
     setQuery('')
     setSelectedSkill(null)
     setShowFullList(false)
+    setResultsOpen(false)
     setCategoryCode('')
     setApplication('all')
     setResults([])
@@ -125,7 +130,7 @@ export function SkillSearch({
   }
 
   useEffect(() => {
-    if (selectedSkill) {
+    if (selectedSkill || !resultsOpen) {
       return
     }
 
@@ -235,6 +240,7 @@ export function SkillSearch({
     application,
     selectedSkill,
     showFullList,
+    resultsOpen,
   ])
 
 
@@ -250,6 +256,7 @@ export function SkillSearch({
     setErrorMessage(null)
     setLoading(true)
     setShowFullList(true)
+    setResultsOpen(true)
 
     try {
       const searchParams =
@@ -317,24 +324,32 @@ export function SkillSearch({
               onChange={(event) => {
                 setSelectedSkill(null)
                 setShowFullList(false)
+                setResultsOpen(true)
                 setQuery(event.target.value)
               }}
               onFocus={() => {
+                if (selectedSkill) {
+                  return
+                }
+
                 if (
-                  !selectedSkill &&
                   query.trim().length === 0 &&
                   categoryCode === '' &&
-                  application === 'all' &&
-                  !showFullList
+                  application === 'all'
                 ) {
-                  void openFullSkillList()
+                  if (!resultsOpen) {
+                    void openFullSkillList()
+                  }
+                  return
                 }
+
+                setResultsOpen(true)
               }}
               placeholder="Ej.: programación, soldadura..."
               autoComplete="off"
               role="combobox"
               aria-autocomplete="list"
-              aria-expanded={canSearch}
+              aria-expanded={resultsVisible}
               aria-controls={resultsId}
               aria-busy={loading}
               className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
@@ -343,11 +358,21 @@ export function SkillSearch({
             <button
               type="button"
               onClick={() => {
+                if (resultsOpen) {
+                  setResultsOpen(false)
+                  setShowFullList(false)
+                  setResults([])
+                  setHasSearched(false)
+                  setErrorMessage(null)
+                  setLoading(false)
+                  return
+                }
+
                 void openFullSkillList()
               }}
               className="ux-button inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 sm:w-auto"
             >
-              Ver lista
+              {resultsOpen ? 'Cerrar lista' : 'Ver lista'}
             </button>
           </div>
         </div>
@@ -363,9 +388,15 @@ export function SkillSearch({
           <select
             id={categoryId}
             value={categoryCode}
-            onChange={(event) =>
+            onChange={(event) => {
+              setSelectedSkill(null)
+              setShowFullList(false)
+              setResultsOpen(true)
+              setResults([])
+              setHasSearched(false)
+              setErrorMessage(null)
               setCategoryCode(event.target.value)
-            }
+            }}
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           >
             <option value="">
@@ -394,11 +425,17 @@ export function SkillSearch({
           <select
             id={applicationId}
             value={application}
-            onChange={(event) =>
+            onChange={(event) => {
+              setSelectedSkill(null)
+              setShowFullList(false)
+              setResultsOpen(true)
+              setResults([])
+              setHasSearched(false)
+              setErrorMessage(null)
               setApplication(
                 event.target.value
               )
-            }
+            }}
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           >
             <option value="all">
@@ -445,7 +482,7 @@ export function SkillSearch({
       ) : null}
 
       <div className="relative">
-        {canSearch ? (
+        {resultsVisible ? (
           <div
             id={resultsId}
             className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
@@ -468,6 +505,7 @@ export function SkillSearch({
                   onClick={() => {
                     setSelectedSkill(skill)
                     setShowFullList(false)
+                    setResultsOpen(false)
                     setQuery(skill.display_name)
                     setResults([])
                     setHasSearched(false)

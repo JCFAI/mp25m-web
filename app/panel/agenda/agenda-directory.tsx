@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react'
 
-import { RemoteListPagination } from '../../../components/remote-list-pagination'
 import { AgendaEditForm } from './agenda-edit-form'
 import { AgendaLifecycleControls } from './agenda-lifecycle-controls'
 import { useRemoteReferenceList } from '../../../hooks/use-remote-reference-list'
@@ -19,6 +18,8 @@ import type {
   AgendaStatus,
   AgendaUserOption,
 } from '../../../lib/agenda/agenda'
+
+const AGENDA_PAGE_SIZE = 25
 
 type AgendaView =
   | 'upcoming'
@@ -178,6 +179,17 @@ export function AgendaDirectory({
       null
     )
 
+  const [
+    paginationView,
+    setPaginationView,
+  ] = useState<{
+    key: string
+    pageIndex: number
+  }>({
+    key: '',
+    pageIndex: 0,
+  })
+
   const handleLifecycleChanged =
     useCallback(() => {
       setLifecycleRevision(
@@ -273,7 +285,9 @@ export function AgendaDirectory({
       }) => {
         const params =
           new URLSearchParams({
-            limit: '25',
+            limit: String(
+              AGENDA_PAGE_SIZE
+            ),
             statuses:
               effectiveStatus,
           })
@@ -383,6 +397,104 @@ export function AgendaDirectory({
       fetchPage,
       minimumQueryLength: 0,
     })
+
+  const requestedPageIndex =
+    paginationView.key ===
+    directory.paginationKey
+      ? paginationView.pageIndex
+      : 0
+
+  const maxLoadedPageIndex =
+    directory.items.length > 0
+      ? Math.floor(
+          (directory.items.length - 1) /
+            AGENDA_PAGE_SIZE
+        )
+      : 0
+
+  const pageIndex =
+    Math.min(
+      requestedPageIndex,
+      maxLoadedPageIndex
+    )
+
+  const pageStart =
+    pageIndex *
+    AGENDA_PAGE_SIZE
+
+  const visibleItems =
+    directory.items.slice(
+      pageStart,
+      pageStart +
+        AGENDA_PAGE_SIZE
+    )
+
+  const hasLoadedNextPage =
+    directory.items.length >
+    pageStart +
+      AGENDA_PAGE_SIZE
+
+  const canGoNext =
+    hasLoadedNextPage ||
+    directory.hasMore
+
+  function scrollDirectoryIntoView() {
+    window.requestAnimationFrame(
+      () => {
+        sectionRef.current
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+      }
+    )
+  }
+
+  function goToPreviousPage() {
+    if (
+      pageIndex === 0 ||
+      directory.loadingMore
+    ) {
+      return
+    }
+
+    setPaginationView({
+      key:
+        directory.paginationKey,
+      pageIndex:
+        Math.max(
+          0,
+          pageIndex - 1
+        ),
+    })
+
+    scrollDirectoryIntoView()
+  }
+
+  function goToNextPage() {
+    if (
+      directory.loadingMore ||
+      !canGoNext
+    ) {
+      return
+    }
+
+    const nextPageIndex =
+      pageIndex + 1
+
+    setPaginationView({
+      key:
+        directory.paginationKey,
+      pageIndex:
+        nextPageIndex,
+    })
+
+    if (!hasLoadedNextPage) {
+      directory.loadMore()
+    }
+
+    scrollDirectoryIntoView()
+  }
 
   const openDirectory =
     directory.open
@@ -651,7 +763,7 @@ export function AgendaDirectory({
               'empty'
             ? 'No hay elementos que coincidan con los filtros.'
             : directory.initialError ??
-              `${directory.items.length} elementos visibles.`}
+              `${visibleItems.length} elementos en esta página · Página ${pageIndex + 1}.`}
       </p>
 
       {directory.initialError ? (
@@ -665,7 +777,7 @@ export function AgendaDirectory({
       ) : null}
 
       <div className="mt-5 space-y-3">
-        {directory.items.map(
+        {visibleItems.map(
           (item) => {
             const href =
               sourceHref(item)
@@ -852,23 +964,63 @@ export function AgendaDirectory({
         )}
       </div>
 
-      <RemoteListPagination
-        key={
-          directory.paginationKey
-        }
-        hasMore={
-          directory.hasMore
-        }
-        loadingMore={
-          directory.loadingMore
-        }
-        error={
-          directory.loadMoreError
-        }
-        onLoadMore={
-          directory.loadMore
-        }
-      />
+      {!directory.initialLoading &&
+      !directory.initialError &&
+      directory.status !== 'empty' &&
+      (pageIndex > 0 || canGoNext) ? (
+        <div className="mt-6 border-t border-slate-100 pt-5">
+          {directory.loadMoreError ? (
+            <p
+              role="alert"
+              className="mb-3 text-center text-sm text-red-700"
+            >
+              {directory.loadMoreError}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={
+                goToPreviousPage
+              }
+              disabled={
+                pageIndex === 0 ||
+                directory.loadingMore
+              }
+              className="ux-button min-h-11 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ← Anterior
+            </button>
+
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm font-semibold text-slate-600"
+            >
+              Página {pageIndex + 1}
+            </p>
+
+            <button
+              type="button"
+              onClick={
+                goToNextPage
+              }
+              disabled={
+                !canGoNext ||
+                directory.loadingMore
+              }
+              className="ux-button min-h-11 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {directory.loadingMore
+                ? 'Cargando...'
+                : directory.loadMoreError
+                  ? 'Reintentar siguiente →'
+                  : 'Siguiente →'}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

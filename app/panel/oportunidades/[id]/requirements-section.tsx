@@ -451,7 +451,7 @@ export async function OpportunityRequirementsSection({
                   requirement.revision_id ? (
                     <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50">
                       <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">
-                        Crear nueva revisión
+                        Editar requerimiento
                       </summary>
 
                       <div className="border-t border-slate-200 p-4">

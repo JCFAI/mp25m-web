@@ -2,7 +2,6 @@
 
 import {
   useActionState,
-  useEffect,
   useRef,
   useState,
 } from 'react'
@@ -50,24 +49,16 @@ export function CoverageEvaluationForm({
   const [rationale, setRationale] = useState('')
   const [selectedAssessmentIds, setSelectedAssessmentIds] = useState<string[]>([])
   const [assessmentError, setAssessmentError] = useState<string | null>(null)
-  const [messageDismissed, setMessageDismissed] = useState(false)
+  const [dismissedState, setDismissedState] =
+    useState<AnalysisActionState | null>(null)
   const statusRef = useRef<HTMLSelectElement>(null)
   const rationaleRef = useRef<HTMLTextAreaElement>(null)
   const assessmentGroupRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setMessageDismissed(false)
-    if (state.status === 'success') {
-      setNetworkCoverageStatus('')
-      setExpandedCoverageStatus('')
-      setRationale('')
-      setSelectedAssessmentIds([])
-      setAssessmentError(null)
-    }
-  }, [state])
-
   function clearMessage() {
-    setMessageDismissed(true)
+    if (state.message) {
+      setDismissedState(state)
+    }
   }
 
   function selectedAssessments() {
@@ -115,21 +106,21 @@ export function CoverageEvaluationForm({
           const satisfiesCount = selected.filter((item) => item.assessment_kind === 'satisfies').length
           const partialCount = selected.filter((item) => item.assessment_kind === 'partially_satisfies').length
           if (satisfiesCount === 0 && partialCount < 2) {
-            message = 'Cubierto requiere una evaluación “Satisface” o al menos dos “Satisface parcialmente”.'
+            message = '“Satisface” requiere una evaluación “Satisface” o al menos dos “Satisface parcialmente”.'
           }
         } else if (expandedCoverageStatus === 'partial') {
           if (selected.some((item) => item.assessment_kind === 'satisfies')) {
-            message = 'Parcial no puede incluir una evaluación “Satisface”.'
+            message = '“Satisface parcialmente” no puede incluir una evaluación “Satisface”.'
           } else if (!selected.some((item) => item.assessment_kind === 'partially_satisfies')) {
-            message = 'Parcial requiere al menos una evaluación “Satisface parcialmente”.'
+            message = '“Satisface parcialmente” requiere al menos una evaluación “Satisface parcialmente”.'
           }
         } else if (
           expandedCoverageStatus === 'missing' &&
           selected.some((item) => item.assessment_kind !== 'does_not_satisfy')
         ) {
           message = selected.some((item) => item.assessment_kind === 'insufficient_evidence')
-            ? 'Evidencia insuficiente no demuestra que el requerimiento esté faltante.'
-            : 'Faltante sólo puede apoyarse en evaluaciones “No satisface”.'
+            ? 'Evidencia insuficiente no demuestra que el requerimiento tenga estado “No satisface”.'
+            : '“No satisface” sólo puede apoyarse en evaluaciones “No satisface”.'
         }
 
         if (message) {
@@ -141,7 +132,7 @@ export function CoverageEvaluationForm({
       className="mt-4 rounded-xl border border-[#C8D6E5] bg-slate-50 p-4"
     >
       <p className="text-sm font-semibold text-[#1E3A5F]">
-        {expectedEvaluationNo === null ? 'Evaluar cobertura' : 'Reevaluar cobertura'}
+        {expectedEvaluationNo === null ? 'Evaluar cobertura' : 'Actualizar cobertura'}
       </p>
 
       <label className="mt-4 block text-sm font-medium text-slate-700">
@@ -159,17 +150,17 @@ export function CoverageEvaluationForm({
           className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
         >
           <option value="">Elegir estado...</option>
-          <option value="covered">Cubierto</option>
-          <option value="partial">Parcial</option>
-          <option value="missing">Faltante</option>
+          <option value="covered">Satisface</option>
+          <option value="partial">Satisface parcialmente</option>
+          <option value="missing">No satisface</option>
         </select>
       </label>
 
       <div className="mt-3 rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-500">
         <p><strong>Red MP25M:</strong> sólo considera contribuciones verificadas dentro de la red.</p>
-        <p><strong>Cubierto:</strong> al menos un “Satisface” o dos “Satisface parcialmente”.</p>
-        <p><strong>Parcial:</strong> al menos un “Satisface parcialmente” y ningún “Satisface”.</p>
-        <p><strong>Faltante:</strong> puede declararse sin assessments; si se seleccionan, sólo pueden ser “No satisface”.</p>
+        <p><strong>Satisface:</strong> al menos un “Satisface” o dos “Satisface parcialmente”.</p>
+        <p><strong>Satisface parcialmente:</strong> al menos un “Satisface parcialmente” y ningún “Satisface”.</p>
+        <p><strong>No satisface:</strong> puede declararse sin evaluaciones; si se seleccionan, sólo pueden ser “No satisface”.</p>
       </div>
 
       <label className="mt-4 block text-sm font-medium text-slate-700">
@@ -185,9 +176,9 @@ export function CoverageEvaluationForm({
           className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
         >
           <option value="">Elegir estado...</option>
-          <option value="covered">Cubierto</option>
-          <option value="partial">Parcial</option>
-          <option value="missing">Faltante</option>
+          <option value="covered">Satisface</option>
+          <option value="partial">Satisface parcialmente</option>
+          <option value="missing">No satisface</option>
         </select>
         <span className="mt-1 block text-xs leading-5 text-slate-500">
           Incluye la red MP25M y sólo mejora con evidencia humana de actores argentinos externos. No puede ser menor que la capa de red.
@@ -226,7 +217,7 @@ export function CoverageEvaluationForm({
 
         {currentAssessments.length === 0 ? (
           <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-500">
-            No hay assessments vigentes disponibles. Sólo “Faltante” puede guardarse sin seleccionar assessments.
+            No hay evaluaciones vigentes disponibles. Sólo “No satisface” puede guardarse sin seleccionar evaluaciones.
           </p>
         ) : (
           <div className="mt-2 space-y-2">
@@ -276,10 +267,10 @@ export function CoverageEvaluationForm({
         disabled={pending}
         className="mt-4 rounded-xl bg-[#2F5D8C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1E3A5F] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? 'Guardando...' : expectedEvaluationNo === null ? 'Guardar cobertura' : 'Guardar reevaluación'}
+        {pending ? 'Guardando...' : expectedEvaluationNo === null ? 'Guardar cobertura' : 'Actualizar cobertura'}
       </button>
 
-      {state.message && !messageDismissed ? (
+      {state.message && dismissedState !== state ? (
         <p
           role="status"
           className={state.status === 'success'

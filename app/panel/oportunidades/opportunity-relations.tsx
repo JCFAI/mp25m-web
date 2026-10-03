@@ -3,7 +3,9 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -63,9 +65,11 @@ function NodePicker({
   placeholder = 'Buscar nodo por nombre...',
   helperText,
 }: NodePickerProps) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<NodeResult[]>([])
-  const [loading, setLoading] = useState(false)
+  const [inputFocused, setInputFocused] =
+    useState(false)
+  const resultsId = useId()
+  const pickerRef = useRef<HTMLDivElement>(null)
+
   const fetchReferencePage = useCallback(
     async ({
       query: referenceQuery,
@@ -109,78 +113,54 @@ function NodePicker({
     contextKey: 'opportunity-node-picker',
     getItemKey: (node: NodeResult) => node.id,
     fetchPage: fetchReferencePage,
+    minimumQueryLength: 1,
   })
 
-  useEffect(() => {
-    const term = query.trim()
+  const selectedNodeIds = useMemo(
+    () => new Set(selected.map((node) => node.id)),
+    [selected]
+  )
 
-    if (term.length < 2) {
-      setResults([])
-      setLoading(false)
-      return
+  const visibleReferenceNodes =
+    referenceList.items.filter(
+      (node) => !selectedNodeIds.has(node.id)
+    )
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target
+
+      if (
+        target instanceof Node &&
+        pickerRef.current &&
+        !pickerRef.current.contains(target)
+      ) {
+        setInputFocused(false)
+      }
     }
 
-    const controller = new AbortController()
-
-    const timeout = window.setTimeout(async () => {
-      setLoading(true)
-
-      try {
-        const response = await fetch(
-          `/api/panel/oportunidades/nodos?q=${encodeURIComponent(term)}`,
-          {
-            signal: controller.signal,
-            cache: 'no-store',
-          }
-        )
-
-        if (!response.ok) {
-          setResults([])
-          return
-        }
-
-        const data =
-          (await response.json()) as NodeResult[]
-
-        const selectedIds = new Set(
-          selected.map((node) => node.id)
-        )
-
-        setResults(
-          data.filter(
-            (node) => !selectedIds.has(node.id)
-          )
-        )
-      } catch (error) {
-        if (
-          error instanceof DOMException &&
-          error.name === 'AbortError'
-        ) {
-          return
-        }
-
-        setResults([])
-      } finally {
-        setLoading(false)
-      }
-    }, 250)
+    document.addEventListener(
+      'pointerdown',
+      handlePointerDown
+    )
 
     return () => {
-      window.clearTimeout(timeout)
-      controller.abort()
+      document.removeEventListener(
+        'pointerdown',
+        handlePointerDown
+      )
     }
-  }, [query, selected])
+  }, [])
 
   function addNode(node: NodeResult) {
     if (selected.some((item) => item.id === node.id)) {
-      setQuery('')
-      setResults([])
+      referenceList.setQuery('')
       return
     }
 
     onChange([...selected, node])
-    setQuery('')
-    setResults([])
+    referenceList.setQuery('')
+    setInputFocused(false)
   }
 
   function removeNode(id: string) {
@@ -221,25 +201,67 @@ function NodePicker({
         </div>
       ) : null}
 
-      <div className="relative">
+      <div
+        ref={pickerRef}
+        className="relative"
+        onFocusCapture={() => {
+          setInputFocused(true)
+          referenceList.open()
+        }}
+        onBlurCapture={(event) => {
+          const nextTarget =
+            event.relatedTarget as Node | null
+
+          if (
+            !nextTarget ||
+            !event.currentTarget.contains(nextTarget)
+          ) {
+            setInputFocused(false)
+          }
+        }}
+      >
         <input
-          value={query}
+          value={referenceList.query}
           onChange={(event) =>
-            setQuery(event.target.value)
+            referenceList.setQuery(event.target.value)
           }
           placeholder={placeholder}
           autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={inputFocused}
+          aria-controls={resultsId}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setInputFocused(false)
+              event.currentTarget.blur()
+            }
+          }}
           className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
         />
 
-        {query.trim().length >= 2 ? (
-          <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-            {loading ? (
+        {inputFocused ? (
+          <div
+            id={resultsId}
+            role="listbox"
+            className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+          >
+            <p className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500">
+              {referenceList.query.trim()
+                ? `Buscando “${referenceList.query.trim()}”.`
+                : 'Explorá los nodos disponibles o escribí desde el primer carácter.'}
+            </p>
+
+            {referenceList.initialLoading ? (
               <p className="px-4 py-3 text-sm text-slate-500">
-                Buscando...
+                Cargando nodos...
               </p>
-            ) : results.length > 0 ? (
-              results.map((node) => (
+            ) : referenceList.initialError ? (
+              <p className="px-4 py-3 text-sm text-red-600">
+                {referenceList.initialError}
+              </p>
+            ) : visibleReferenceNodes.length > 0 ? (
+              visibleReferenceNodes.map((node) => (
                 <button
                   key={node.id}
                   type="button"
@@ -251,7 +273,7 @@ function NodePicker({
               ))
             ) : (
               <p className="px-4 py-3 text-sm text-slate-500">
-                No se encontraron coincidencias.
+                No se encontraron nodos disponibles.
               </p>
             )}
           </div>
@@ -275,6 +297,7 @@ function NodePicker({
         onOpen={referenceList.open}
         onSelect={addNode}
         remote={{
+          minimumQueryLength: 1,
           query: referenceList.query,
           onQueryChange: referenceList.setQuery,
           initialLoading: referenceList.initialLoading,
@@ -330,11 +353,11 @@ export function OpportunityRelations({
   const [nodes, setNodes] =
     useState<NodeResult[]>(() => initialNodes)
 
-  const [actorQuery, setActorQuery] = useState('')
-  const [actorResults, setActorResults] =
-    useState<ActorResult[]>([])
-  const [actorLoading, setActorLoading] =
+  const [actorInputFocused, setActorInputFocused] =
     useState(false)
+  const actorResultsId = useId()
+  const actorPickerRef =
+    useRef<HTMLDivElement>(null)
 
   const [selectedActors, setSelectedActors] =
     useState<ActorResult[]>(() => initialActors)
@@ -417,6 +440,7 @@ export function OpportunityRelations({
     contextKey: actorContextKey,
     getItemKey: actorKey,
     fetchPage: fetchActorReferencePage,
+    minimumQueryLength: 1,
   })
 
   const selectedActorKeys = useMemo(
@@ -430,77 +454,39 @@ export function OpportunityRelations({
     [selectedActors]
   )
 
-  useEffect(() => {
-    const term = actorQuery.trim()
+  const visibleReferenceActors =
+    actorReferenceList.items.filter(
+      (actor) =>
+        !selectedActorKeys.has(
+          `${actor.actor_type}:${actor.actor_id}`
+        )
+    )
 
-    if (term.length < 2 || showNewActor) {
-      setActorResults([])
-      setActorLoading(false)
-      return
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target
+
+      if (
+        target instanceof Node &&
+        actorPickerRef.current &&
+        !actorPickerRef.current.contains(target)
+      ) {
+        setActorInputFocused(false)
+      }
     }
 
-    const controller = new AbortController()
-
-    const timeout = window.setTimeout(async () => {
-      setActorLoading(true)
-
-      try {
-        const params = new URLSearchParams()
-
-        params.set('q', term)
-
-        for (const node of nodes) {
-          params.append('node_id', node.id)
-        }
-
-        const response = await fetch(
-          `/api/panel/oportunidades/actores?${params.toString()}`,
-          {
-            signal: controller.signal,
-            cache: 'no-store',
-          }
-        )
-
-        if (!response.ok) {
-          setActorResults([])
-          return
-        }
-
-        const data =
-          (await response.json()) as ActorResult[]
-
-        setActorResults(
-          data.filter(
-            (actor) =>
-              !selectedActorKeys.has(
-                `${actor.actor_type}:${actor.actor_id}`
-              )
-          )
-        )
-      } catch (error) {
-        if (
-          error instanceof DOMException &&
-          error.name === 'AbortError'
-        ) {
-          return
-        }
-
-        setActorResults([])
-      } finally {
-        setActorLoading(false)
-      }
-    }, 250)
+    document.addEventListener(
+      'pointerdown',
+      handlePointerDown
+    )
 
     return () => {
-      window.clearTimeout(timeout)
-      controller.abort()
+      document.removeEventListener(
+        'pointerdown',
+        handlePointerDown
+      )
     }
-  }, [
-    actorQuery,
-    nodes,
-    selectedActorKeys,
-    showNewActor,
-  ])
+  }, [])
 
   function addActor(actor: ActorResult) {
     setSelectedActors((current) => {
@@ -511,8 +497,8 @@ export function OpportunityRelations({
       return [...current, actor]
     })
 
-    setActorQuery('')
-    setActorResults([])
+    actorReferenceList.setQuery('')
+    setActorInputFocused(false)
   }
 
   function removeActor(
@@ -531,7 +517,9 @@ export function OpportunityRelations({
   }
 
   function openNewActorForm() {
-    setNewActorName(actorQuery.trim())
+    setNewActorName(
+      actorReferenceList.query.trim()
+    )
     setNewActorKind('person')
     setNewActorOrganizationType(
       organizationTypes[0]?.code ?? ''
@@ -539,7 +527,6 @@ export function OpportunityRelations({
     setNewActorContext('')
     setNewActorNodes([...nodes])
     setShowNewActor(true)
-    setActorResults([])
   }
 
   function cancelNewActor() {
@@ -588,7 +575,7 @@ export function OpportunityRelations({
       },
     ])
 
-    setActorQuery('')
+    actorReferenceList.setQuery('')
     cancelNewActor()
   }
 
@@ -613,7 +600,7 @@ export function OpportunityRelations({
           selected={nodes}
           onChange={setNodes}
           hiddenInputName="node_ids"
-          helperText="Escribí al menos dos caracteres. Podés agregar más de un nodo."
+          helperText="Explorá la lista o escribí desde el primer carácter. Podés agregar más de un nodo."
         />
       </div>
 
@@ -713,15 +700,45 @@ export function OpportunityRelations({
         ) : null}
 
         {!showNewActor ? (
-          <div className="relative mt-3">
+          <div
+            ref={actorPickerRef}
+            className="relative mt-3"
+            onFocusCapture={() => {
+              setActorInputFocused(true)
+              actorReferenceList.open()
+            }}
+            onBlurCapture={(event) => {
+              const nextTarget =
+                event.relatedTarget as Node | null
+
+              if (
+                !nextTarget ||
+                !event.currentTarget.contains(nextTarget)
+              ) {
+                setActorInputFocused(false)
+              }
+            }}
+          >
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
-                value={actorQuery}
+                value={actorReferenceList.query}
                 onChange={(event) =>
-                  setActorQuery(event.target.value)
+                  actorReferenceList.setQuery(
+                    event.target.value
+                  )
                 }
                 placeholder="Buscar persona, empresa o institución..."
                 autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={actorInputFocused}
+                aria-controls={actorResultsId}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setActorInputFocused(false)
+                    event.currentTarget.blur()
+                  }
+                }}
                 className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
               />
 
@@ -769,28 +786,51 @@ export function OpportunityRelations({
                 onOpen={actorReferenceList.open}
                 onSelect={addActor}
                 remote={{
+                  minimumQueryLength: 1,
                   query: actorReferenceList.query,
-                  onQueryChange: actorReferenceList.setQuery,
-                  initialLoading: actorReferenceList.initialLoading,
-                  loadingMore: actorReferenceList.loadingMore,
-                  hasMore: actorReferenceList.hasMore,
-                  initialError: actorReferenceList.initialError,
-                  loadMoreError: actorReferenceList.loadMoreError,
-                  onRetry: actorReferenceList.retry,
-                  onLoadMore: actorReferenceList.loadMore,
+                  onQueryChange:
+                    actorReferenceList.setQuery,
+                  initialLoading:
+                    actorReferenceList.initialLoading,
+                  loadingMore:
+                    actorReferenceList.loadingMore,
+                  hasMore:
+                    actorReferenceList.hasMore,
+                  initialError:
+                    actorReferenceList.initialError,
+                  loadMoreError:
+                    actorReferenceList.loadMoreError,
+                  onRetry:
+                    actorReferenceList.retry,
+                  onLoadMore:
+                    actorReferenceList.loadMore,
                 }}
               />
             </div>
 
-            {actorQuery.trim().length >= 2 ? (
-              <div className="absolute z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                {actorLoading ? (
+            {actorInputFocused ? (
+              <div
+                id={actorResultsId}
+                role="listbox"
+                className="absolute z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+              >
+                <p className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500">
+                  {actorReferenceList.query.trim()
+                    ? `Buscando “${actorReferenceList.query.trim()}”.`
+                    : 'Explorá personas y organizaciones o escribí desde el primer carácter.'}
+                </p>
+
+                {actorReferenceList.initialLoading ? (
                   <p className="px-4 py-3 text-sm text-slate-500">
-                    Buscando actores...
+                    Cargando actores...
+                  </p>
+                ) : actorReferenceList.initialError ? (
+                  <p className="px-4 py-3 text-sm text-red-600">
+                    {actorReferenceList.initialError}
                   </p>
                 ) : (
                   <>
-                    {actorResults.map((actor) => (
+                    {visibleReferenceActors.map((actor) => (
                       <button
                         key={`${actor.actor_type}:${actor.actor_id}`}
                         type="button"
@@ -817,19 +857,21 @@ export function OpportunityRelations({
                       </button>
                     ))}
 
-                    {actorResults.length === 0 ? (
+                    {visibleReferenceActors.length === 0 ? (
                       <p className="px-4 py-3 text-sm text-slate-500">
-                        No se encontraron coincidencias.
+                        No se encontraron actores disponibles.
                       </p>
                     ) : null}
 
-                    <button
-                      type="button"
-                      onClick={openNewActorForm}
-                      className="block w-full bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-[#1E3A5F] hover:bg-[#EAF0F7]"
-                    >
-                      + Registrar “{actorQuery.trim()}” como actor nuevo
-                    </button>
+                    {actorReferenceList.query.trim().length >= 2 ? (
+                      <button
+                        type="button"
+                        onClick={openNewActorForm}
+                        className="block w-full bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-[#1E3A5F] hover:bg-[#EAF0F7]"
+                      >
+                        + Registrar “{actorReferenceList.query.trim()}” como actor nuevo
+                      </button>
+                    ) : null}
                   </>
                 )}
               </div>

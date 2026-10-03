@@ -2,7 +2,6 @@
 
 import {
   useActionState,
-  useEffect,
   useRef,
   useState,
 } from 'react'
@@ -19,6 +18,36 @@ import {
 const initialState: AnalysisActionState = {
   status: 'idle',
   message: null,
+}
+
+const foundationKindLabels: Record<string, string> = {
+  person_skill: 'Habilidad/capacidad',
+  person_skill_evidence: 'Evidencia de habilidad/capacidad',
+  person_profile: 'Perfil de la persona',
+  person_profile_activity: 'Actividad principal',
+  organization_capability: 'Capacidad de la organización',
+  organization_capability_evidence: 'Evidencia de capacidad',
+  organization_activity: 'Actividad de la organización',
+  actor_evidence_fragment: 'Evidencia del actor',
+  node_participation: 'Participación en nodo',
+  organization_node: 'Vinculación territorial',
+  actor_candidate: 'Actor pendiente',
+  actor_candidate_node: 'Vinculación territorial del actor pendiente',
+  manual_rationale: 'Fundamento manual',
+}
+
+const relationKindLabels: Record<string, string> = {
+  direct: 'Directa',
+  related: 'Relacionada',
+  contextual: 'Contextual',
+}
+
+function foundationKindLabel(value: string) {
+  return foundationKindLabels[value] ?? value.replaceAll('_', ' ')
+}
+
+function relationKindLabel(value: string) {
+  return relationKindLabels[value] ?? value.replaceAll('_', ' ')
 }
 
 export function MatchAssessmentForm({
@@ -45,23 +74,16 @@ export function MatchAssessmentForm({
   const [rationale, setRationale] = useState('')
   const [selectedFoundationIds, setSelectedFoundationIds] = useState<string[]>([])
   const [foundationError, setFoundationError] = useState<string | null>(null)
-  const [messageDismissed, setMessageDismissed] = useState(false)
+  const [dismissedState, setDismissedState] =
+    useState<AnalysisActionState | null>(null)
   const conclusionRef = useRef<HTMLSelectElement>(null)
   const rationaleRef = useRef<HTMLTextAreaElement>(null)
   const foundationGroupRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setMessageDismissed(false)
-    if (state.status === 'success') {
-      setAssessmentKind('')
-      setRationale('')
-      setSelectedFoundationIds([])
-      setFoundationError(null)
-    }
-  }, [state])
-
   function clearMessage() {
-    setMessageDismissed(true)
+    if (state.message) {
+      setDismissedState(state)
+    }
   }
 
   return (
@@ -72,7 +94,7 @@ export function MatchAssessmentForm({
 
         if (!assessmentKind) {
           event.preventDefault()
-          conclusionRef.current?.setCustomValidity('Elegí una conclusión para el match.')
+          conclusionRef.current?.setCustomValidity('Elegí una conclusión para el actor.')
           conclusionRef.current?.reportValidity()
           conclusionRef.current?.focus()
           return
@@ -95,14 +117,14 @@ export function MatchAssessmentForm({
           selectedFoundationIds.length === 0
         ) {
           event.preventDefault()
-          setFoundationError('Seleccioná al menos un fundamento de este match.')
+          setFoundationError('Seleccioná al menos una evidencia utilizada.')
           foundationGroupRef.current?.focus()
         }
       }}
       className="mt-4 rounded-xl border border-[#C8D6E5] bg-slate-50 p-4"
     >
       <p className="text-sm font-semibold text-[#1E3A5F]">
-        {expectedAssessmentNo === null ? 'Evaluar match' : 'Reevaluar match'}
+        {expectedAssessmentNo === null ? 'Evaluar actor' : 'Reevaluar actor'}
       </p>
 
       {actorKind === 'candidate' ? (
@@ -151,7 +173,7 @@ export function MatchAssessmentForm({
             clearMessage()
           }}
           className="mt-1.5 w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-          placeholder="Explicá la conclusión humana sobre este match..."
+          placeholder="Explicá la conclusión sobre este actor..."
         />
       </label>
 
@@ -161,15 +183,15 @@ export function MatchAssessmentForm({
         className="mt-4 rounded-xl outline-none focus:ring-2 focus:ring-[#2F5D8C]/20"
       >
         <p className="text-sm font-medium text-slate-700">
-          Fundamentos utilizados
+          Evidencias utilizadas
         </p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          Las conclusiones sustantivas requieren al menos un fundamento. Para evidencia insuficiente, la selección es opcional.
+          Las conclusiones sustantivas requieren al menos una evidencia. Para “Evidencia insuficiente”, la selección es opcional.
         </p>
 
         {foundations.length === 0 ? (
           <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-500">
-            Este match no tiene foundations persistidas.
+            Este actor no tiene evidencias incorporadas.
           </p>
         ) : (
           <div className="mt-2 space-y-2">
@@ -196,7 +218,7 @@ export function MatchAssessmentForm({
                 />
                 <span className="min-w-0 text-xs leading-5 text-slate-600">
                   <span className="block font-semibold text-slate-700">
-                    {foundation.foundation_kind} · {foundation.relation_kind}
+                    {foundationKindLabel(foundation.foundation_kind)} · {relationKindLabel(foundation.relation_kind)}
                   </span>
                   <span className="mt-1 block whitespace-pre-wrap break-words">
                     {foundation.observed_text}
@@ -222,7 +244,7 @@ export function MatchAssessmentForm({
         {pending ? 'Guardando...' : expectedAssessmentNo === null ? 'Guardar evaluación' : 'Guardar reevaluación'}
       </button>
 
-      {state.message && !messageDismissed ? (
+      {state.message && dismissedState !== state ? (
         <p
           role="status"
           className={state.status === 'success'

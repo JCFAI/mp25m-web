@@ -58,6 +58,10 @@ export function PanelNavigation() {
     pathname === '/panel/agenda' ||
     pathname.startsWith('/panel/agenda/')
 
+  const communicationsActive =
+    pathname === '/panel/comunicaciones' ||
+    pathname.startsWith('/panel/comunicaciones/')
+
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -181,6 +185,18 @@ export function PanelNavigation() {
           <span>Agenda</span>
 
           {agendaActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
+        <Link
+          href="/panel/comunicaciones"
+          aria-current={communicationsActive ? 'page' : undefined}
+          className={activeClass(communicationsActive)}
+        >
+          <span>Comunicaciones</span>
+
+          {communicationsActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>

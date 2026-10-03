@@ -60,6 +60,11 @@ const navigationItems = [
     marker: 'A',
   },
   {
+    href: '/panel/comunicaciones',
+    label: 'Comunicaciones',
+    marker: 'C',
+  },
+  {
     href: '/panel/oportunidades',
     label: 'Oportunidades',
     marker: 'O',

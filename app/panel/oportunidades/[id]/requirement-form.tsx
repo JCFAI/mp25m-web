@@ -3,10 +3,13 @@
 import {
   useActionState,
   useEffect,
+  useId,
   useRef,
   useState,
 } from 'react'
 import { useRouter } from 'next/navigation'
+
+import { ReferenceListDialog } from '../../../../components/reference-list-dialog'
 
 import {
   createOpportunityRequirementAction,
@@ -161,11 +164,21 @@ export function OpportunityRequirementForm({
   const [canonicalQuery, setCanonicalQuery] =
     useState('')
 
-  const [canonicalResults, setCanonicalResults] =
+  const [canonicalOptions, setCanonicalOptions] =
     useState<CanonicalSearchResult[]>([])
 
   const [canonicalLoading, setCanonicalLoading] =
     useState(false)
+
+  const [
+    canonicalInputFocused,
+    setCanonicalInputFocused,
+  ] = useState(false)
+
+  const canonicalResultsId = useId()
+
+  const canonicalPickerRef =
+    useRef<HTMLDivElement>(null)
 
   const [
     canonicalError,
@@ -243,36 +256,32 @@ export function OpportunityRequirementForm({
     )
 
   useEffect(() => {
-    const term =
-      canonicalQuery.trim()
-
-    setCanonicalResults([])
-    setCanonicalError(null)
-
-    if (
-      !canSearchCanonical ||
-      term.length < 2
-    ) {
-      setCanonicalLoading(false)
+    if (!canSearchCanonical) {
       return
     }
 
     const controller =
       new AbortController()
 
-    setCanonicalLoading(true)
-
     const timeout =
       window.setTimeout(
         async () => {
+          if (
+            controller.signal.aborted
+          ) {
+            return
+          }
+
+          setCanonicalLoading(true)
+          setCanonicalError(null)
+
           try {
             const params =
-              new URLSearchParams()
+              new URLSearchParams({
+                mode: 'reference',
+              })
 
-            params.set('q', term)
-
-            let endpoint:
-              string
+            let endpoint: string
 
             if (
               supportsActivityReference(
@@ -303,7 +312,7 @@ export function OpportunityRequirementForm({
 
             if (!response.ok) {
               throw new Error(
-                'Search failed'
+                'Reference load failed'
               )
             }
 
@@ -314,7 +323,7 @@ export function OpportunityRequirementForm({
             if (
               !controller.signal.aborted
             ) {
-              setCanonicalResults(
+              setCanonicalOptions(
                 data
               )
             }
@@ -330,9 +339,9 @@ export function OpportunityRequirementForm({
             if (
               !controller.signal.aborted
             ) {
-              setCanonicalResults([])
+              setCanonicalOptions([])
               setCanonicalError(
-                'No se pudo completar la búsqueda.'
+                'No se pudo cargar la lista de referencias.'
               )
             }
           } finally {
@@ -345,21 +354,86 @@ export function OpportunityRequirementForm({
             }
           }
         },
-        250
+        0
       )
 
     return () => {
-      window.clearTimeout(
-        timeout
-      )
-
+      window.clearTimeout(timeout)
       controller.abort()
     }
   }, [
-    canonicalQuery,
     requirementType,
     canSearchCanonical,
   ])
+
+  useEffect(() => {
+    function handlePointerDown(
+      event: PointerEvent
+    ) {
+      const target = event.target
+
+      if (
+        target instanceof Node &&
+        canonicalPickerRef.current &&
+        !canonicalPickerRef.current.contains(
+          target
+        )
+      ) {
+        setCanonicalInputFocused(false)
+      }
+    }
+
+    document.addEventListener(
+      'pointerdown',
+      handlePointerDown
+    )
+
+    return () => {
+      document.removeEventListener(
+        'pointerdown',
+        handlePointerDown
+      )
+    }
+  }, [])
+
+  const normalizedCanonicalQuery =
+    canonicalQuery
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(
+        /[^\p{L}\p{N}\s-]/gu,
+        ' '
+      )
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  const visibleCanonicalOptions =
+    canonicalOptions.filter(
+      (item) => {
+        if (
+          !normalizedCanonicalQuery
+        ) {
+          return true
+        }
+
+        const searchText = [
+          item.display_name,
+          item.description ?? '',
+        ]
+          .join(' ')
+          .normalize('NFD')
+          .replace(
+            /\p{Diacritic}/gu,
+            ''
+          )
+          .toLowerCase()
+
+        return searchText.includes(
+          normalizedCanonicalQuery
+        )
+      }
+    )
 
   useEffect(() => {
     if (state.status !== 'success') {
@@ -378,7 +452,7 @@ export function OpportunityRequirementForm({
       )
 
       setCanonicalQuery('')
-      setCanonicalResults([])
+      setCanonicalOptions([])
       setCanonicalError(null)
     }
 
@@ -400,7 +474,7 @@ export function OpportunityRequirementForm({
     )
 
     setCanonicalQuery('')
-    setCanonicalResults([])
+    setCanonicalOptions([])
     setCanonicalError(null)
     setSelectedCanonical(null)
   }
@@ -429,7 +503,7 @@ export function OpportunityRequirementForm({
         <p className="text-xs font-semibold uppercase tracking-wide text-[#2F5D8C]">
           {mode === 'create'
             ? 'Nuevo requerimiento'
-            : 'Nueva revisión'}
+            : 'Editar requerimiento'}
         </p>
 
         <h3 className="mt-2 text-lg font-semibold text-slate-950">
@@ -629,7 +703,7 @@ export function OpportunityRequirementForm({
                       null
                     )
                     setCanonicalQuery('')
-                    setCanonicalResults([])
+                    setCanonicalOptions([])
                   }}
                   className="rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-100"
                 >
@@ -638,74 +712,197 @@ export function OpportunityRequirementForm({
               </div>
             ) : (
               <>
-                <input
-                  value={canonicalQuery}
-                  onChange={(event) =>
-                    setCanonicalQuery(
-                      event.target.value
+                <div
+                  ref={canonicalPickerRef}
+                  className="relative mt-3"
+                  onFocusCapture={() =>
+                    setCanonicalInputFocused(
+                      true
                     )
                   }
-                  autoComplete="off"
-                  placeholder={
+                  onBlurCapture={(event) => {
+                    const nextTarget =
+                      event.relatedTarget as
+                        Node | null
+
+                    if (
+                      !nextTarget ||
+                      !event.currentTarget.contains(
+                        nextTarget
+                      )
+                    ) {
+                      setCanonicalInputFocused(
+                        false
+                      )
+                    }
+                  }}
+                >
+                  <input
+                    value={canonicalQuery}
+                    onChange={(event) =>
+                      setCanonicalQuery(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="off"
+                    placeholder={
+                      canonicalPlaceholder
+                    }
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={
+                      canonicalInputFocused
+                    }
+                    aria-controls={
+                      canonicalResultsId
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key ===
+                        'Escape'
+                      ) {
+                        setCanonicalInputFocused(
+                          false
+                        )
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+                  />
+
+                  {canonicalInputFocused ? (
+                    <div
+                      id={
+                        canonicalResultsId
+                      }
+                      role="listbox"
+                      className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+                    >
+                      <p className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500">
+                        {canonicalQuery.trim()
+                          ? `Buscando “${canonicalQuery.trim()}”.`
+                          : 'Explorá las referencias disponibles o escribí desde el primer carácter.'}
+                      </p>
+
+                      {canonicalLoading ? (
+                        <p className="px-4 py-3 text-sm text-slate-500">
+                          Cargando referencias...
+                        </p>
+                      ) : canonicalError ? (
+                        <p className="px-4 py-3 text-sm text-red-700">
+                          {canonicalError}
+                        </p>
+                      ) : visibleCanonicalOptions.length >
+                        0 ? (
+                        visibleCanonicalOptions.map(
+                          (item) => (
+                            <button
+                              key={
+                                item.id
+                              }
+                              type="button"
+                              onClick={() => {
+                                setSelectedCanonical(
+                                  item
+                                )
+                                setCanonicalQuery(
+                                  ''
+                                )
+                                setCanonicalError(
+                                  null
+                                )
+                                setCanonicalInputFocused(
+                                  false
+                                )
+                              }}
+                              className="block w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50"
+                            >
+                              <span className="block text-sm font-semibold text-slate-800">
+                                {
+                                  item.display_name
+                                }
+                              </span>
+
+                              {item.description ? (
+                                <span className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500">
+                                  {
+                                    item.description
+                                  }
+                                </span>
+                              ) : null}
+                            </button>
+                          )
+                        )
+                      ) : (
+                        <p className="px-4 py-3 text-sm text-slate-500">
+                          No se encontraron referencias disponibles.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <ReferenceListDialog
+                  buttonClassName="mt-3"
+                  title={
+                    supportsActivityReference(
+                      requirementType
+                    )
+                      ? 'Elegir actividad canónica'
+                      : 'Elegir habilidad / capacidad canónica'
+                  }
+                  description="Explorá las referencias canónicas disponibles o filtrá la lista."
+                  items={canonicalOptions}
+                  loading={
+                    canonicalLoading
+                  }
+                  errorMessage={
+                    canonicalError
+                  }
+                  searchPlaceholder={
                     canonicalPlaceholder
                   }
-                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+                  emptyMessage="No se encontraron referencias para esta búsqueda."
+                  getItemKey={(item) =>
+                    item.id
+                  }
+                  getItemSearchText={(
+                    item
+                  ) =>
+                    [
+                      item.display_name,
+                      item.description ??
+                        '',
+                    ].join(' ')
+                  }
+                  renderItem={(item) => (
+                    <div>
+                      <p className="break-words text-sm font-semibold text-slate-900">
+                        {
+                          item.display_name
+                        }
+                      </p>
+
+                      {item.description ? (
+                        <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                          {
+                            item.description
+                          }
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                  onSelect={(item) => {
+                    setSelectedCanonical(
+                      item
+                    )
+                    setCanonicalQuery('')
+                    setCanonicalError(null)
+                    setCanonicalInputFocused(
+                      false
+                    )
+                  }}
                 />
-
-                {canonicalQuery.trim().length > 0 &&
-                canonicalQuery.trim().length < 2 ? (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Escribí al menos 2 caracteres.
-                  </p>
-                ) : null}
-
-                {canonicalLoading ? (
-                  <p className="mt-2 text-sm text-slate-500">
-                    Buscando...
-                  </p>
-                ) : null}
-
-                {canonicalError ? (
-                  <p className="mt-2 text-sm text-red-700">
-                    {canonicalError}
-                  </p>
-                ) : null}
-
-                {canonicalResults.length > 0 ? (
-                  <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    {canonicalResults.map(
-                      (item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCanonical(
-                              item
-                            )
-                            setCanonicalQuery('')
-                            setCanonicalResults([])
-                            setCanonicalError(null)
-                          }}
-                          className="block w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50"
-                        >
-                          <span className="block text-sm font-semibold text-slate-800">
-                            {
-                              item.display_name
-                            }
-                          </span>
-
-                          {item.description ? (
-                            <span className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500">
-                              {
-                                item.description
-                              }
-                            </span>
-                          ) : null}
-                        </button>
-                      )
-                    )}
-                  </div>
-                ) : null}
               </>
             )}
 
@@ -826,7 +1023,7 @@ export function OpportunityRequirementForm({
         {mode === 'revise' ? (
           <label className="sm:col-span-2">
             <span className="text-sm font-semibold text-slate-700">
-              Motivo de la nueva revisión
+              Motivo del cambio
             </span>
 
             <textarea
@@ -843,7 +1040,7 @@ export function OpportunityRequirementForm({
                   field.validity.valueMissing
                 ) {
                   field.setCustomValidity(
-                    'Ingresá el motivo de la nueva revisión.'
+                    'Ingresá el motivo del cambio.'
                   )
                   return
                 }
@@ -862,7 +1059,7 @@ export function OpportunityRequirementForm({
                 )
               }}
               className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-              placeholder="Explicá por qué cambia la formulación."
+              placeholder="Explicá brevemente qué se modifica y por qué."
             />
           </label>
         ) : null}
@@ -877,7 +1074,7 @@ export function OpportunityRequirementForm({
           ? 'Guardando...'
           : mode === 'create'
             ? 'Crear requerimiento'
-            : 'Crear nueva revisión'}
+            : 'Guardar cambios'}
       </button>
     </form>
   )

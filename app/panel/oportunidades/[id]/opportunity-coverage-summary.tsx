@@ -57,7 +57,7 @@ export function OpportunityCoverageSummaryCard({
       </div>
       <p className="mt-3 text-xs leading-5 text-slate-600">Ambas capas usan los mismos {summary.evaluated_requirement_count} requerimientos evaluados. Quedan {summary.unevaluated_requirement_count} sin evaluar.</p>
       {summary.mandatory_missing_count + summary.mandatory_partial_count + summary.mandatory_unevaluated_count > 0 ? (
-        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">Obligatorios: {summary.mandatory_missing_count} faltantes, {summary.mandatory_partial_count} parciales y {summary.mandatory_unevaluated_count} sin evaluar.</p>
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">Obligatorios: {summary.mandatory_missing_count} con estado “No satisface”, {summary.mandatory_partial_count} con estado “Satisface parcialmente” y {summary.mandatory_unevaluated_count} sin evaluar.</p>
       ) : null}
       {canCreateSnapshot ? <CoverageSnapshotForm opportunityId={opportunityId} /> : null}
       <SnapshotHistory snapshots={snapshots} />

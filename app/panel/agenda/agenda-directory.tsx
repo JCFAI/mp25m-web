@@ -802,6 +802,13 @@ export function AgendaDirectory({
                     </Link>
                   ) : null}
 
+                  <Link
+                    href={`/panel/comunicaciones/nueva?context_type=agenda_entry&context_id=${item.agenda_entry_id}`}
+                    className="mt-3 inline-flex text-sm font-semibold text-[#1E3A5F] underline decoration-[#2F5D8C]/30 underline-offset-4"
+                  >
+                    Preparar comunicación
+                  </Link>
+
                   <AgendaEditForm
                     item={item}
                     agendaEntryId={

@@ -18,7 +18,6 @@ import {
   listProjectFollowups,
   listProjectOpportunityLinks,
   listProjectParticipants,
-  listProjectSourceParticipants,
 } from '../../../../lib/projects/projects'
 import {
   canManageResultSource,
@@ -58,7 +57,6 @@ export default async function ProjectDetailPage({
     assigneeOptions,
     followups,
     participants,
-    sourceParticipants,
     deliverables,
     opportunityLinks,
     articulationLinks,
@@ -71,7 +69,6 @@ export default async function ProjectDetailPage({
     listOpportunityAssigneeOptions(),
     listProjectFollowups(id),
     listProjectParticipants(id),
-    listProjectSourceParticipants(id),
     listProjectDeliverables(id),
     listProjectOpportunityLinks(id),
     listProjectArticulationLinks(id),
@@ -199,7 +196,6 @@ export default async function ProjectDetailPage({
       <ProjectOperationForms
         projectId={id}
         participants={participants}
-        sourceParticipants={sourceParticipants}
         deliverables={deliverables}
         assigneeOptions={assigneeOptions}
       />

@@ -34,6 +34,8 @@ type ReferenceListDialogProps<Item> = {
   renderItem: (item: Item) => ReactNode
   onOpen?: () => void
   onSelect?: (item: Item) => void
+  closeOnSelect?: boolean
+  openOnMount?: boolean
   remote?: {
     paginationKey?: string
     status?: RemoteReferenceStatus
@@ -77,6 +79,8 @@ export function ReferenceListDialog<Item>({
   renderItem,
   onOpen,
   onSelect,
+  closeOnSelect = true,
+  openOnMount = false,
   remote,
 }: ReferenceListDialogProps<Item>) {
   const dialogRef =
@@ -86,6 +90,7 @@ export function ReferenceListDialog<Item>({
   const triggerRef =
     useRef<HTMLButtonElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const openedOnMountRef = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
   const filterId = useId()
@@ -153,6 +158,26 @@ export function ReferenceListDialog<Item>({
       triggerRef.current?.focus()
     })
   }
+
+  useEffect(() => {
+    if (
+      !openOnMount ||
+      openedOnMountRef.current
+    ) {
+      return
+    }
+
+    openedOnMountRef.current = true
+
+    const frame =
+      window.requestAnimationFrame(() => {
+        triggerRef.current?.click()
+      })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [openOnMount])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -336,7 +361,9 @@ export function ReferenceListDialog<Item>({
                       type="button"
                       onClick={() => {
                         onSelect(item)
-                        closeDialog()
+                        if (closeOnSelect) {
+                          closeDialog()
+                        }
                       }}
                       className="block min-h-14 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-[#2F5D8C]/40 hover:bg-slate-50 focus:border-[#2F5D8C]/40 focus:bg-slate-50 focus:outline-none"
                     >
@@ -358,9 +385,29 @@ export function ReferenceListDialog<Item>({
                 ) : null}
               </div>
             ) : (
-              <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                {emptyMessage}
-              </p>
+              <div className="space-y-3">
+                <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                  {remote?.hasMore
+                    ? 'No hay opciones seleccionables en esta página. Podés cargar más resultados.'
+                    : emptyMessage}
+                </p>
+
+                {remote?.onLoadMore && (
+                  remote.hasMore ||
+                  remote.loadingMore ||
+                  remote.loadMoreError
+                ) ? (
+                  <RemoteListPagination
+                    key={remote.paginationKey ?? remote.query}
+                    hasMore={remote.hasMore}
+                    loadingMore={remote.loadingMore}
+                    error={remote.loadMoreError}
+                    onLoadMore={remote.onLoadMore}
+                    autoLoad={open && remote.autoLoad === true}
+                    rootRef={scrollRef}
+                  />
+                ) : null}
+              </div>
             )}
           </div>
         </div>

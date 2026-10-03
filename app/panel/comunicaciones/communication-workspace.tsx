@@ -261,6 +261,8 @@ function Audience({
 
   const [items, setItems] = useState<Draft[]>(criteria.map(toDraft))
   const [error, setError] = useState<string | null>(null)
+  const [autoOpenGroup, setAutoOpenGroup] =
+    useState<number | null>(null)
 
   const [state, action, pending] = useActionState(
     replaceAudienceAction.bind(null, communication.communication_id),
@@ -586,14 +588,16 @@ function Audience({
 
             <button
               type="button"
-              onClick={() =>
-                setItems((current) =>
+              onClick={() => {
+                const groupNo = nextGroup(items)
+                setAutoOpenGroup(groupNo)
+                setItems(
                   addAudienceRule(
-                    current,
+                    items,
                     'person_skill'
                   )
                 )
-              }
+              }}
               className="ux-button rounded-xl border border-[#2F5D8C]/30 px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
             >
               Agregar habilidad
@@ -618,11 +622,15 @@ function Audience({
                   <CommunicationReferencePicker
                     kind="person_skill"
                     value={item.skill_id ?? ''}
-                    onChange={(value) =>
+                    openOnMount={
+                      autoOpenGroup === item.group_no
+                    }
+                    onChange={(value) => {
                       update(index, {
                         skill_id: value,
                       })
-                    }
+                      setAutoOpenGroup(null)
+                    }}
                   />
 
                   <div className="mt-4">
@@ -733,14 +741,16 @@ function Audience({
 
             <button
               type="button"
-              onClick={() =>
-                setItems((current) =>
+              onClick={() => {
+                const groupNo = nextGroup(items)
+                setAutoOpenGroup(groupNo)
+                setItems(
                   addAudienceRule(
-                    current,
+                    items,
                     'organization_capability'
                   )
                 )
-              }
+              }}
               className="ux-button rounded-xl border border-[#2F5D8C]/30 px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
             >
               Agregar capacidad
@@ -765,11 +775,15 @@ function Audience({
                   <CommunicationReferencePicker
                     kind="organization_capability"
                     value={item.skill_id ?? ''}
-                    onChange={(value) =>
+                    openOnMount={
+                      autoOpenGroup === item.group_no
+                    }
+                    onChange={(value) => {
                       update(index, {
                         skill_id: value,
                       })
-                    }
+                      setAutoOpenGroup(null)
+                    }}
                   />
 
                   <div className="mt-4">

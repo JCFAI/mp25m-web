@@ -35,6 +35,7 @@ type ReferenceListDialogProps<Item> = {
   onOpen?: () => void
   onSelect?: (item: Item) => void
   closeOnSelect?: boolean
+  openOnMount?: boolean
   remote?: {
     paginationKey?: string
     status?: RemoteReferenceStatus
@@ -79,6 +80,7 @@ export function ReferenceListDialog<Item>({
   onOpen,
   onSelect,
   closeOnSelect = true,
+  openOnMount = false,
   remote,
 }: ReferenceListDialogProps<Item>) {
   const dialogRef =
@@ -88,6 +90,7 @@ export function ReferenceListDialog<Item>({
   const triggerRef =
     useRef<HTMLButtonElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const openedOnMountRef = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
   const filterId = useId()
@@ -155,6 +158,26 @@ export function ReferenceListDialog<Item>({
       triggerRef.current?.focus()
     })
   }
+
+  useEffect(() => {
+    if (
+      !openOnMount ||
+      openedOnMountRef.current
+    ) {
+      return
+    }
+
+    openedOnMountRef.current = true
+
+    const frame =
+      window.requestAnimationFrame(() => {
+        triggerRef.current?.click()
+      })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [openOnMount])
 
   useEffect(() => {
     const dialog = dialogRef.current

@@ -78,6 +78,8 @@ export function SkillSearch({
   const resultsId = useId()
 
   const [query, setQuery] = useState('')
+  const [selectedSkill, setSelectedSkill] =
+    useState<SkillSearchResult | null>(null)
   const [categoryCode, setCategoryCode] =
     useState('')
   const [application, setApplication] =
@@ -116,13 +118,17 @@ export function SkillSearch({
     term.length === 0 ||
     term.length >= MINIMUM_QUERY_LENGTH
   const canSearch =
-    (hasFilter && termCanFilter) ||
-    term.length >= MINIMUM_QUERY_LENGTH
+    selectedSkill === null &&
+    (
+      (hasFilter && termCanFilter) ||
+      term.length >= MINIMUM_QUERY_LENGTH
+    )
   const hasActiveFilters =
     term.length > 0 || hasFilter
 
   function clearFilters() {
     setQuery('')
+    setSelectedSkill(null)
     setCategoryCode('')
     setApplication('all')
     setResults([])
@@ -132,6 +138,10 @@ export function SkillSearch({
   }
 
   useEffect(() => {
+    if (selectedSkill) {
+      return
+    }
+
     const currentTerm = query.trim()
     const currentCategory =
       categoryCode.trim()
@@ -144,10 +154,6 @@ export function SkillSearch({
       currentTerm.length >=
         MINIMUM_QUERY_LENGTH
 
-    setResults([])
-    setHasSearched(false)
-    setErrorMessage(null)
-
     if (
       (!hasCurrentFilter &&
         currentTerm.length <
@@ -155,16 +161,18 @@ export function SkillSearch({
       (hasCurrentFilter &&
         !currentTermCanFilter)
     ) {
-      setLoading(false)
       return
     }
 
     const controller = new AbortController()
 
-    setLoading(true)
-
     const timeout = window.setTimeout(
       async () => {
+        setResults([])
+        setHasSearched(false)
+        setErrorMessage(null)
+        setLoading(true)
+
         try {
           const searchParams =
             new URLSearchParams()
@@ -230,7 +238,7 @@ export function SkillSearch({
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [query, categoryCode, application])
+  }, [query, categoryCode, application, selectedSkill])
 
   async function loadSkillReferenceItems() {
     if (
@@ -311,9 +319,10 @@ export function SkillSearch({
             <input
               id={inputId}
               value={query}
-              onChange={(event) =>
+              onChange={(event) => {
+                setSelectedSkill(null)
                 setQuery(event.target.value)
-              }
+              }}
               placeholder="Ej.: programación, soldadura..."
               autoComplete="off"
               role="combobox"
@@ -443,6 +452,27 @@ export function SkillSearch({
         </label>
       </div>
 
+      {selectedSkill ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+              Seleccionada
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              {selectedSkill.display_name}
+            </p>
+          </div>
+
+          <Link
+            href={`/panel/habilidades/${selectedSkill.id}`}
+            prefetch={false}
+            className="inline-flex min-h-10 items-center rounded-lg border border-[#2F5D8C]/30 bg-white px-3 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50"
+          >
+            Ver ficha
+          </Link>
+        </div>
+      ) : null}
+
       <div className="relative">
         {canSearch ? (
           <div
@@ -459,11 +489,17 @@ export function SkillSearch({
               </p>
             ) : results.length > 0 ? (
               results.map((skill) => (
-                <Link
+                <button
                   key={skill.id}
-                  href={`/panel/habilidades/${skill.id}`}
-                  prefetch={false}
-                  className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  type="button"
+                  onClick={() => {
+                    setSelectedSkill(skill)
+                    setQuery(skill.display_name)
+                    setResults([])
+                    setHasSearched(false)
+                    setErrorMessage(null)
+                  }}
+                  className="block min-h-14 w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -496,7 +532,7 @@ export function SkillSearch({
                       {skill.description}
                     </p>
                   ) : null}
-                </Link>
+                </button>
               ))
             ) : hasSearched ? (
               <p className="px-4 py-3 text-sm text-slate-500">

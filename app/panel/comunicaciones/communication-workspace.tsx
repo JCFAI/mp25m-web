@@ -269,6 +269,22 @@ function Audience({
     initial
   )
 
+  const [
+    resolveState,
+    resolve,
+    resolving,
+  ] = useActionState(
+    resolveAudienceAction.bind(
+      null,
+      communication.communication_id
+    ),
+    initial
+  )
+
+  const hasUnsavedChanges =
+    JSON.stringify(items) !==
+    JSON.stringify(criteria.map(toDraft))
+
   const editable =
     communication.status !== 'recipients_confirmed' &&
     communication.status !== 'cancelled'
@@ -502,6 +518,7 @@ function Audience({
           value={JSON.stringify(items)}
         />
 
+        <div className="grid gap-4 xl:grid-cols-3">
         <section className="rounded-2xl border border-slate-200 p-4">
           <h3 className="font-semibold text-slate-900">
             Personas específicas
@@ -574,7 +591,9 @@ function Audience({
             }
           />
         </section>
+        </div>
 
+        <div className="grid items-start gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -879,6 +898,7 @@ function Audience({
             </div>
           )}
         </section>
+        </div>
 
         <section className="rounded-2xl border border-slate-200 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -993,21 +1013,113 @@ function Audience({
           ) : null}
         </section>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            disabled={pending}
-            className="ux-button min-h-11 rounded-xl bg-[#1E3A5F] px-4 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {pending
-              ? 'Guardando audiencia...'
-              : 'Guardar audiencia'}
-          </button>
-
-          <p className="self-center text-xs text-slate-500">
-            Guardar la audiencia no realiza ningún envío.
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2F5D8C]">
+            Paso 1
           </p>
+
+          <h3 className="mt-1 font-semibold text-slate-950">
+            Guardar definición de audiencia
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Guarda Personas, Organizaciones, Nodos y demás
+            criterios seleccionados. Podés seguir modificándolos
+            mientras la audiencia no haya sido confirmada.
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              disabled={pending}
+              className="ux-button min-h-11 rounded-xl bg-[#1E3A5F] px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {pending
+                ? 'Guardando audiencia...'
+                : 'Guardar audiencia'}
+            </button>
+
+            <p className="text-xs text-slate-500">
+              Esta acción no genera destinatarios ni realiza envíos.
+            </p>
+          </div>
         </div>
       </form>
+
+      {communication.status === 'draft' ? (
+        <form
+          action={resolve}
+          noValidate
+          className="mt-5 rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">
+            Paso 2
+          </p>
+
+          <h3 className="mt-1 font-semibold text-slate-950">
+            Resolver audiencia
+          </h3>
+
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
+            Toma la definición guardada y genera la lista de
+            destinatarios para que puedas revisarla antes de
+            confirmarla. Resolver no envía mensajes.
+          </p>
+
+          {hasUnsavedChanges ? (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-900"
+            >
+              Hay cambios en la audiencia que todavía no están
+              guardados. Guardalos antes de resolver.
+            </p>
+          ) : criteria.length === 0 ? (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-amber-900"
+            >
+              Primero definí y guardá al menos un criterio de audiencia.
+            </p>
+          ) : (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+            >
+              La definición guardada está lista para resolver.
+            </p>
+          )}
+
+          {resolveState.message ? (
+            <p
+              role={
+                resolveState.status === 'error'
+                  ? 'alert'
+                  : 'status'
+              }
+              className={
+                resolveState.status === 'error'
+                  ? 'mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700'
+                  : 'mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800'
+              }
+            >
+              {resolveState.message}
+            </p>
+          ) : null}
+
+          <button
+            disabled={
+              resolving ||
+              criteria.length === 0 ||
+              hasUnsavedChanges
+            }
+            className="ux-button mt-4 min-h-11 rounded-xl bg-amber-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {resolving
+              ? 'Resolviendo...'
+              : 'Resolver audiencia'}
+          </button>
+        </form>
+      ) : null}
     </section>
   )
 }
@@ -1053,4 +1165,62 @@ function Recipient({ communicationId, recipient, editable, onChanged }: { commun
   return <article className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><strong>{recipient.display_name_snapshot}</strong><p className="text-xs text-slate-500">{kindLabel} · Email: {emailLabel} · WhatsApp: {whatsappLabel}</p>{editable ? <form action={action} noValidate onSubmit={(e) => { if (reason.trim().length < 3) { e.preventDefault(); setError('Indicá un motivo de al menos 3 caracteres.') } }} className="mt-2 flex gap-2"><input name="reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo" className="min-h-9 flex-1 rounded-lg border border-slate-300 px-2 text-sm" /><button disabled={pending} className="ux-button rounded-lg border px-3 text-sm">{recipient.included ? 'Excluir' : 'Reincorporar'}</button></form> : null}{error || state.message ? <p role="alert" className="mt-1 text-xs text-red-700">{error ?? state.message}</p> : null}</article>
 }
 
-export function CommunicationWorkspace({ communication, criteria, criterionLabels, resolution }: { communication: Communication; criteria: CommunicationCriterion[]; criterionLabels: Record<string, string>; resolution: CommunicationResolution | null }) { const [state, resolve, resolving] = useActionState(resolveAudienceAction.bind(null, communication.communication_id), initial); return <CommunicationCriterionLabelsContext.Provider value={criterionLabels}><div className="space-y-6"><section className="rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">{communication.status === 'draft' ? 'Borrador' : communication.status === 'audience_resolved' ? 'Audiencia resuelta' : 'Destinatarios confirmados'}</p><h1 className="mt-2 text-2xl font-bold">{communication.subject}</h1><p className="mt-2 text-sm">Contexto: {communication.context_type === 'independent' ? 'Sin contexto' : communication.context_title ?? communication.context_type}</p></section><MessageEditor communication={communication} /><Audience key={`${communication.communication_id}:${communication.status}:${communication.audience_revision}`} communication={communication} criteria={criteria} criterionLabels={criterionLabels} />{communication.status === 'draft' ? <form action={resolve} noValidate className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-600">Resolver no envía ni modifica las entidades de origen.</p>{state.message ? <p role={state.status === 'error' ? 'alert' : 'status'} className={state.status === 'error' ? 'mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-700' : 'mt-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800'}>{state.message}</p> : null}<button disabled={resolving || !criteria.length} className="ux-button mt-3 min-h-11 rounded-xl bg-[#1E3A5F] px-4 text-sm font-semibold text-white">{resolving ? 'Resolviendo...' : 'Resolver audiencia'}</button></form> : null}{resolution ? <Recipients communication={communication} resolution={resolution} /> : null}</div></CommunicationCriterionLabelsContext.Provider> }
+export function CommunicationWorkspace({
+  communication,
+  criteria,
+  criterionLabels,
+  resolution,
+}: {
+  communication: Communication
+  criteria: CommunicationCriterion[]
+  criterionLabels: Record<string, string>
+  resolution: CommunicationResolution | null
+}) {
+  return (
+    <CommunicationCriterionLabelsContext.Provider
+      value={criterionLabels}
+    >
+      <div className="space-y-6">
+        <section className="rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-6 text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">
+            {communication.status === 'draft'
+              ? 'Borrador'
+              : communication.status === 'audience_resolved'
+                ? 'Audiencia resuelta'
+                : 'Destinatarios confirmados'}
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold">
+            {communication.subject}
+          </h1>
+
+          <p className="mt-2 text-sm">
+            Contexto:{' '}
+            {communication.context_type === 'independent'
+              ? 'Sin contexto'
+              : communication.context_title ??
+                communication.context_type}
+          </p>
+        </section>
+
+        <MessageEditor
+          communication={communication}
+        />
+
+        <Audience
+          key={`${communication.communication_id}:${communication.status}:${communication.audience_revision}`}
+          communication={communication}
+          criteria={criteria}
+          criterionLabels={criterionLabels}
+        />
+
+        {resolution ? (
+          <Recipients
+            communication={communication}
+            resolution={resolution}
+          />
+        ) : null}
+      </div>
+    </CommunicationCriterionLabelsContext.Provider>
+  )
+}

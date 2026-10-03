@@ -45,7 +45,7 @@ export type SearchSkillsInput = {
   application?: string | null
 }
 
-const MINIMUM_QUERY_LENGTH = 2
+const MINIMUM_QUERY_LENGTH = 1
 const NAME_SEARCH_LIMIT = 10
 const FILTERED_SEARCH_LIMIT = 20
 const REFERENCE_LIST_LIMIT = 50

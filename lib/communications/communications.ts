@@ -34,6 +34,11 @@ export type CommunicationRecipient = {
   display_name_snapshot: string; manually_added: boolean; included: boolean; exclusion_reason: string | null
   email_availability_status: string; whatsapp_availability_status: string; duplicate_status: string; diagnostic_detail: unknown; sources: unknown; created_at: string
 }
+export type CommunicationRecipientSourceSummary = {
+  criterion_id: string
+  recipient_count: number
+  multi_criterion_recipient_count: number
+}
 
 function actorId(access: InternalAccess[]) {
   const ids = [...new Set(access.map((item) => item.internal_user_id))]
@@ -104,6 +109,7 @@ export async function updateCommunication(access: InternalAccess[], id: string, 
 }
 export async function replaceAudience(access: InternalAccess[], id: string, criteria: unknown[], rationale?: string) { const { error } = await createAdminClient().rpc('replace_communication_audience_criteria', { p_actor_internal_user_id: actorId(access), p_communication_id: id, p_criteria: criteria, p_rationale: rationale ?? null }); rpcError(error, 'Unable to replace audience') }
 export async function resolveAudience(access: InternalAccess[], id: string, rationale?: string) { const { data, error } = await createAdminClient().rpc('resolve_communication_audience', { p_actor_internal_user_id: actorId(access), p_communication_id: id, p_rationale: rationale ?? null }); rpcError(error, 'Unable to resolve audience'); return data as string }
-export async function setRecipientIncluded(access: InternalAccess[], recipientId: string, included: boolean, reason: string) { const { error } = await createAdminClient().rpc('set_communication_recipient_included', { p_actor_internal_user_id: actorId(access), p_recipient_id: recipientId, p_included: included, p_reason: reason }); rpcError(error, 'Unable to update recipient') }
+export async function setRecipientIncluded(access: InternalAccess[], recipientId: string, included: boolean) { const { error } = await createAdminClient().rpc('set_communication_recipient_included', { p_actor_internal_user_id: actorId(access), p_recipient_id: recipientId, p_included: included, p_reason: null }); rpcError(error, 'Unable to update recipient') }
+export async function listCommunicationRecipientSourceSummary(access: InternalAccess[], resolutionId: string) { const { data, error } = await createAdminClient().rpc('communication_recipient_source_summary', { p_actor_internal_user_id: actorId(access), p_resolution_id: resolutionId }); rpcError(error, 'Unable to load recipient source summary'); return (data ?? []) as CommunicationRecipientSourceSummary[] }
 export async function addManualPerson(access: InternalAccess[], resolutionId: string, personId: string, reason: string) { const { error } = await createAdminClient().rpc('add_communication_person_recipient', { p_actor_internal_user_id: actorId(access), p_resolution_id: resolutionId, p_person_id: personId, p_reason: reason }); rpcError(error, 'Unable to add recipient') }
 export async function confirmRecipients(access: InternalAccess[], communicationId: string, resolutionId: string, reason?: string) { const { error } = await createAdminClient().rpc('confirm_communication_recipients', { p_actor_internal_user_id: actorId(access), p_communication_id: communicationId, p_resolution_id: resolutionId, p_reason: reason ?? null }); rpcError(error, 'Unable to confirm recipients') }

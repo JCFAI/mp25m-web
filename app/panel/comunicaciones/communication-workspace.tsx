@@ -4,7 +4,7 @@ import { useActionState, useCallback, useEffect, useState } from 'react'
 import { ReferenceListDialog } from '../../../components/reference-list-dialog'
 import { useRemoteReferenceList, type RemoteReferencePage } from '../../../hooks/use-remote-reference-list'
 import type { CanonicalActorReference } from '../../../lib/opportunities/actors'
-import type { Communication, CommunicationCriterion, CommunicationRecipient, CommunicationResolution, CriterionOperation, CriterionType } from '../../../lib/communications/communications'
+import type { Communication, CommunicationCriterion, CommunicationRecipient, CommunicationResolution, CommunicationRecipientSourceSummary, CriterionOperation, CriterionType } from '../../../lib/communications/communications'
 import { addManualPersonAction, confirmRecipientsAction, replaceAudienceAction, resolveAudienceAction, setRecipientIncludedAction, updateCommunicationAction, type CommunicationActionState } from './actions'
 import { CommunicationCriterionLabelsContext, CommunicationMultiReferencePicker, CommunicationReferencePicker, type CommunicationReferenceKind } from './reference-picker'
 
@@ -1303,6 +1303,7 @@ function Recipients({
   resolution,
   criteria,
   criterionLabels,
+  recipientSourceSummary,
 }: {
   communication: Communication
   resolution: CommunicationResolution
@@ -1311,6 +1312,8 @@ function Recipients({
     string,
     string
   >
+  recipientSourceSummary:
+    CommunicationRecipientSourceSummary[]
 }) {
   const [revision, setRevision] =
     useState(0)
@@ -1325,6 +1328,13 @@ function Recipients({
     key: '',
     pageIndex: 0,
   })
+
+  const [
+    recipientView,
+    setRecipientView,
+  ] = useState<
+    'summary' | 'recipients'
+  >('summary')
 
   const [
     state,
@@ -1532,70 +1542,26 @@ function Recipients({
       )
     )
 
-  const sourceCounts =
-    new Map<string, number>()
-
-  let multipleSourceCount = 0
-
-  if (allRecipientsLoaded) {
-    for (
-      const recipient
-      of list.items
-    ) {
-      const automaticSources =
-        getRecipientSources(
-          recipient
-        ).filter(
-          (source) =>
-            source.criterion_id &&
-            source.criterion_type !==
-              'manual'
-        )
-
-      const uniqueCriterionIds =
-        [
-          ...new Set(
-            automaticSources
-              .map(
-                (source) =>
-                  source.criterion_id
-              )
-              .filter(
-                (
-                  value
-                ): value is string =>
-                  Boolean(value)
-              )
-          ),
+  const summaryCountByCriterion =
+    new Map(
+      recipientSourceSummary.map(
+        (item) => [
+          item.criterion_id,
+          item.recipient_count,
         ]
+      )
+    )
 
-      if (
-        uniqueCriterionIds.length > 1
-      ) {
-        multipleSourceCount += 1
-      }
-
-      for (
-        const criterionId
-        of uniqueCriterionIds
-      ) {
-        sourceCounts.set(
-          criterionId,
-          (
-            sourceCounts.get(
-              criterionId
-            ) ?? 0
-          ) + 1
-        )
-      }
-    }
-  }
+  const multipleSourceCount =
+    recipientSourceSummary[0]
+      ?.multi_criterion_recipient_count ??
+    0
 
   const sourceSummary =
     criteria.flatMap(
       (criterion) => {
         const count =
-          sourceCounts.get(
+          summaryCountByCriterion.get(
             criterion.criterion_id
           ) ?? 0
 
@@ -1652,20 +1618,64 @@ function Recipients({
         }
       </p>
 
+      <div
+        role="tablist"
+        aria-label="Vista de destinatarios"
+        className="mt-4 inline-flex flex-wrap gap-2 rounded-xl bg-slate-100 p-1"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={
+            recipientView ===
+            'summary'
+          }
+          onClick={() =>
+            setRecipientView(
+              'summary'
+            )
+          }
+          className={
+            recipientView ===
+            'summary'
+              ? 'ux-button rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1E3A5F] shadow-sm'
+              : 'ux-button rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white/70'
+          }
+        >
+          Resumen por criterios
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={
+            recipientView ===
+            'recipients'
+          }
+          onClick={() =>
+            setRecipientView(
+              'recipients'
+            )
+          }
+          className={
+            recipientView ===
+            'recipients'
+              ? 'ux-button rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1E3A5F] shadow-sm'
+              : 'ux-button rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white/70'
+          }
+        >
+          Destinatarios ({resolution.recipient_count})
+        </button>
+      </div>
+
+      {recipientView ===
+      'summary' ? (
       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <h3 className="font-semibold text-slate-950">
           Procedencia de la audiencia
         </h3>
 
-        {!allRecipientsLoaded ? (
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Cargá todas las páginas de
-            destinatarios y dejá vacía la
-            búsqueda para ver el desglose
-            completo por criterio.
-          </p>
-        ) : (
-          <>
+        <>
             <div className="mt-3 grid gap-2">
               {sourceSummary.length >
               0 ? (
@@ -1721,10 +1731,13 @@ function Recipients({
                 {multipleSourceCount}
               </span>
             </div>
-          </>
-        )}
+        </>
       </div>
+      ) : null}
 
+      {recipientView ===
+      'recipients' ? (
+        <>
       <div
         id="communication-recipient-list"
         className="scroll-mt-4"
@@ -1934,6 +1947,15 @@ function Recipients({
           envío externo no está habilitado.
         </p>
       )}
+        </>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">
+          Usá “Destinatarios” para revisar,
+          excluir, reincorporar o confirmar
+          la lista resultante.
+        </p>
+      )}
+
     </section>
   )
 }
@@ -1961,17 +1983,6 @@ function Recipient({
   >
   onChanged: () => void
 }) {
-  const [reason, setReason] =
-    useState('')
-
-  const [error, setError] =
-    useState<string | null>(null)
-
-  const [
-    showAction,
-    setShowAction,
-  ] = useState(false)
-
   const [
     state,
     action,
@@ -2074,14 +2085,15 @@ function Recipient({
       )
     )
 
-
   return (
     <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <strong className="text-sm text-slate-950">
-              {recipient.display_name_snapshot}
+              {
+                recipient.display_name_snapshot
+              }
             </strong>
 
             {!recipient.included ? (
@@ -2092,128 +2104,55 @@ function Recipient({
           </div>
 
           <p className="mt-0.5 text-xs text-slate-500">
-            {kindLabel} · Email: {emailLabel}
-            {' · '}
-            WhatsApp: {whatsappLabel}
+            {kindLabel} · Email:{' '}
+            {emailLabel} · WhatsApp:{' '}
+            {whatsappLabel}
           </p>
+
+          {provenance.length > 0 ? (
+            <p className="mt-1.5 text-xs leading-5 text-[#1E3A5F]">
+              <strong>
+                Incluido por:
+              </strong>{' '}
+              {provenance.join(' · ')}
+            </p>
+          ) : null}
         </div>
 
-        {editable && !showAction ? (
-          <button
-            type="button"
-            onClick={() => {
-              setError(null)
-              setShowAction(true)
-            }}
-            className={
-              recipient.included
-                ? 'ux-button shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50'
-                : 'ux-button shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50'
-            }
-          >
-            {recipient.included
-              ? 'Excluir'
-              : 'Reincorporar'}
-          </button>
-        ) : null}
-      </div>
-
-      {provenance.length > 0 ? (
-        <p className="mt-1.5 text-xs leading-5 text-[#1E3A5F]">
-          <strong>
-            Incluido por:
-          </strong>{' '}
-          {provenance.join(' · ')}
-        </p>
-      ) : null}
-
-      {editable && showAction ? (
-        <form
-          action={action}
-          noValidate
-          onSubmit={(event) => {
-            if (
-              reason.trim().length < 3
-            ) {
-              event.preventDefault()
-              setError(
-                'Indicá un motivo de al menos 3 caracteres.'
-              )
-            }
-          }}
-          className="mt-3 rounded-lg border border-slate-200 bg-white p-3"
-        >
-          <label className="block text-xs font-semibold text-slate-600">
-            Motivo
-            <input
-              name="reason"
-              value={reason}
-              autoFocus
-              onChange={(event) => {
-                setReason(
-                  event.target.value
-                )
-                setError(null)
-              }}
-              placeholder={
-                recipient.included
-                  ? 'Motivo de la exclusión'
-                  : 'Motivo de la reincorporación'
-              }
-              className="mt-1 min-h-9 w-full rounded-lg border border-slate-300 px-2 text-sm font-normal"
-            />
-          </label>
-
-          <div className="mt-2 flex flex-wrap gap-2">
+        {editable ? (
+          <form action={action}>
             <button
               disabled={pending}
               className={
                 recipient.included
-                  ? 'ux-button rounded-lg bg-red-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60'
-                  : 'ux-button rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60'
+                  ? 'ux-button shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60'
+                  : 'ux-button shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60'
               }
             >
               {pending
                 ? 'Guardando...'
                 : recipient.included
-                  ? 'Confirmar exclusión'
-                  : 'Confirmar reincorporación'}
+                  ? 'Excluir'
+                  : 'Reincorporar'}
             </button>
+          </form>
+        ) : null}
+      </div>
 
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => {
-                setReason('')
-                setError(null)
-                setShowAction(false)
-              }}
-              className="ux-button rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      {error ||
-      state.message ? (
+      {state.message ? (
         <p
           role={
-            state.status === 'error' ||
-            error
+            state.status === 'error'
               ? 'alert'
               : 'status'
           }
           className={
-            state.status === 'error' ||
-            error
+            state.status === 'error'
               ? 'mt-2 text-xs text-red-700'
               : 'mt-2 text-xs text-emerald-700'
           }
         >
-          {error ??
-            state.message}
+          {state.message}
         </p>
       ) : null}
     </article>
@@ -2225,11 +2164,14 @@ export function CommunicationWorkspace({
   criteria,
   criterionLabels,
   resolution,
+  recipientSourceSummary,
 }: {
   communication: Communication
   criteria: CommunicationCriterion[]
   criterionLabels: Record<string, string>
   resolution: CommunicationResolution | null
+  recipientSourceSummary:
+    CommunicationRecipientSourceSummary[]
 }) {
   return (
     <CommunicationCriterionLabelsContext.Provider
@@ -2276,6 +2218,9 @@ export function CommunicationWorkspace({
             criteria={criteria}
             criterionLabels={
               criterionLabels
+            }
+            recipientSourceSummary={
+              recipientSourceSummary
             }
           />
         ) : null}

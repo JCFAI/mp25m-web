@@ -60,9 +60,11 @@ export async function resolveAudienceAction(id: string, _previous: Communication
   try { await resolveAudience(await access(), id, text(formData, 'rationale') || undefined); revalidatePath(`/panel/comunicaciones/${id}`); revalidatePath('/panel/comunicaciones'); return { status: 'success', message: 'Audiencia resuelta. Revisá los destinatarios antes de confirmar.' } }
   catch (error) { console.error('[MP25M] Audience resolve failed:', error); return errorState('No se pudo resolver la audiencia. Debe existir una definición vigente.') }
 }
-export async function setRecipientIncludedAction(id: string, recipientId: string, included: boolean, _previous: CommunicationActionState, formData: FormData): Promise<CommunicationActionState> {
-  const reason = text(formData, 'reason'); if (reason.length < 3) return errorState('Indicá un motivo de al menos 3 caracteres.')
-  try { await setRecipientIncluded(await access(), recipientId, included, reason); revalidatePath(`/panel/comunicaciones/${id}`); return { status: 'success', message: included ? 'Destinatario reincorporado.' : 'Destinatario excluido de esta resolución.' } }
+export async function setRecipientIncludedAction(id: string, recipientId: string, included: boolean, previous: CommunicationActionState, formData: FormData): Promise<CommunicationActionState> {
+  void previous
+  void formData
+
+  try { await setRecipientIncluded(await access(), recipientId, included); revalidatePath(`/panel/comunicaciones/${id}`); return { status: 'success', message: included ? 'Destinatario reincorporado.' : 'Destinatario excluido de esta resolución.' } }
   catch (error) { console.error('[MP25M] Recipient update failed:', error); return errorState('No se pudo actualizar el destinatario.') }
 }
 export async function addManualPersonAction(id: string, resolutionId: string, _previous: CommunicationActionState, formData: FormData): Promise<CommunicationActionState> {

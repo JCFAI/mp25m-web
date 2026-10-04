@@ -149,6 +149,78 @@ function updateSharedSkillRules(
   )
 }
 
+function normalizeSharedSkillGroups(
+  items: Draft[]
+) {
+  const usedGroups =
+    new Set(
+      items
+        .filter(
+          (item) =>
+            !(
+              item.criterion_operation ===
+                'include' &&
+              (
+                item.criterion_type ===
+                  'person_skill' ||
+                item.criterion_type ===
+                  'organization_capability'
+              )
+            )
+        )
+        .map(
+          (item) =>
+            item.group_no
+        )
+    )
+
+  let nextAvailableGroup =
+    nextGroup(items)
+
+  return items.map(
+    (item) => {
+      const sharedSkillCriterion =
+        item.criterion_operation ===
+          'include' &&
+        (
+          item.criterion_type ===
+            'person_skill' ||
+          item.criterion_type ===
+            'organization_capability'
+        )
+
+      if (
+        !sharedSkillCriterion
+      ) {
+        return item
+      }
+
+      if (
+        !usedGroups.has(
+          item.group_no
+        )
+      ) {
+        usedGroups.add(
+          item.group_no
+        )
+        return item
+      }
+
+      const normalized = {
+        ...item,
+        group_no:
+          nextAvailableGroup++,
+      }
+
+      usedGroups.add(
+        normalized.group_no
+      )
+
+      return normalized
+    }
+  )
+}
+
 function addAudienceRule(
   items: Draft[],
   type: CriterionType
@@ -338,7 +410,11 @@ function Audience({
   const criterionLabelsForReadOnly = (id: string) =>
     criterionLabels[id] ?? (id || 'Referencia no disponible')
 
-  const [items, setItems] = useState<Draft[]>(criteria.map(toDraft))
+  const [items, setItems] = useState<Draft[]>(() =>
+    normalizeSharedSkillGroups(
+      criteria.map(toDraft)
+    )
+  )
   const [error, setError] = useState<string | null>(null)
 
   const [state, action, pending] = useActionState(

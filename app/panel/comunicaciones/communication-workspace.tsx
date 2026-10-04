@@ -1125,44 +1125,842 @@ function Audience({
 }
 
 
-function Recipients({ communication, resolution }: { communication: Communication; resolution: CommunicationResolution }) {
-  const [revision, setRevision] = useState(0); const [state, confirm, confirming] = useActionState(confirmRecipientsAction.bind(null, communication.communication_id, resolution.resolution_id), initial)
-  const fetchPage = useCallback(async ({ query, cursor, signal }: { query: string; cursor: string | null; signal: AbortSignal }) => { const params = new URLSearchParams({ resolution_id: resolution.resolution_id, q: query, limit: '50' }); if (cursor) params.set('cursor', cursor); const response = await fetch(`/api/panel/comunicaciones/recipients?${params}`, { signal }); if (!response.ok) throw new Error('No se pudieron cargar destinatarios.'); return await response.json() as RemoteReferencePage<CommunicationRecipient> }, [resolution.resolution_id])
-  const list = useRemoteReferenceList({ contextKey: `${resolution.resolution_id}:${revision}`, getItemKey: (item) => item.recipient_id, fetchPage, enabledInitially: true }); const editable = communication.status === 'audience_resolved' && !resolution.confirmed_at
-  const canConfirm = editable && !list.hasMore && !list.loadingMore && !list.query
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-semibold">Destinatarios</h2><p className="mt-2 text-sm text-slate-600">Resolución {resolution.resolution_no}: {resolution.recipient_count} en total, {resolution.included_recipient_count} incluidos, {resolution.excluded_recipient_count} excluidos y {resolution.duplicate_recipient_count} duplicados.</p><p className="mt-1 text-xs text-slate-500">Sin Email: {resolution.person_email_unavailable_count} · sin WhatsApp: {resolution.person_whatsapp_unavailable_count} · organizaciones sin canal institucional: {resolution.unsupported_organization_count}</p><input type="search" value={list.query} onFocus={list.open} onChange={(e) => list.setQuery(e.target.value)} placeholder="Buscar destinatario..." className="mt-4 min-h-10 w-full rounded-lg border border-slate-300 px-3" />{list.items.map((recipient) => <Recipient key={recipient.recipient_id} communicationId={communication.communication_id} recipient={recipient} editable={editable} onChanged={() => setRevision((value) => value + 1)} />)}<RemoteListPagination key={list.paginationKey} hasMore={list.hasMore} loadingMore={list.loadingMore} error={list.loadMoreError} onLoadMore={list.loadMore} />{editable ? <ManualPersonForm communicationId={communication.communication_id} resolutionId={resolution.resolution_id} existingIds={list.items.flatMap((recipient) => recipient.person_id ? [recipient.person_id] : [])} onChanged={() => setRevision((value) => value + 1)} /> : null}{editable ? <form action={confirm} noValidate className="mt-5 rounded-xl bg-emerald-50 p-4"><p className="font-semibold text-emerald-950">La confirmación abarca la resolución completa. No realiza ningún envío.</p>{!canConfirm ? <p role="status" className="mt-2 text-sm text-emerald-900">Cargá todas las páginas y borrá la búsqueda antes de confirmar destinatarios.</p> : null}{state.message ? <p role="alert" className="mt-2 text-sm text-emerald-950">{state.message}</p> : null}<button disabled={confirming || !canConfirm} className="ux-button mt-3 min-h-11 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:opacity-60">{confirming ? 'Confirmando...' : 'Confirmar destinatarios'}</button></form> : <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-950">Destinatarios confirmados. El envío externo no está habilitado.</p>}</section>
+
+type RecipientSource = {
+  criterion_id: string | null
+  criterion_type:
+    | CriterionType
+    | 'manual'
+}
+
+function getRecipientSources(
+  recipient: CommunicationRecipient
+): RecipientSource[] {
+  if (!Array.isArray(recipient.sources)) {
+    return []
+  }
+
+  return recipient.sources.flatMap(
+    (value) => {
+      if (
+        !value ||
+        typeof value !== 'object'
+      ) {
+        return []
+      }
+
+      const source =
+        value as Record<
+          string,
+          unknown
+        >
+
+      const criterionType =
+        typeof source.criterion_type ===
+        'string'
+          ? source.criterion_type
+          : ''
+
+      if (
+        criterionType !== 'manual' &&
+        !(
+          criterionType in labels
+        )
+      ) {
+        return []
+      }
+
+      return [
+        {
+          criterion_id:
+            typeof source.criterion_id ===
+            'string'
+              ? source.criterion_id
+              : null,
+          criterion_type:
+            criterionType as
+              | CriterionType
+              | 'manual',
+        },
+      ]
+    }
+  )
+}
+
+function criterionReferenceId(
+  criterion: CommunicationCriterion
+) {
+  return String(
+    (
+      criterion as unknown as
+        Record<string, unknown>
+    )[
+      field(
+        criterion.criterion_type
+      )
+    ] ?? ''
+  )
+}
+
+function criterionSourceLabel(
+  criterion: CommunicationCriterion,
+  criterionLabels: Record<
+    string,
+    string
+  >
+) {
+  const referenceId =
+    criterionReferenceId(
+      criterion
+    )
+
+  const referenceLabel =
+    criterionLabels[referenceId] ??
+    'Referencia no disponible'
+
+  const nodeLabel =
+    criterion.node_id
+      ? criterionLabels[
+          criterion.node_id
+        ] ??
+        'Nodo no disponible'
+      : null
+
+  switch (
+    criterion.criterion_type
+  ) {
+    case 'person':
+      return `Persona específica: ${referenceLabel}`
+
+    case 'organization':
+      return `Organización específica: ${referenceLabel}`
+
+    case 'node_participants':
+      return `Nodo: ${referenceLabel}`
+
+    case 'articulation_participants':
+      return `Articulación: ${referenceLabel}`
+
+    case 'project_participants':
+      return `Proyecto: ${referenceLabel}`
+
+    case 'theme_responsibles':
+      return `Tema: ${referenceLabel}`
+
+    case 'person_skill':
+      return nodeLabel
+        ? `Habilidad: ${referenceLabel} · Nodo: ${nodeLabel}`
+        : `Habilidad: ${referenceLabel} · Todo MP25M`
+
+    case 'organization_capability':
+      return nodeLabel
+        ? `Capacidad: ${referenceLabel} · Nodo: ${nodeLabel}`
+        : `Capacidad: ${referenceLabel} · Todo MP25M`
+  }
+}
+
+function sourceLabel(
+  source: RecipientSource,
+  criterionById: Map<
+    string,
+    CommunicationCriterion
+  >,
+  criterionLabels: Record<
+    string,
+    string
+  >
+) {
+  if (
+    source.criterion_type ===
+    'manual'
+  ) {
+    return 'Incorporación manual'
+  }
+
+  if (!source.criterion_id) {
+    return labels[
+      source.criterion_type
+    ]
+  }
+
+  const criterion =
+    criterionById.get(
+      source.criterion_id
+    )
+
+  return criterion
+    ? criterionSourceLabel(
+        criterion,
+        criterionLabels
+      )
+    : labels[
+        source.criterion_type
+      ]
+}
+
+function Recipients({
+  communication,
+  resolution,
+  criteria,
+  criterionLabels,
+}: {
+  communication: Communication
+  resolution: CommunicationResolution
+  criteria: CommunicationCriterion[]
+  criterionLabels: Record<
+    string,
+    string
+  >
+}) {
+  const [revision, setRevision] =
+    useState(0)
+
+  const [
+    state,
+    confirm,
+    confirming,
+  ] = useActionState(
+    confirmRecipientsAction.bind(
+      null,
+      communication.communication_id,
+      resolution.resolution_id
+    ),
+    initial
+  )
+
+  const fetchPage =
+    useCallback(
+      async ({
+        query,
+        cursor,
+        signal,
+      }: {
+        query: string
+        cursor: string | null
+        signal: AbortSignal
+      }) => {
+        const params =
+          new URLSearchParams({
+            resolution_id:
+              resolution.resolution_id,
+            q: query,
+            limit: '50',
+          })
+
+        if (cursor) {
+          params.set(
+            'cursor',
+            cursor
+          )
+        }
+
+        const response =
+          await fetch(
+            `/api/panel/comunicaciones/recipients?${params}`,
+            { signal }
+          )
+
+        if (!response.ok) {
+          throw new Error(
+            'No se pudieron cargar destinatarios.'
+          )
+        }
+
+        return (
+          await response.json()
+        ) as RemoteReferencePage<
+          CommunicationRecipient
+        >
+      },
+      [
+        resolution.resolution_id,
+      ]
+    )
+
+  const list =
+    useRemoteReferenceList({
+      contextKey:
+        `${resolution.resolution_id}:${revision}`,
+      getItemKey:
+        (item) =>
+          item.recipient_id,
+      fetchPage,
+      enabledInitially: true,
+    })
+
+  const editable =
+    communication.status ===
+      'audience_resolved' &&
+    !resolution.confirmed_at
+
+  const allRecipientsLoaded =
+    !list.initialLoading &&
+    !list.initialError &&
+    !list.loadingMore &&
+    !list.hasMore &&
+    !list.query
+
+  const canConfirm =
+    editable &&
+    allRecipientsLoaded
+
+  const criterionById =
+    new Map(
+      criteria.map(
+        (criterion) => [
+          criterion.criterion_id,
+          criterion,
+        ]
+      )
+    )
+
+  const sourceCounts =
+    new Map<string, number>()
+
+  let multipleSourceCount = 0
+
+  if (allRecipientsLoaded) {
+    for (
+      const recipient
+      of list.items
+    ) {
+      const automaticSources =
+        getRecipientSources(
+          recipient
+        ).filter(
+          (source) =>
+            source.criterion_id &&
+            source.criterion_type !==
+              'manual'
+        )
+
+      const uniqueCriterionIds =
+        [
+          ...new Set(
+            automaticSources
+              .map(
+                (source) =>
+                  source.criterion_id
+              )
+              .filter(
+                (
+                  value
+                ): value is string =>
+                  Boolean(value)
+              )
+          ),
+        ]
+
+      if (
+        uniqueCriterionIds.length > 1
+      ) {
+        multipleSourceCount += 1
+      }
+
+      for (
+        const criterionId
+        of uniqueCriterionIds
+      ) {
+        sourceCounts.set(
+          criterionId,
+          (
+            sourceCounts.get(
+              criterionId
+            ) ?? 0
+          ) + 1
+        )
+      }
+    }
+  }
+
+  const sourceSummary =
+    criteria.flatMap(
+      (criterion) => {
+        const count =
+          sourceCounts.get(
+            criterion.criterion_id
+          ) ?? 0
+
+        if (count === 0) {
+          return []
+        }
+
+        return [
+          {
+            criterion,
+            count,
+          },
+        ]
+      }
+    )
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold">
+        Destinatarios
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-600">
+        Resolución{' '}
+        {resolution.resolution_no}:{' '}
+        {resolution.recipient_count}{' '}
+        en total,{' '}
+        {
+          resolution.included_recipient_count
+        }{' '}
+        incluidos,{' '}
+        {
+          resolution.excluded_recipient_count
+        }{' '}
+        excluidos y{' '}
+        {
+          resolution.duplicate_recipient_count
+        }{' '}
+        duplicados.
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Sin Email:{' '}
+        {
+          resolution.person_email_unavailable_count
+        }{' '}
+        · sin WhatsApp:{' '}
+        {
+          resolution.person_whatsapp_unavailable_count
+        }{' '}
+        · organizaciones sin canal institucional:{' '}
+        {
+          resolution.unsupported_organization_count
+        }
+      </p>
+
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <h3 className="font-semibold text-slate-950">
+          Procedencia de la audiencia
+        </h3>
+
+        {!allRecipientsLoaded ? (
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cargá todas las páginas de
+            destinatarios y dejá vacía la
+            búsqueda para ver el desglose
+            completo por criterio.
+          </p>
+        ) : (
+          <>
+            <div className="mt-3 grid gap-2">
+              {sourceSummary.length >
+              0 ? (
+                sourceSummary.map(
+                  ({
+                    criterion,
+                    count,
+                  }) => (
+                    <div
+                      key={
+                        criterion.criterion_id
+                      }
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium text-slate-700">
+                        {criterionSourceLabel(
+                          criterion,
+                          criterionLabels
+                        )}
+                      </span>
+
+                      <strong className="text-slate-950">
+                        {count}{' '}
+                        {count === 1
+                          ? 'destinatario'
+                          : 'destinatarios'}
+                      </strong>
+                    </div>
+                  )
+                )
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No hay procedencias
+                  automáticas para mostrar.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
+              <span>
+                <strong>
+                  Destinatarios únicos:
+                </strong>{' '}
+                {
+                  resolution.recipient_count
+                }
+              </span>
+
+              <span>
+                <strong>
+                  Alcanzados por más de un criterio:
+                </strong>{' '}
+                {multipleSourceCount}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <input
+        type="search"
+        value={list.query}
+        onFocus={list.open}
+        onChange={(event) =>
+          list.setQuery(
+            event.target.value
+          )
+        }
+        placeholder="Buscar destinatario..."
+        className="mt-4 min-h-10 w-full rounded-lg border border-slate-300 px-3"
+      />
+
+      {list.items.map(
+        (recipient) => (
+          <Recipient
+            key={
+              recipient.recipient_id
+            }
+            communicationId={
+              communication.communication_id
+            }
+            recipient={
+              recipient
+            }
+            editable={
+              editable
+            }
+            criterionById={
+              criterionById
+            }
+            criterionLabels={
+              criterionLabels
+            }
+            onChanged={() =>
+              setRevision(
+                (value) =>
+                  value + 1
+              )
+            }
+          />
+        )
+      )}
+
+      <RemoteListPagination
+        key={list.paginationKey}
+        hasMore={list.hasMore}
+        loadingMore={
+          list.loadingMore
+        }
+        error={
+          list.loadMoreError
+        }
+        onLoadMore={
+          list.loadMore
+        }
+      />
+
+      {editable ? (
+        <ManualPersonForm
+          communicationId={
+            communication.communication_id
+          }
+          resolutionId={
+            resolution.resolution_id
+          }
+          existingIds={
+            list.items.flatMap(
+              (recipient) =>
+                recipient.person_id
+                  ? [
+                      recipient.person_id,
+                    ]
+                  : []
+            )
+          }
+          onChanged={() =>
+            setRevision(
+              (value) =>
+                value + 1
+            )
+          }
+        />
+      ) : null}
+
+      {editable ? (
+        <form
+          action={confirm}
+          noValidate
+          className="mt-5 rounded-xl bg-emerald-50 p-4"
+        >
+          <p className="font-semibold text-emerald-950">
+            La confirmación abarca la
+            resolución completa. No realiza
+            ningún envío.
+          </p>
+
+          {!canConfirm ? (
+            <p
+              role="status"
+              className="mt-2 text-sm text-emerald-900"
+            >
+              Esperá la carga inicial,
+              cargá todas las páginas y
+              borrá la búsqueda antes de
+              confirmar destinatarios.
+            </p>
+          ) : null}
+
+          {state.message ? (
+            <p
+              role={
+                state.status === 'error'
+                  ? 'alert'
+                  : 'status'
+              }
+              className={
+                state.status === 'error'
+                  ? 'mt-2 text-sm text-red-700'
+                  : 'mt-2 text-sm text-emerald-950'
+              }
+            >
+              {state.message}
+            </p>
+          ) : null}
+
+          <button
+            disabled={
+              confirming ||
+              !canConfirm
+            }
+            className="ux-button mt-3 min-h-11 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {confirming
+              ? 'Confirmando...'
+              : 'Confirmar destinatarios'}
+          </button>
+        </form>
+      ) : (
+        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-950">
+          Destinatarios confirmados. El
+          envío externo no está habilitado.
+        </p>
+      )}
+    </section>
+  )
 }
 
 function ManualPersonForm({ communicationId, resolutionId, existingIds, onChanged }: { communicationId: string; resolutionId: string; existingIds: string[]; onChanged: () => void }) { const [selected, setSelected] = useState<CanonicalActorReference | null>(null); const [reason, setReason] = useState(''); const [error, setError] = useState<string | null>(null); const [state, action, pending] = useActionState(addManualPersonAction.bind(null, communicationId, resolutionId), initial); useEffect(() => { if (state.status === 'success') onChanged() }, [onChanged, state.status]); const fetchPage = useCallback(async ({ query, cursor, signal }: { query: string; cursor: string | null; signal: AbortSignal }) => { const params = new URLSearchParams({ mode: 'reference', actor_type: 'person', q: query, limit: '50' }); if (cursor) params.set('cursor', cursor); const response = await fetch(`/api/panel/oportunidades/actores?${params}`, { signal }); if (!response.ok) throw new Error('No se pudo cargar Personas.'); return await response.json() as RemoteReferencePage<CanonicalActorReference> }, []); const people = useRemoteReferenceList({ contextKey: 'manual-communication-person', getItemKey: (item) => item.actor_id, fetchPage }); const excluded = new Set(existingIds); return <form action={action} noValidate onSubmit={(event) => { if (!selected || reason.trim().length < 3) { event.preventDefault(); setError('Elegí una Persona canónica e indicá un motivo de al menos 3 caracteres.') } }} className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-semibold">Agregar Persona canónica</p><p className="mt-1 text-sm text-slate-600">Sólo se agrega a esta resolución; no crea una Persona ni una relación de dominio.</p><input type="hidden" name="person_id" value={selected?.actor_id ?? ''} /><ReferenceListDialog buttonClassName="mt-3" title="Personas canónicas" description="Buscá o explorá Personas existentes." items={people.items.filter((person) => !excluded.has(person.actor_id))} getItemKey={(person) => person.actor_id} getItemSearchText={(person) => person.display_name} emptyMessage="No hay Personas disponibles." onOpen={people.open} onSelect={setSelected} renderItem={(person) => <strong>{person.display_name}</strong>} remote={{ ...people, autoLoad: true, onQueryChange: people.setQuery, onLoadMore: people.loadMore, onRetry: people.retry }} /><p role="status" className="mt-2 text-sm">{selected ? `Seleccionada: ${selected.display_name}` : 'Sin Persona seleccionada.'}</p><label className="mt-2 block text-sm">Motivo<input name="reason" value={reason} onChange={(event) => { setReason(event.target.value); setError(null) }} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3" /></label>{error || state.message ? <p role="alert" className="mt-2 text-sm text-red-700">{error ?? state.message}</p> : null}<button disabled={pending || !selected} className="ux-button mt-3 min-h-10 rounded-lg bg-[#1E3A5F] px-3 text-sm font-semibold text-white disabled:opacity-60">{pending ? 'Agregando...' : 'Agregar Persona'}</button></form> }
 
-function Recipient({ communicationId, recipient, editable, onChanged }: { communicationId: string; recipient: CommunicationRecipient; editable: boolean; onChanged: () => void }) {
-  const [reason, setReason] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [state, action, pending] = useActionState(setRecipientIncludedAction.bind(null, communicationId, recipient.recipient_id, !recipient.included), initial)
-  useEffect(() => { if (state.status === 'success') onChanged() }, [onChanged, state.status])
+function Recipient({
+  communicationId,
+  recipient,
+  editable,
+  criterionById,
+  criterionLabels,
+  onChanged,
+}: {
+  communicationId: string
+  recipient: CommunicationRecipient
+  editable: boolean
+  criterionById: Map<
+    string,
+    CommunicationCriterion
+  >
+  criterionLabels: Record<
+    string,
+    string
+  >
+  onChanged: () => void
+}) {
+  const [reason, setReason] =
+    useState('')
+
+  const [error, setError] =
+    useState<string | null>(null)
+
+  const [
+    state,
+    action,
+    pending,
+  ] = useActionState(
+    setRecipientIncludedAction.bind(
+      null,
+      communicationId,
+      recipient.recipient_id,
+      !recipient.included
+    ),
+    initial
+  )
+
+  useEffect(() => {
+    if (
+      state.status === 'success'
+    ) {
+      onChanged()
+    }
+  }, [
+    onChanged,
+    state.status,
+  ])
 
   const kindLabel =
-    recipient.recipient_kind === 'person'
+    recipient.recipient_kind ===
+    'person'
       ? 'Persona'
-      : recipient.recipient_kind === 'organization'
+      : recipient.recipient_kind ===
+          'organization'
         ? 'Organización'
-        : recipient.recipient_kind === 'internal_user'
+        : recipient.recipient_kind ===
+            'internal_user'
           ? 'Usuario interno'
           : 'Destinatario'
 
-  const availabilityLabel = (status: string, channel: 'email' | 'whatsapp') => {
-    if (status === 'available_verified') return 'Disponible verificado'
-    if (status === 'available_unverified') return 'Disponible sin verificar'
-    if (status === 'missing') return channel === 'email' ? 'Sin email' : 'Sin WhatsApp'
-    if (status === 'restricted') return 'Restringido'
-    if (status === 'unsupported_recipient') return 'No disponible para este destinatario'
+  const availabilityLabel = (
+    status: string,
+    channel:
+      | 'email'
+      | 'whatsapp'
+  ) => {
+    if (
+      status ===
+      'available_verified'
+    ) {
+      return 'Disponible verificado'
+    }
+
+    if (
+      status ===
+      'available_unverified'
+    ) {
+      return 'Disponible sin verificar'
+    }
+
+    if (status === 'missing') {
+      return channel === 'email'
+        ? 'Sin email'
+        : 'Sin WhatsApp'
+    }
+
+    if (
+      status === 'restricted'
+    ) {
+      return 'Restringido'
+    }
+
+    if (
+      status ===
+      'unsupported_recipient'
+    ) {
+      return 'No disponible para este destinatario'
+    }
+
     return 'Estado no disponible'
   }
 
-  const emailLabel = availabilityLabel(recipient.email_availability_status, 'email')
-  const whatsappLabel = availabilityLabel(recipient.whatsapp_availability_status, 'whatsapp')
+  const emailLabel =
+    availabilityLabel(
+      recipient.email_availability_status,
+      'email'
+    )
 
-  return <article className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><strong>{recipient.display_name_snapshot}</strong><p className="text-xs text-slate-500">{kindLabel} · Email: {emailLabel} · WhatsApp: {whatsappLabel}</p>{editable ? <form action={action} noValidate onSubmit={(e) => { if (reason.trim().length < 3) { e.preventDefault(); setError('Indicá un motivo de al menos 3 caracteres.') } }} className="mt-2 flex gap-2"><input name="reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo" className="min-h-9 flex-1 rounded-lg border border-slate-300 px-2 text-sm" /><button disabled={pending} className="ux-button rounded-lg border px-3 text-sm">{recipient.included ? 'Excluir' : 'Reincorporar'}</button></form> : null}{error || state.message ? <p role="alert" className="mt-1 text-xs text-red-700">{error ?? state.message}</p> : null}</article>
+  const whatsappLabel =
+    availabilityLabel(
+      recipient.whatsapp_availability_status,
+      'whatsapp'
+    )
+
+  const provenance =
+    getRecipientSources(
+      recipient
+    ).map((source) =>
+      sourceLabel(
+        source,
+        criterionById,
+        criterionLabels
+      )
+    )
+
+  return (
+    <article className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <strong>
+        {
+          recipient.display_name_snapshot
+        }
+      </strong>
+
+      <p className="text-xs text-slate-500">
+        {kindLabel} · Email:{' '}
+        {emailLabel} · WhatsApp:{' '}
+        {whatsappLabel}
+      </p>
+
+      {provenance.length > 0 ? (
+        <p className="mt-2 text-xs leading-5 text-[#1E3A5F]">
+          <strong>
+            Incluido por:
+          </strong>{' '}
+          {provenance.join(' · ')}
+        </p>
+      ) : null}
+
+      {editable ? (
+        <form
+          action={action}
+          noValidate
+          onSubmit={(event) => {
+            if (
+              reason.trim().length < 3
+            ) {
+              event.preventDefault()
+              setError(
+                'Indicá un motivo de al menos 3 caracteres.'
+              )
+            }
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            name="reason"
+            value={reason}
+            onChange={(event) => {
+              setReason(
+                event.target.value
+              )
+              setError(null)
+            }}
+            placeholder="Motivo"
+            className="min-h-9 flex-1 rounded-lg border border-slate-300 px-2 text-sm"
+          />
+
+          <button
+            disabled={pending}
+            className="ux-button rounded-lg border px-3 text-sm"
+          >
+            {recipient.included
+              ? 'Excluir'
+              : 'Reincorporar'}
+          </button>
+        </form>
+      ) : null}
+
+      {error ||
+      state.message ? (
+        <p
+          role="alert"
+          className="mt-1 text-xs text-red-700"
+        >
+          {error ??
+            state.message}
+        </p>
+      ) : null}
+    </article>
+  )
 }
 
 export function CommunicationWorkspace({
@@ -1218,6 +2016,10 @@ export function CommunicationWorkspace({
           <Recipients
             communication={communication}
             resolution={resolution}
+            criteria={criteria}
+            criterionLabels={
+              criterionLabels
+            }
           />
         ) : null}
       </div>

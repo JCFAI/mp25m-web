@@ -70,6 +70,91 @@ function replaceUnionSelections(
   return [...retained, ...added]
 }
 
+function replaceSharedSkillSelections(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  values: string[]
+) {
+  const existing =
+    items.filter(
+      (item) =>
+        item.criterion_type ===
+          type &&
+        item.criterion_operation ===
+          'include'
+    )
+
+  const template =
+    existing[0]
+
+  const retained =
+    items.filter(
+      (item) =>
+        !(
+          item.criterion_type ===
+            type &&
+          item.criterion_operation ===
+            'include'
+        )
+    )
+
+  let group =
+    nextGroup(retained)
+
+  const added =
+    values.map(
+      (
+        skillId,
+        index
+      ): Draft => ({
+        group_no:
+          existing[index]
+            ?.group_no ??
+          group++,
+        criterion_type:
+          type,
+        criterion_operation:
+          'include',
+        skill_id:
+          skillId,
+        node_id:
+          template?.node_id,
+        verification_statuses:
+          template
+            ?.verification_statuses ??
+          ['confirmed'],
+      })
+    )
+
+  return [
+    ...retained,
+    ...added,
+  ]
+}
+
+function updateSharedSkillRules(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  values: Partial<Draft>
+) {
+  return items.map(
+    (item) =>
+      item.criterion_type ===
+        type &&
+      item.criterion_operation ===
+        'include'
+        ? {
+            ...item,
+            ...values,
+          }
+        : item
+  )
+}
+
 function addAudienceRule(
   items: Draft[],
   type: CriterionType
@@ -261,8 +346,6 @@ function Audience({
 
   const [items, setItems] = useState<Draft[]>(criteria.map(toDraft))
   const [error, setError] = useState<string | null>(null)
-  const [autoOpenGroup, setAutoOpenGroup] =
-    useState<number | null>(null)
 
   const [state, action, pending] = useActionState(
     replaceAudienceAction.bind(null, communication.communication_id),
@@ -461,6 +544,42 @@ function Audience({
         item.criterion_operation === 'include'
     )
 
+  const skillIds =
+    skillRules.flatMap(
+      ({ item }) =>
+        item.skill_id
+          ? [item.skill_id]
+          : []
+    )
+
+  const skillNodeId =
+    skillRules[0]
+      ?.item.node_id ?? ''
+
+  const skillStatuses =
+    skillRules[0]
+      ?.item
+      .verification_statuses ??
+    ['confirmed']
+
+  const capabilityIds =
+    capabilityRules.flatMap(
+      ({ item }) =>
+        item.skill_id
+          ? [item.skill_id]
+          : []
+    )
+
+  const capabilityNodeId =
+    capabilityRules[0]
+      ?.item.node_id ?? ''
+
+  const capabilityStatuses =
+    capabilityRules[0]
+      ?.item
+      .verification_statuses ??
+    ['confirmed']
+
   const additionalRules = items
     .map((item, index) => ({ item, index }))
     .filter(
@@ -594,64 +713,38 @@ function Audience({
         </div>
 
         <div className="grid items-start gap-4 xl:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-slate-900">
-                Personas por habilidad
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                La búsqueda puede abarcar todo MP25M o limitarse a un Nodo.
-              </p>
-            </div>
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">
+              Personas por habilidad
+            </h3>
 
-            <button
-              type="button"
-              onClick={() => {
-                const groupNo = nextGroup(items)
-                setAutoOpenGroup(groupNo)
-                setItems(
-                  addAudienceRule(
-                    items,
-                    'person_skill'
-                  )
-                )
-              }}
-              className="ux-button rounded-xl border border-[#2F5D8C]/30 px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
-            >
-              Agregar habilidad
-            </button>
-          </div>
-
-          {skillRules.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">
-              No agregaste filtros por habilidad.
+            <p className="mt-1 text-sm text-slate-500">
+              Elegí una o varias habilidades. Se incluirán Personas
+              que tengan cualquiera de las habilidades seleccionadas.
             </p>
-          ) : (
-            <div className="mt-4 space-y-4">
-              {skillRules.map(({ item, index }) => (
-                <div
-                  key={`${item.group_no}-${index}`}
-                  className="rounded-xl bg-slate-50 p-4"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Habilidad
-                  </p>
 
-                  <CommunicationReferencePicker
-                    kind="person_skill"
-                    value={item.skill_id ?? ''}
-                    openOnMount={
-                      autoOpenGroup === item.group_no
-                    }
-                    onChange={(value) => {
-                      update(index, {
-                        skill_id: value,
-                      })
-                      setAutoOpenGroup(null)
-                    }}
-                  />
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Habilidades
+              </p>
 
+              <CommunicationMultiReferencePicker
+                kind="person_skill"
+                values={skillIds}
+                onChange={(values) =>
+                  setItems(
+                    (current) =>
+                      replaceSharedSkillSelections(
+                        current,
+                        'person_skill',
+                        values
+                      )
+                  )
+                }
+              />
+
+              {skillIds.length > 0 ? (
+                <>
                   <div className="mt-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Alcance territorial
@@ -663,21 +756,40 @@ function Audience({
 
                     <CommunicationReferencePicker
                       kind="node"
-                      value={item.node_id ?? ''}
+                      value={
+                        skillNodeId
+                      }
                       onChange={(value) =>
-                        update(index, {
-                          node_id: value || undefined,
-                        })
+                        setItems(
+                          (current) =>
+                            updateSharedSkillRules(
+                              current,
+                              'person_skill',
+                              {
+                                node_id:
+                                  value ||
+                                  undefined,
+                              }
+                            )
+                        )
                       }
                     />
 
-                    {item.node_id ? (
+                    {skillNodeId ? (
                       <button
                         type="button"
                         onClick={() =>
-                          update(index, {
-                            node_id: undefined,
-                          })
+                          setItems(
+                            (current) =>
+                              updateSharedSkillRules(
+                                current,
+                                'person_skill',
+                                {
+                                  node_id:
+                                    undefined,
+                                }
+                              )
+                          )
                         }
                         className="ux-button mt-2 text-sm font-semibold text-[#1E3A5F]"
                       >
@@ -692,119 +804,115 @@ function Audience({
                     </legend>
 
                     {[
-                      ['confirmed', 'Confirmada'],
-                      ['candidate', 'Candidata'],
-                      ['self_reported', 'Autodeclarada'],
-                    ].map(([value, label]) => {
-                      const current =
-                        item.verification_statuses ??
-                        ['confirmed']
-
-                      return (
+                      [
+                        'confirmed',
+                        'Confirmada',
+                      ],
+                      [
+                        'candidate',
+                        'Candidata',
+                      ],
+                      [
+                        'self_reported',
+                        'Autodeclarada',
+                      ],
+                    ].map(
+                      ([
+                        value,
+                        label,
+                      ]) => (
                         <label
-                          key={value}
+                          key={
+                            value
+                          }
                           className="mr-4 mt-2 inline-flex items-center gap-2 text-sm"
                         >
                           <input
                             type="checkbox"
-                            checked={current.includes(value)}
-                            onChange={() =>
-                              update(index, {
-                                verification_statuses:
-                                  current.includes(value)
-                                    ? current.filter(
-                                        (status) =>
-                                          status !== value
-                                      )
-                                    : [...current, value],
-                              })
+                            checked={
+                              skillStatuses.includes(
+                                value
+                              )
                             }
+                            onChange={() => {
+                              const statuses =
+                                skillStatuses.includes(
+                                  value
+                                )
+                                  ? skillStatuses.filter(
+                                      (
+                                        status
+                                      ) =>
+                                        status !==
+                                        value
+                                    )
+                                  : [
+                                      ...skillStatuses,
+                                      value,
+                                    ]
+
+                              setItems(
+                                (
+                                  current
+                                ) =>
+                                  updateSharedSkillRules(
+                                    current,
+                                    'person_skill',
+                                    {
+                                      verification_statuses:
+                                        statuses,
+                                    }
+                                  )
+                              )
+                            }}
                           />
+
                           {label}
                         </label>
                       )
-                    })}
+                    )}
                   </fieldset>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItems((current) =>
-                        current.filter(
-                          (_, itemIndex) =>
-                            itemIndex !== index
-                        )
-                      )
-                    }
-                    className="ux-button mt-4 text-sm font-semibold text-red-700"
-                  >
-                    Quitar habilidad
-                  </button>
-                </div>
-              ))}
+                </>
+              ) : null}
             </div>
-          )}
-        </section>
+          </section>
 
-        <section className="rounded-2xl border border-slate-200 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-slate-900">
-                Organizaciones por capacidad
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Podés buscar en toda la organización o limitar
-                la capacidad a un Nodo.
-              </p>
-            </div>
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">
+              Organizaciones por capacidad
+            </h3>
 
-            <button
-              type="button"
-              onClick={() => {
-                const groupNo = nextGroup(items)
-                setAutoOpenGroup(groupNo)
-                setItems(
-                  addAudienceRule(
-                    items,
-                    'organization_capability'
-                  )
-                )
-              }}
-              className="ux-button rounded-xl border border-[#2F5D8C]/30 px-3 py-2 text-sm font-semibold text-[#1E3A5F]"
-            >
-              Agregar capacidad
-            </button>
-          </div>
-
-          {capabilityRules.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">
-              No agregaste filtros por capacidad.
+            <p className="mt-1 text-sm text-slate-500">
+              Elegí una o varias capacidades. Se incluirán
+              Organizaciones que tengan cualquiera de las capacidades
+              seleccionadas.
             </p>
-          ) : (
-            <div className="mt-4 space-y-4">
-              {capabilityRules.map(({ item, index }) => (
-                <div
-                  key={`${item.group_no}-${index}`}
-                  className="rounded-xl bg-slate-50 p-4"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Capacidad
-                  </p>
 
-                  <CommunicationReferencePicker
-                    kind="organization_capability"
-                    value={item.skill_id ?? ''}
-                    openOnMount={
-                      autoOpenGroup === item.group_no
-                    }
-                    onChange={(value) => {
-                      update(index, {
-                        skill_id: value,
-                      })
-                      setAutoOpenGroup(null)
-                    }}
-                  />
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Capacidades
+              </p>
 
+              <CommunicationMultiReferencePicker
+                kind="organization_capability"
+                values={
+                  capabilityIds
+                }
+                onChange={(values) =>
+                  setItems(
+                    (current) =>
+                      replaceSharedSkillSelections(
+                        current,
+                        'organization_capability',
+                        values
+                      )
+                  )
+                }
+              />
+
+              {capabilityIds.length >
+              0 ? (
+                <>
                   <div className="mt-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Alcance territorial
@@ -816,21 +924,40 @@ function Audience({
 
                     <CommunicationReferencePicker
                       kind="node"
-                      value={item.node_id ?? ''}
+                      value={
+                        capabilityNodeId
+                      }
                       onChange={(value) =>
-                        update(index, {
-                          node_id: value || undefined,
-                        })
+                        setItems(
+                          (current) =>
+                            updateSharedSkillRules(
+                              current,
+                              'organization_capability',
+                              {
+                                node_id:
+                                  value ||
+                                  undefined,
+                              }
+                            )
+                        )
                       }
                     />
 
-                    {item.node_id ? (
+                    {capabilityNodeId ? (
                       <button
                         type="button"
                         onClick={() =>
-                          update(index, {
-                            node_id: undefined,
-                          })
+                          setItems(
+                            (current) =>
+                              updateSharedSkillRules(
+                                current,
+                                'organization_capability',
+                                {
+                                  node_id:
+                                    undefined,
+                                }
+                              )
+                          )
                         }
                         className="ux-button mt-2 text-sm font-semibold text-[#1E3A5F]"
                       >
@@ -845,59 +972,78 @@ function Audience({
                     </legend>
 
                     {[
-                      ['confirmed', 'Confirmada'],
-                      ['candidate', 'Candidata'],
-                      ['self_reported', 'Autodeclarada'],
-                    ].map(([value, label]) => {
-                      const current =
-                        item.verification_statuses ??
-                        ['confirmed']
-
-                      return (
+                      [
+                        'confirmed',
+                        'Confirmada',
+                      ],
+                      [
+                        'candidate',
+                        'Candidata',
+                      ],
+                      [
+                        'self_reported',
+                        'Autodeclarada',
+                      ],
+                    ].map(
+                      ([
+                        value,
+                        label,
+                      ]) => (
                         <label
-                          key={value}
+                          key={
+                            value
+                          }
                           className="mr-4 mt-2 inline-flex items-center gap-2 text-sm"
                         >
                           <input
                             type="checkbox"
-                            checked={current.includes(value)}
-                            onChange={() =>
-                              update(index, {
-                                verification_statuses:
-                                  current.includes(value)
-                                    ? current.filter(
-                                        (status) =>
-                                          status !== value
-                                      )
-                                    : [...current, value],
-                              })
+                            checked={
+                              capabilityStatuses.includes(
+                                value
+                              )
                             }
+                            onChange={() => {
+                              const statuses =
+                                capabilityStatuses.includes(
+                                  value
+                                )
+                                  ? capabilityStatuses.filter(
+                                      (
+                                        status
+                                      ) =>
+                                        status !==
+                                        value
+                                    )
+                                  : [
+                                      ...capabilityStatuses,
+                                      value,
+                                    ]
+
+                              setItems(
+                                (
+                                  current
+                                ) =>
+                                  updateSharedSkillRules(
+                                    current,
+                                    'organization_capability',
+                                    {
+                                      verification_statuses:
+                                        statuses,
+                                    }
+                                  )
+                              )
+                            }}
                           />
+
                           {label}
                         </label>
                       )
-                    })}
+                    )}
                   </fieldset>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItems((current) =>
-                        current.filter(
-                          (_, itemIndex) =>
-                            itemIndex !== index
-                        )
-                      )
-                    }
-                    className="ux-button mt-4 text-sm font-semibold text-red-700"
-                  >
-                    Quitar capacidad
-                  </button>
-                </div>
-              ))}
+                </>
+              ) : null}
             </div>
-          )}
-        </section>
+          </section>
         </div>
 
         <section className="rounded-2xl border border-slate-200 p-4">

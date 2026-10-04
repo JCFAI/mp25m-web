@@ -105,14 +105,8 @@ function replaceSharedSkillSelections(
 
   const added =
     values.map(
-      (
-        skillId,
-        index
-      ): Draft => ({
-        group_no:
-          existing[index]
-            ?.group_no ??
-          group++,
+      (skillId): Draft => ({
+        group_no: group++,
         criterion_type:
           type,
         criterion_operation:

@@ -70,12 +70,27 @@ function replaceUnionSelections(
   return [...retained, ...added]
 }
 
-function replaceSharedSkillSelections(
+function uniqueStrings(
+  values: Array<string | undefined>
+) {
+  return [
+    ...new Set(
+      values.filter(
+        (value): value is string =>
+          typeof value === 'string' &&
+          value.length > 0
+      )
+    ),
+  ]
+}
+
+function rebuildSharedSkillRules(
   items: Draft[],
   type:
     | 'person_skill'
     | 'organization_capability',
-  values: string[]
+  skillIds: string[],
+  nodeIds: string[]
 ) {
   const existing =
     items.filter(
@@ -103,29 +118,101 @@ function replaceSharedSkillSelections(
   let group =
     nextGroup(retained)
 
+  const scopes:
+    Array<string | undefined> =
+      nodeIds.length > 0
+        ? nodeIds
+        : [undefined]
+
   const added =
-    values.map(
-      (skillId): Draft => ({
-        group_no: group++,
-        criterion_type:
-          type,
-        criterion_operation:
-          'include',
-        skill_id:
-          skillId,
-        node_id:
-          template?.node_id,
-        verification_statuses:
-          template
-            ?.verification_statuses ??
-          ['confirmed'],
-      })
+    skillIds.flatMap(
+      (skillId) =>
+        scopes.map(
+          (nodeId): Draft => ({
+            group_no:
+              group++,
+            criterion_type:
+              type,
+            criterion_operation:
+              'include',
+            skill_id:
+              skillId,
+            node_id:
+              nodeId,
+            verification_statuses:
+              template
+                ?.verification_statuses ??
+              ['confirmed'],
+          })
+        )
     )
 
   return [
     ...retained,
     ...added,
   ]
+}
+
+function replaceSharedSkillSelections(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  skillIds: string[]
+) {
+  const nodeIds =
+    uniqueStrings(
+      items
+        .filter(
+          (item) =>
+            item.criterion_type ===
+              type &&
+            item.criterion_operation ===
+              'include'
+        )
+        .map(
+          (item) =>
+            item.node_id
+        )
+    )
+
+  return rebuildSharedSkillRules(
+    items,
+    type,
+    skillIds,
+    nodeIds
+  )
+}
+
+function replaceSharedSkillNodeSelections(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  nodeIds: string[]
+) {
+  const skillIds =
+    uniqueStrings(
+      items
+        .filter(
+          (item) =>
+            item.criterion_type ===
+              type &&
+            item.criterion_operation ===
+              'include'
+        )
+        .map(
+          (item) =>
+            item.skill_id
+        )
+    )
+
+  return rebuildSharedSkillRules(
+    items,
+    type,
+    skillIds,
+    nodeIds
+  )
 }
 
 function updateSharedSkillRules(
@@ -615,16 +702,20 @@ function Audience({
     )
 
   const skillIds =
-    skillRules.flatMap(
-      ({ item }) =>
-        item.skill_id
-          ? [item.skill_id]
-          : []
+    uniqueStrings(
+      skillRules.map(
+        ({ item }) =>
+          item.skill_id
+      )
     )
 
-  const skillNodeId =
-    skillRules[0]
-      ?.item.node_id ?? ''
+  const skillNodeIds =
+    uniqueStrings(
+      skillRules.map(
+        ({ item }) =>
+          item.node_id
+      )
+    )
 
   const skillStatuses =
     skillRules[0]
@@ -633,16 +724,20 @@ function Audience({
     ['confirmed']
 
   const capabilityIds =
-    capabilityRules.flatMap(
-      ({ item }) =>
-        item.skill_id
-          ? [item.skill_id]
-          : []
+    uniqueStrings(
+      capabilityRules.map(
+        ({ item }) =>
+          item.skill_id
+      )
     )
 
-  const capabilityNodeId =
-    capabilityRules[0]
-      ?.item.node_id ?? ''
+  const capabilityNodeIds =
+    uniqueStrings(
+      capabilityRules.map(
+        ({ item }) =>
+          item.node_id
+      )
+    )
 
   const capabilityStatuses =
     capabilityRules[0]
@@ -824,40 +919,33 @@ function Audience({
                       Sin Nodo seleccionado = todo MP25M.
                     </p>
 
-                    <CommunicationReferencePicker
+                    <CommunicationMultiReferencePicker
                       kind="node"
-                      value={
-                        skillNodeId
+                      values={
+                        skillNodeIds
                       }
-                      onChange={(value) =>
+                      onChange={(values) =>
                         setItems(
                           (current) =>
-                            updateSharedSkillRules(
+                            replaceSharedSkillNodeSelections(
                               current,
                               'person_skill',
-                              {
-                                node_id:
-                                  value ||
-                                  undefined,
-                              }
+                              values
                             )
                         )
                       }
                     />
 
-                    {skillNodeId ? (
+                    {skillNodeIds.length > 0 ? (
                       <button
                         type="button"
                         onClick={() =>
                           setItems(
                             (current) =>
-                              updateSharedSkillRules(
+                              replaceSharedSkillNodeSelections(
                                 current,
                                 'person_skill',
-                                {
-                                  node_id:
-                                    undefined,
-                                }
+                                []
                               )
                           )
                         }
@@ -992,40 +1080,33 @@ function Audience({
                       Sin Nodo seleccionado = todo MP25M.
                     </p>
 
-                    <CommunicationReferencePicker
+                    <CommunicationMultiReferencePicker
                       kind="node"
-                      value={
-                        capabilityNodeId
+                      values={
+                        capabilityNodeIds
                       }
-                      onChange={(value) =>
+                      onChange={(values) =>
                         setItems(
                           (current) =>
-                            updateSharedSkillRules(
+                            replaceSharedSkillNodeSelections(
                               current,
                               'organization_capability',
-                              {
-                                node_id:
-                                  value ||
-                                  undefined,
-                              }
+                              values
                             )
                         )
                       }
                     />
 
-                    {capabilityNodeId ? (
+                    {capabilityNodeIds.length > 0 ? (
                       <button
                         type="button"
                         onClick={() =>
                           setItems(
                             (current) =>
-                              updateSharedSkillRules(
+                              replaceSharedSkillNodeSelections(
                                 current,
                                 'organization_capability',
-                                {
-                                  node_id:
-                                    undefined,
-                                }
+                                []
                               )
                           )
                         }

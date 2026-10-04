@@ -2,7 +2,6 @@
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
 import { ReferenceListDialog } from '../../../components/reference-list-dialog'
-import { RemoteListPagination } from '../../../components/remote-list-pagination'
 import { useRemoteReferenceList, type RemoteReferencePage } from '../../../hooks/use-remote-reference-list'
 import type { CanonicalActorReference } from '../../../lib/opportunities/actors'
 import type { Communication, CommunicationCriterion, CommunicationRecipient, CommunicationResolution, CriterionOperation, CriterionType } from '../../../lib/communications/communications'
@@ -10,6 +9,7 @@ import { addManualPersonAction, confirmRecipientsAction, replaceAudienceAction, 
 import { CommunicationCriterionLabelsContext, CommunicationMultiReferencePicker, CommunicationReferencePicker, type CommunicationReferenceKind } from './reference-picker'
 
 const initial: CommunicationActionState = { status: 'idle', message: null }
+const RECIPIENT_PAGE_SIZE = 25
 const labels: Record<CriterionType, string> = { person: 'Persona explícita', organization: 'Organización explícita', node_participants: 'Participantes directos de Nodo', articulation_participants: 'Participantes directos de Articulación', project_participants: 'Participantes directos de Proyecto', person_skill: 'Personas por habilidad', organization_capability: 'Organizaciones por capacidad', theme_responsibles: 'Responsables de Tema' }
 type Draft = { group_no: number; criterion_type: CriterionType; criterion_operation: CriterionOperation; person_id?: string; organization_id?: string; node_id?: string; articulation_id?: string; project_id?: string; skill_id?: string; theme_id?: string; verification_statuses?: string[] }
 const field = (type: CriterionType) => type === 'person' ? 'person_id' : type === 'organization' ? 'organization_id' : type === 'node_participants' ? 'node_id' : type === 'articulation_participants' ? 'articulation_id' : type === 'project_participants' ? 'project_id' : type === 'theme_responsibles' ? 'theme_id' : 'skill_id'
@@ -1316,6 +1316,17 @@ function Recipients({
     useState(0)
 
   const [
+    paginationView,
+    setPaginationView,
+  ] = useState<{
+    key: string
+    pageIndex: number
+  }>({
+    key: '',
+    pageIndex: 0,
+  })
+
+  const [
     state,
     confirm,
     confirming,
@@ -1344,7 +1355,9 @@ function Recipients({
             resolution_id:
               resolution.resolution_id,
             q: query,
-            limit: '50',
+            limit: String(
+              RECIPIENT_PAGE_SIZE
+            ),
           })
 
         if (cursor) {
@@ -1387,6 +1400,111 @@ function Recipients({
       fetchPage,
       enabledInitially: true,
     })
+
+  const requestedPageIndex =
+    paginationView.key ===
+    list.paginationKey
+      ? paginationView.pageIndex
+      : 0
+
+  const maxLoadedPageIndex =
+    list.items.length > 0
+      ? Math.floor(
+          (list.items.length - 1) /
+            RECIPIENT_PAGE_SIZE
+        )
+      : 0
+
+  const pageIndex =
+    Math.min(
+      requestedPageIndex,
+      maxLoadedPageIndex
+    )
+
+  const pageStart =
+    pageIndex *
+    RECIPIENT_PAGE_SIZE
+
+  const visibleRecipients =
+    list.items.slice(
+      pageStart,
+      pageStart +
+        RECIPIENT_PAGE_SIZE
+    )
+
+  const hasLoadedNextPage =
+    list.items.length >
+    pageStart +
+      RECIPIENT_PAGE_SIZE
+
+  const canGoNext =
+    hasLoadedNextPage ||
+    list.hasMore
+
+  const firstVisible =
+    visibleRecipients.length > 0
+      ? pageStart + 1
+      : 0
+
+  const lastVisible =
+    pageStart +
+    visibleRecipients.length
+
+  function scrollRecipientsIntoView() {
+    window.requestAnimationFrame(
+      () => {
+        document
+          .getElementById(
+            'communication-recipient-list'
+          )
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+      }
+    )
+  }
+
+  function goToPreviousRecipientPage() {
+    if (
+      pageIndex === 0 ||
+      list.loadingMore
+    ) {
+      return
+    }
+
+    setPaginationView({
+      key: list.paginationKey,
+      pageIndex:
+        Math.max(
+          0,
+          pageIndex - 1
+        ),
+    })
+
+    scrollRecipientsIntoView()
+  }
+
+  function goToNextRecipientPage() {
+    if (
+      list.loadingMore ||
+      !canGoNext
+    ) {
+      return
+    }
+
+    setPaginationView({
+      key: list.paginationKey,
+      pageIndex:
+        pageIndex + 1,
+    })
+
+    if (!hasLoadedNextPage) {
+      list.loadMore()
+    }
+
+    scrollRecipientsIntoView()
+  }
 
   const editable =
     communication.status ===
@@ -1607,63 +1725,128 @@ function Recipients({
         )}
       </div>
 
-      <input
-        type="search"
-        value={list.query}
-        onFocus={list.open}
-        onChange={(event) =>
-          list.setQuery(
-            event.target.value
-          )
-        }
-        placeholder="Buscar destinatario..."
-        className="mt-4 min-h-10 w-full rounded-lg border border-slate-300 px-3"
-      />
+      <div
+        id="communication-recipient-list"
+        className="scroll-mt-4"
+      >
+        <input
+          type="search"
+          value={list.query}
+          onFocus={list.open}
+          onChange={(event) =>
+            list.setQuery(
+              event.target.value
+            )
+          }
+          placeholder="Buscar destinatario..."
+          className="mt-4 min-h-10 w-full rounded-lg border border-slate-300 px-3"
+        />
 
-      {list.items.map(
-        (recipient) => (
-          <Recipient
-            key={
-              recipient.recipient_id
-            }
-            communicationId={
-              communication.communication_id
-            }
-            recipient={
-              recipient
-            }
-            editable={
-              editable
-            }
-            criterionById={
-              criterionById
-            }
-            criterionLabels={
-              criterionLabels
-            }
-            onChanged={() =>
-              setRevision(
-                (value) =>
-                  value + 1
-              )
-            }
-          />
-        )
-      )}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <p role="status">
+            {list.initialLoading
+              ? 'Cargando destinatarios...'
+              : list.initialError
+                ? list.initialError
+                : list.query
+                  ? `${visibleRecipients.length} resultados en esta página`
+                  : `Mostrando ${firstVisible}–${lastVisible} de ${resolution.recipient_count} destinatarios`}
+          </p>
 
-      <RemoteListPagination
-        key={list.paginationKey}
-        hasMore={list.hasMore}
-        loadingMore={
-          list.loadingMore
-        }
-        error={
-          list.loadMoreError
-        }
-        onLoadMore={
-          list.loadMore
-        }
-      />
+          {!list.initialLoading &&
+          !list.initialError &&
+          visibleRecipients.length > 0 ? (
+            <p className="font-semibold text-slate-600">
+              Página {pageIndex + 1}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-2 space-y-2">
+          {visibleRecipients.map(
+            (recipient) => (
+              <Recipient
+                key={`${recipient.recipient_id}:${recipient.included}`}
+                communicationId={
+                  communication.communication_id
+                }
+                recipient={
+                  recipient
+                }
+                editable={
+                  editable
+                }
+                criterionById={
+                  criterionById
+                }
+                criterionLabels={
+                  criterionLabels
+                }
+                onChanged={() =>
+                  setRevision(
+                    (value) =>
+                      value + 1
+                  )
+                }
+              />
+            )
+          )}
+        </div>
+
+        {list.loadMoreError ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {list.loadMoreError}
+          </p>
+        ) : null}
+
+        {!list.initialLoading &&
+        !list.initialError &&
+        (
+          pageIndex > 0 ||
+          canGoNext
+        ) ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={
+                goToPreviousRecipientPage
+              }
+              disabled={
+                pageIndex === 0 ||
+                list.loadingMore
+              }
+              className="ux-button min-h-10 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 text-sm font-semibold text-[#1E3A5F] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ← Anterior
+            </button>
+
+            <span className="text-sm font-semibold text-slate-600">
+              Página {pageIndex + 1}
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                goToNextRecipientPage
+              }
+              disabled={
+                !canGoNext ||
+                list.loadingMore
+              }
+              className="ux-button min-h-10 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 text-sm font-semibold text-[#1E3A5F] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {list.loadingMore
+                ? 'Cargando...'
+                : list.loadMoreError
+                  ? 'Reintentar siguiente →'
+                  : 'Siguiente →'}
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       {editable ? (
         <ManualPersonForm
@@ -1785,6 +1968,11 @@ function Recipient({
     useState<string | null>(null)
 
   const [
+    showAction,
+    setShowAction,
+  ] = useState(false)
+
+  const [
     state,
     action,
     pending,
@@ -1886,22 +2074,52 @@ function Recipient({
       )
     )
 
-  return (
-    <article className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <strong>
-        {
-          recipient.display_name_snapshot
-        }
-      </strong>
 
-      <p className="text-xs text-slate-500">
-        {kindLabel} · Email:{' '}
-        {emailLabel} · WhatsApp:{' '}
-        {whatsappLabel}
-      </p>
+  return (
+    <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-sm text-slate-950">
+              {recipient.display_name_snapshot}
+            </strong>
+
+            {!recipient.included ? (
+              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                Excluido
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-0.5 text-xs text-slate-500">
+            {kindLabel} · Email: {emailLabel}
+            {' · '}
+            WhatsApp: {whatsappLabel}
+          </p>
+        </div>
+
+        {editable && !showAction ? (
+          <button
+            type="button"
+            onClick={() => {
+              setError(null)
+              setShowAction(true)
+            }}
+            className={
+              recipient.included
+                ? 'ux-button shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50'
+                : 'ux-button shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50'
+            }
+          >
+            {recipient.included
+              ? 'Excluir'
+              : 'Reincorporar'}
+          </button>
+        ) : null}
+      </div>
 
       {provenance.length > 0 ? (
-        <p className="mt-2 text-xs leading-5 text-[#1E3A5F]">
+        <p className="mt-1.5 text-xs leading-5 text-[#1E3A5F]">
           <strong>
             Incluido por:
           </strong>{' '}
@@ -1909,7 +2127,7 @@ function Recipient({
         </p>
       ) : null}
 
-      {editable ? (
+      {editable && showAction ? (
         <form
           action={action}
           noValidate
@@ -1923,37 +2141,76 @@ function Recipient({
               )
             }
           }}
-          className="mt-2 flex gap-2"
+          className="mt-3 rounded-lg border border-slate-200 bg-white p-3"
         >
-          <input
-            name="reason"
-            value={reason}
-            onChange={(event) => {
-              setReason(
-                event.target.value
-              )
-              setError(null)
-            }}
-            placeholder="Motivo"
-            className="min-h-9 flex-1 rounded-lg border border-slate-300 px-2 text-sm"
-          />
+          <label className="block text-xs font-semibold text-slate-600">
+            Motivo
+            <input
+              name="reason"
+              value={reason}
+              autoFocus
+              onChange={(event) => {
+                setReason(
+                  event.target.value
+                )
+                setError(null)
+              }}
+              placeholder={
+                recipient.included
+                  ? 'Motivo de la exclusión'
+                  : 'Motivo de la reincorporación'
+              }
+              className="mt-1 min-h-9 w-full rounded-lg border border-slate-300 px-2 text-sm font-normal"
+            />
+          </label>
 
-          <button
-            disabled={pending}
-            className="ux-button rounded-lg border px-3 text-sm"
-          >
-            {recipient.included
-              ? 'Excluir'
-              : 'Reincorporar'}
-          </button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              disabled={pending}
+              className={
+                recipient.included
+                  ? 'ux-button rounded-lg bg-red-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60'
+                  : 'ux-button rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60'
+              }
+            >
+              {pending
+                ? 'Guardando...'
+                : recipient.included
+                  ? 'Confirmar exclusión'
+                  : 'Confirmar reincorporación'}
+            </button>
+
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setReason('')
+                setError(null)
+                setShowAction(false)
+              }}
+              className="ux-button rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+          </div>
         </form>
       ) : null}
 
       {error ||
       state.message ? (
         <p
-          role="alert"
-          className="mt-1 text-xs text-red-700"
+          role={
+            state.status === 'error' ||
+            error
+              ? 'alert'
+              : 'status'
+          }
+          className={
+            state.status === 'error' ||
+            error
+              ? 'mt-2 text-xs text-red-700'
+              : 'mt-2 text-xs text-emerald-700'
+          }
         >
           {error ??
             state.message}

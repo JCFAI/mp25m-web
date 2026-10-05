@@ -85,7 +85,7 @@ La fecha final será inclusiva desde la perspectiva del usuario.
 - mp25m.opportunities
 - mp25m.opportunity_requirements
 - mp25m_api.opportunity_coverage_summary_list
-- mp25m.opportunity_coverage_snapshot_requirements
+- mp25m_api.opportunity_requirement_current_coverage_list
 - mp25m.opportunity_requirement_matches
 - mp25m.opportunity_gaps
 - mp25m.opportunity_followups
@@ -182,20 +182,39 @@ La respuesta incluirá además la cantidad de Oportunidades participantes.
 
 ### Requerimientos
 
-Se utilizará el último snapshot de cada Oportunidad.
+Para representar el estado operativo actual se utilizará:
 
-Fuente:
+    mp25m_api.opportunity_requirement_current_coverage_list
 
-    opportunity_coverage_snapshot_requirements.network_coverage_status
+Esta vista de sólo lectura se incorpora mediante:
+
+    supabase/migrations/20261005133500_incremento_13a_current_coverage_read_model.sql
+
+El universo está compuesto por requerimientos activos cuya revisión vigente se
+encuentra validada.
+
+La conclusión de cobertura para Red MP25M se toma exclusivamente de:
+
+    network_coverage_status
 
 Mapeo:
 
 - covered → Cubierto
 - partial → Parcialmente cubierto
 - missing → Faltante
-- NULL → No evaluado
 
-NULL no deberá convertirse en missing.
+La ausencia de una evaluación vigente se identifica mediante:
+
+    coverage_evaluation_id IS NULL
+
+y se representa como:
+
+- No evaluado
+
+No evaluado no deberá convertirse ni inferirse como missing.
+
+Los snapshots históricos no se utilizarán para esta clasificación del corte
+actual.
 
 ### Coincidencias
 
@@ -391,7 +410,7 @@ Responsabilidades:
 - validar filtros;
 - normalizar fechas;
 - ejecutar consultas agregadas;
-- seleccionar snapshots vigentes;
+- seleccionar lecturas vigentes de cobertura;
 - calcular porcentajes;
 - devolver estructuras tipadas;
 - mantener las reglas funcionales fuera de los componentes visuales.
@@ -444,7 +463,7 @@ Para completitud:
 
     Completitud promedio
     74 %
-    6 oportunidades con snapshot válido
+    6 oportunidades incluidas en el cálculo
 
 ## 16. Estados sin datos
 

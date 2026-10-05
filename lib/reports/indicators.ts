@@ -56,6 +56,9 @@ export type OpportunitySummary = {
 export type RequirementSummary = {
   active: number
   evaluated: number
+  covered: number
+  partial: number
+  missing: number
   unevaluated: number
   currentMatches: number
   suggestedMatches: number
@@ -98,6 +101,16 @@ type CoverageSummaryRow = {
   active_requirement_count: number
   evaluated_requirement_count: number
   unevaluated_requirement_count: number
+}
+
+type CurrentCoverageRow = {
+  opportunity_id: string
+  coverage_evaluation_id: string | null
+  network_coverage_status:
+    | 'covered'
+    | 'partial'
+    | 'missing'
+    | null
 }
 
 const ACTIVE_OPPORTUNITY_STATUSES = [
@@ -603,10 +616,14 @@ async function getBaseReportsDashboard(
   let coverageRows:
     CoverageSummaryRow[] = []
 
+  let currentCoverageRows:
+    CurrentCoverageRow[] = []
+
   if (activeOpportunityIds.length) {
     const [
       requirementResult,
       coverageResult,
+      currentCoverageResult,
       followupResult,
     ] = await Promise.all([
       supabase
@@ -641,6 +658,19 @@ async function getBaseReportsDashboard(
 
       supabase
         .from(
+          'opportunity_requirement_current_coverage_list'
+        )
+        .select(
+          'opportunity_id, coverage_evaluation_id, network_coverage_status'
+        )
+        .in(
+          'opportunity_id',
+          activeOpportunityIds
+        )
+        .limit(10000),
+
+      supabase
+        .from(
           'opportunity_history'
         )
         .select(
@@ -665,6 +695,11 @@ async function getBaseReportsDashboard(
     fail(
       coverageResult.error,
       'Unable to load current coverage summaries'
+    )
+
+    fail(
+      currentCoverageResult.error,
+      'Unable to load current requirement coverage'
     )
 
     fail(
@@ -712,6 +747,12 @@ async function getBaseReportsDashboard(
         coverageResult.data ??
         []
       ) as CoverageSummaryRow[]
+
+    currentCoverageRows =
+      (
+        currentCoverageResult.data ??
+        []
+      ) as CurrentCoverageRow[]
   }
 
   const completenessValues =
@@ -739,28 +780,42 @@ async function getBaseReportsDashboard(
       : null
 
   const activeRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.active_requirement_count,
-      0
-    )
+    currentCoverageRows.length
 
   const evaluatedRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.evaluated_requirement_count,
-      0
-    )
+    currentCoverageRows.filter(
+      (row) =>
+        row.coverage_evaluation_id !==
+        null
+    ).length
+
+  const coveredRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'covered'
+    ).length
+
+  const partialRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'partial'
+    ).length
+
+  const missingRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'missing'
+    ).length
 
   const unevaluatedRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.unevaluated_requirement_count,
-      0
-    )
+    currentCoverageRows.filter(
+      (row) =>
+        row.coverage_evaluation_id ===
+        null
+    ).length
 
   const activeOpportunityCount =
     activeOpportunityIds.length
@@ -845,6 +900,15 @@ async function getBaseReportsDashboard(
 
       evaluated:
         evaluatedRequirements,
+
+      covered:
+        coveredRequirements,
+
+      partial:
+        partialRequirements,
+
+      missing:
+        missingRequirements,
 
       unevaluated:
         unevaluatedRequirements,
@@ -1302,10 +1366,14 @@ async function getFilteredReportsDashboard(
   let coverageRows:
     CoverageSummaryRow[] = []
 
+  let currentCoverageRows:
+    CurrentCoverageRow[] = []
+
   if (activeOpportunityIds.length) {
     const [
       requirementResult,
       coverageResult,
+      currentCoverageResult,
       followupResult,
     ] = await Promise.all([
       supabase
@@ -1340,6 +1408,19 @@ async function getFilteredReportsDashboard(
 
       supabase
         .from(
+          'opportunity_requirement_current_coverage_list'
+        )
+        .select(
+          'opportunity_id, coverage_evaluation_id, network_coverage_status'
+        )
+        .in(
+          'opportunity_id',
+          activeOpportunityIds
+        )
+        .limit(10000),
+
+      supabase
+        .from(
           'opportunity_history'
         )
         .select(
@@ -1364,6 +1445,11 @@ async function getFilteredReportsDashboard(
     fail(
       coverageResult.error,
       'Unable to load filtered coverage'
+    )
+
+    fail(
+      currentCoverageResult.error,
+      'Unable to load filtered requirement coverage'
     )
 
     fail(
@@ -1404,6 +1490,12 @@ async function getFilteredReportsDashboard(
         coverageResult.data ??
         []
       ) as CoverageSummaryRow[]
+
+    currentCoverageRows =
+      (
+        currentCoverageResult.data ??
+        []
+      ) as CurrentCoverageRow[]
   }
 
   const completenessValues =
@@ -1431,28 +1523,42 @@ async function getFilteredReportsDashboard(
       : null
 
   const activeRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.active_requirement_count,
-      0
-    )
+    currentCoverageRows.length
 
   const evaluatedRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.evaluated_requirement_count,
-      0
-    )
+    currentCoverageRows.filter(
+      (row) =>
+        row.coverage_evaluation_id !==
+        null
+    ).length
+
+  const coveredRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'covered'
+    ).length
+
+  const partialRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'partial'
+    ).length
+
+  const missingRequirements =
+    currentCoverageRows.filter(
+      (row) =>
+        row.network_coverage_status ===
+        'missing'
+    ).length
 
   const unevaluatedRequirements =
-    coverageRows.reduce(
-      (sum, row) =>
-        sum +
-        row.unevaluated_requirement_count,
-      0
-    )
+    currentCoverageRows.filter(
+      (row) =>
+        row.coverage_evaluation_id ===
+        null
+    ).length
 
   const [
     currentMatches,
@@ -1682,6 +1788,15 @@ async function getFilteredReportsDashboard(
 
       evaluated:
         evaluatedRequirements,
+
+      covered:
+        coveredRequirements,
+
+      partial:
+        partialRequirements,
+
+      missing:
+        missingRequirements,
 
       unevaluated:
         unevaluatedRequirements,

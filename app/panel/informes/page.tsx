@@ -627,15 +627,32 @@ export default async function ReportsPage({
           />
 
           <MetricCard
-            label="Requerimientos evaluados"
-            value={number(report.requirements.evaluated)}
-            detail="Requerimientos activos que poseen evaluación vigente."
+            label="Cubiertos"
+            value={number(report.requirements.covered)}
+            detail="Requerimientos cuya evaluación vigente de Red MP25M indica cobertura completa."
+          />
+
+          <MetricCard
+            label="Parcialmente cubiertos"
+            value={number(report.requirements.partial)}
+            detail="Requerimientos cuya evaluación vigente de Red MP25M indica cobertura parcial."
+          />
+
+          <MetricCard
+            label="Faltantes"
+            value={number(report.requirements.missing)}
+            detail="Requerimientos evaluados como faltantes en Red MP25M. No incluye los no evaluados."
+            tone={
+              report.requirements.missing
+                ? 'attention'
+                : 'default'
+            }
           />
 
           <MetricCard
             label="No evaluados"
             value={number(report.requirements.unevaluated)}
-            detail="No se interpretan como faltantes hasta que exista una evaluación."
+            detail="Requerimientos sin evaluación vigente. No se interpretan como faltantes."
           />
 
           <MetricCard
@@ -723,7 +740,7 @@ export default async function ReportsPage({
         </p>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          La desagregación completa de requerimientos en Cubierto, Parcialmente cubierto y Faltante se incorporará cuando la capa de cobertura de red quede expuesta de forma inequívoca para Informes. Mientras tanto se muestran únicamente evaluados y no evaluados.
+          La cobertura de requerimientos utiliza exclusivamente la evaluación vigente de la capa Red MP25M. Cubiertos, Parcialmente cubiertos y Faltantes son conclusiones explícitas; los requerimientos sin evaluación permanecen separados como No evaluados.
         </p>
       </section>
     </div>

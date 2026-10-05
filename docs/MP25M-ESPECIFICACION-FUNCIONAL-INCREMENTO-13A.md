@@ -190,18 +190,30 @@ La interfaz deberá mostrar:
 
 ## 8. Estado de requerimientos
 
-Se utilizará el último snapshot de cobertura de cada oportunidad y la lectura:
+Para el corte operativo actual se utilizará la lectura vigente por requerimiento
+expuesta por:
 
-`network_mp25m`
+`mp25m_api.opportunity_requirement_current_coverage_list`
+
+El universo estará compuesto por requerimientos activos cuya revisión vigente
+se encuentre validada.
+
+La clasificación utilizará exclusivamente la cobertura de la capa Red MP25M,
+expuesta mediante:
+
+`network_coverage_status`
 
 Los requerimientos se agruparán como:
 
-- Cubiertos.
-- Parcialmente cubiertos.
-- Faltantes.
-- No evaluados.
+- `covered` → Cubiertos.
+- `partial` → Parcialmente cubiertos.
+- `missing` → Faltantes.
+- `coverage_evaluation_id IS NULL` → No evaluados.
 
-Un requerimiento sin evaluación no será considerado faltante.
+Un requerimiento sin evaluación vigente no será considerado faltante.
+
+Los snapshots de cobertura se reservarán para lecturas históricas y no se
+utilizarán para representar el corte operativo actual.
 
 ## 9. Coincidencias
 

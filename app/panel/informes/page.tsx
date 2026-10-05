@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 import {
   getReportsDashboard,
+  listReportFilterOptions,
+  normalizeReportFilterValue,
   normalizeReportPeriodPreset,
   type ReportPeriodPreset,
 } from '../../../lib/reports/indicators'
@@ -11,6 +13,8 @@ export const dynamic = 'force-dynamic'
 type ReportsPageProps = {
   searchParams: Promise<{
     period?: string | string[]
+    node?: string | string[]
+    responsible?: string | string[]
   }>
 }
 
@@ -133,10 +137,67 @@ export default async function ReportsPage({
       rawPeriod
     )
 
-  const report =
-    await getReportsDashboard(
-      preset
+  const rawNode =
+    Array.isArray(params.node)
+      ? params.node[0]
+      : params.node
+
+  const rawResponsible =
+    Array.isArray(params.responsible)
+      ? params.responsible[0]
+      : params.responsible
+
+  const nodeId =
+    normalizeReportFilterValue(
+      rawNode
     )
+
+  const responsibleInternalUserId =
+    normalizeReportFilterValue(
+      rawResponsible
+    )
+
+  const [
+    report,
+    filterOptions,
+  ] = await Promise.all([
+    getReportsDashboard(
+      preset,
+      {
+        nodeId,
+        responsibleInternalUserId,
+      }
+    ),
+
+    listReportFilterOptions(),
+  ])
+
+  function periodHref(
+    value: ReportPeriodPreset
+  ) {
+    const query =
+      new URLSearchParams({
+        period: value,
+      })
+
+    if (nodeId) {
+      query.set(
+        'node',
+        nodeId
+      )
+    }
+
+    if (
+      responsibleInternalUserId
+    ) {
+      query.set(
+        'responsible',
+        responsibleInternalUserId
+      )
+    }
+
+    return `/panel/informes?${query.toString()}`
+  }
 
   return (
     <div className="space-y-6">
@@ -176,7 +237,7 @@ export default async function ReportsPage({
                 return (
                   <Link
                     key={option.value}
-                    href={`/panel/informes?period=${option.value}`}
+                    href={periodHref(option.value)}
                     aria-current={
                       active
                         ? 'page'
@@ -197,8 +258,89 @@ export default async function ReportsPage({
           </div>
         </div>
 
-        <p className="mt-4 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">
-          El período sólo modifica indicadores de flujo. Las métricas de red, oportunidades activas, coincidencias y brechas muestran el estado vigente.
+        <form
+          action="/panel/informes"
+          method="get"
+          className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]"
+        >
+          <input
+            type="hidden"
+            name="period"
+            value={preset}
+          />
+
+          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+            Nodo
+
+            <select
+              name="node"
+              defaultValue={nodeId ?? ''}
+              className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal text-slate-700 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            >
+              <option value="">
+                Todos los nodos
+              </option>
+
+              {filterOptions.nodes.map(
+                (node) => (
+                  <option
+                    key={node.id}
+                    value={node.id}
+                  >
+                    {node.display_name}
+                  </option>
+                )
+              )}
+            </select>
+          </label>
+
+          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+            Responsable
+
+            <select
+              name="responsible"
+              defaultValue={
+                responsibleInternalUserId ??
+                ''
+              }
+              className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal text-slate-700 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            >
+              <option value="">
+                Todos los responsables
+              </option>
+
+              {filterOptions.responsibles.map(
+                (responsible) => (
+                  <option
+                    key={responsible.id}
+                    value={responsible.id}
+                  >
+                    {responsible.display_name}
+                  </option>
+                )
+              )}
+            </select>
+          </label>
+
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              className="min-h-11 rounded-xl bg-[#1E3A5F] px-4 text-sm font-semibold text-white transition hover:bg-[#14263D]"
+            >
+              Aplicar
+            </button>
+
+            <Link
+              href={`/panel/informes?period=${preset}`}
+              className="grid min-h-11 place-items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
+            >
+              Limpiar
+            </Link>
+          </div>
+        </form>
+
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          El período sólo modifica indicadores de flujo. Red MP25M permanece como corte global. Nodo se aplica a Necesidades/Ofertas y al universo de Oportunidades y su análisis. Responsable utiliza el campo de responsabilidad propio de cada familia; no se infiere desde autoría.
         </p>
       </section>
 

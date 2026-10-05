@@ -329,12 +329,33 @@ En Oportunidades se utilizará:
 No se inferirá el Nodo de una oportunidad a partir de personas,
 organizaciones, articulaciones o proyectos relacionados.
 
+En 13A:
+
+- Red MP25M permanece como corte global;
+- Necesidades/Ofertas se filtran por su `node_id` explícito;
+- Oportunidades se filtran por `opportunity_nodes`;
+- requerimientos, completitud y coincidencias siguen el universo de
+  Oportunidades filtrado;
+- las brechas pueden limitarse por el Nodo explícito de su Oportunidad;
+- Articulaciones y Proyectos no se atribuyen a un Nodo por inferencia.
+
 ## 17. Responsable
 
 El filtro por responsable se aplicará sólo a entidades con responsable
 explícito.
 
 No se inferirá responsabilidad a partir del usuario creador.
+
+El filtro utilizará el responsable explícito de cada familia:
+
+- Oportunidades: responsable asignado;
+- Necesidades/Ofertas: responsable del registro;
+- Brechas: responsable de la brecha;
+- Articulaciones: responsable de la articulación;
+- Proyectos: responsable del proyecto.
+
+Para requerimientos, completitud y coincidencias, el filtro de Responsable
+limita el universo por el responsable explícito de la Oportunidad.
 
 ## 18. Estado
 

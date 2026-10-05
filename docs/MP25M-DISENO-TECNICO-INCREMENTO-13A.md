@@ -345,6 +345,15 @@ Proyectos.
 Los indicadores generales de red no se filtrarán automáticamente por Nodo
 mientras no exista una definición territorial específica para ellos.
 
+En la implementación 13A:
+
+- `need_offer_list.node_id` filtra Necesidades/Ofertas;
+- `opportunity_list.node_ids`, derivado de `opportunity_nodes`, filtra
+  Oportunidades y su análisis;
+- las brechas se limitan al universo explícito de Oportunidades del Nodo;
+- Articulaciones y Proyectos permanecen sin filtro de Nodo mientras no exista
+  una relación territorial propia que justifique aplicarlo.
+
 ## 11. Responsable
 
 Campos relevantes:
@@ -356,6 +365,10 @@ Campos relevantes:
 - opportunity_gaps.responsible_internal_user_id
 
 Autoría no equivale a responsabilidad.
+
+El filtro usa el campo explícito correspondiente a cada entidad. En
+requerimientos, completitud y coincidencias, se utiliza como universo la
+Oportunidad cuyo `assigned_to_internal_user_id` coincide con el filtro.
 
 ## 12. Validación
 

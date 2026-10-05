@@ -169,7 +169,8 @@ calculable y no como 0 %.
 
 ## 7. Completitud del análisis
 
-Se utilizará el snapshot de cobertura más reciente de cada oportunidad.
+Se utilizará la lectura de cobertura vigente calculada por el sistema a partir
+de los requerimientos activos y sus evaluaciones vigentes.
 
 Para cada oportunidad:
 

@@ -74,8 +74,9 @@ const modules: PanelModule[] = [
   {
     name: 'Informes',
     description:
-      'Lecturas, reportes y tableros para seguir la evoluci\u00f3n del sistema.',
-    status: 'planned',
+      'Indicadores operativos y lecturas agregadas para seguir la evolución del sistema.',
+    status: 'active',
+    href: '/panel/informes',
   },
 ]
 
@@ -230,16 +231,16 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 10
+              Incremento 13A
             </span>
           </div>
 
           <h2 className="mt-4 text-base font-semibold text-[#1E3A5F] sm:mt-5 sm:text-lg">
-            Necesidades, ofertas y temas
+            Informes e indicadores
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            {'El sistema incorpora registros independientes para necesidades, ofertas y temas, manteniendo su trazabilidad sin convertirlos automáticamente en oportunidades, articulaciones o proyectos.'}
+            {'El sistema incorpora una primera lectura agregada y explicable de la red, las oportunidades, el análisis productivo y la ejecución, sin crear una fuente paralela de datos.'}
           </p>
         </article>
       </section>

@@ -84,7 +84,7 @@ La fecha final será inclusiva desde la perspectiva del usuario.
 
 - mp25m.opportunities
 - mp25m.opportunity_requirements
-- mp25m.opportunity_coverage_snapshots
+- mp25m_api.opportunity_coverage_summary_list
 - mp25m.opportunity_coverage_snapshot_requirements
 - mp25m.opportunity_requirement_matches
 - mp25m.opportunity_gaps
@@ -159,9 +159,16 @@ Si el denominador es cero, el resultado será no calculable.
 
 ### Completitud
 
-Se seleccionará el mayor snapshot_no por Oportunidad en:
+Para la lectura operativa actual se utilizará:
 
-    opportunity_coverage_snapshots
+    mp25m_api.opportunity_coverage_summary_list
+
+Esta vista calcula la cobertura vigente a partir de requerimientos activos,
+revisiones vigentes y evaluaciones actuales.
+
+Los snapshots históricos no se utilizarán para representar el estado actual,
+porque su creación es explícita y el último snapshot puede ser anterior a una
+modificación posterior del análisis.
 
 Fórmula:
 

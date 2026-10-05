@@ -255,20 +255,64 @@ revisión.
 
 Antes de crear o modificar una ficha deberá resolverse el contexto de origen.
 
-Para:
+14A expondrá un helper server-only:
 
-- Oportunidad;
-- Articulación;
-- Proyecto;
+    mp25m_api.can_manage_economic_source(
+      actor_internal_user_id,
+      source_type,
+      source_id
+    )
 
-se reutilizarán las reglas de acceso y operación ya existentes para esa
-entidad.
+La autorización será derivada del tipo de origen.
 
-14A no creará un permiso global que permita acceder a información económica de
-entidades que el usuario no puede consultar.
+### Oportunidad
 
-La implementación concreta deberá auditar las funciones actuales antes de
-elegir el helper de autorización correspondiente a cada tipo de origen.
+Para Oportunidades se conservará la semántica vigente de gestión utilizada por
+la aplicación.
+
+Podrá administrar la ficha económica un usuario interno activo que posea una
+asignación de acceso vigente y cuyo rol:
+
+- sea administrativo; o
+- sea `administrator`; o
+- sea `articulator`; o
+- sea `authority_analyst`.
+
+La regla no reutilizará
+`can_operate_opportunity_requirement(..., 'formulate')`, porque ese helper
+pertenece al gobierno del análisis de requerimientos y posee una composición
+de roles diferente de la gestión general de Oportunidades.
+
+### Articulación
+
+Se reutilizará:
+
+    mp25m_api.can_manage_articulation(
+      actor_internal_user_id,
+      articulation_id
+    )
+
+Por lo tanto se conservarán sus reglas vigentes de responsable explícito,
+administración y ámbitos territoriales.
+
+### Proyecto
+
+Se reutilizará:
+
+    mp25m_api.can_manage_project(
+      actor_internal_user_id,
+      project_id
+    )
+
+Por lo tanto se conservarán sus reglas vigentes de responsable explícito,
+administración y ámbitos territoriales.
+
+14A no creará una autorización económica que amplíe por sí misma los permisos
+sobre la entidad de origen.
+
+Las vistas permanecerán disponibles únicamente para el servidor mediante
+`service_role`; el navegador no recibirá acceso directo a las tablas ni a las
+vistas económicas.
 
 ## 16. Auditoría
 

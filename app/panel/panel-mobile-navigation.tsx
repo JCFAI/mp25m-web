@@ -65,6 +65,11 @@ const navigationItems = [
     marker: 'C',
   },
   {
+    href: '/panel/informes',
+    label: 'Informes',
+    marker: 'I',
+  },
+  {
     href: '/panel/oportunidades',
     label: 'Oportunidades',
     marker: 'O',
@@ -73,13 +78,6 @@ const navigationItems = [
     href: '/panel/necesidades-ofertas',
     label: 'Necesidades y ofertas',
     marker: 'N/O',
-  },
-]
-
-const futureModules = [
-  {
-    label: 'Informes',
-    marker: 'I',
   },
 ]
 
@@ -562,30 +560,6 @@ export function PanelMobileNavigation({
                   )
                 })}
 
-                <div className="mt-3 border-t border-white/10 pt-3">
-                  {futureModules.map((module) => (
-                    <div
-                      key={module.label}
-                      className="flex min-h-[52px] items-center gap-3 rounded-2xl px-3 py-3 text-base text-slate-50/60"
-                      aria-disabled="true"
-                    >
-                      <span
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 text-xs font-bold text-slate-50/50"
-                        aria-hidden="true"
-                      >
-                        {module.marker}
-                      </span>
-
-                      <span className="min-w-0 flex-1">
-                        {module.label}
-                      </span>
-
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-100/50">
-                        Próximo
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </nav>
 

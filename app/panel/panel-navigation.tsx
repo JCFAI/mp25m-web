@@ -3,10 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const futureModules = [
-  'Informes',
-]
-
 function activeClass(isActive: boolean) {
   return isActive
     ? 'flex items-center justify-between rounded-xl bg-white/12 px-3 py-3 text-sm font-semibold text-white shadow-sm'
@@ -61,6 +57,10 @@ export function PanelNavigation() {
   const communicationsActive =
     pathname === '/panel/comunicaciones' ||
     pathname.startsWith('/panel/comunicaciones/')
+
+  const reportsActive =
+    pathname === '/panel/informes' ||
+    pathname.startsWith('/panel/informes/')
 
   return (
     <nav className="px-3 py-5">
@@ -202,6 +202,18 @@ export function PanelNavigation() {
         </Link>
 
         <Link
+          href="/panel/informes"
+          aria-current={reportsActive ? 'page' : undefined}
+          className={activeClass(reportsActive)}
+        >
+          <span>Informes</span>
+
+          {reportsActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
+        <Link
           href="/panel/oportunidades"
           aria-current={
             opportunitiesActive ? 'page' : undefined
@@ -226,19 +238,6 @@ export function PanelNavigation() {
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
-        {futureModules.map((module) => (
-          <div
-            key={module}
-            className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-slate-50/65"
-            aria-disabled="true"
-          >
-            <span>{module}</span>
-
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-100/50">
-              Próximo
-            </span>
-          </div>
-        ))}
       </div>
     </nav>
   )

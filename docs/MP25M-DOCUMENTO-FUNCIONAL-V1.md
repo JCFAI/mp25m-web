@@ -650,7 +650,7 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 10B.A | Implementado: núcleo de Temas transversales, con responsabilidades, estados, historial y seguimientos trazables. |
 | Incremento 11A | Implementado: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria. |
 | Incremento 12A | Implementado: Agenda operativa transversal con fechas derivadas y actividades manuales trazables, búsqueda, filtros, paginación, edición y cambios de estado, sin convocatorias ni calendarios externos. |
-| Incremento 12B | Planificado: comunicaciones y convocatorias asistidas, con preparación explícita y control humano del envío. |
+| Incremento 12B | Implementado: comunicaciones y convocatorias asistidas, con definición combinable de audiencias, resolución y deduplicación de destinatarios, trazabilidad de procedencia, revisión y ajuste manual, confirmación explícita y control humano; sin envío externo automático. |
 
 Posteriores: economía; informes/indicadores; Radar externo automatizado;
 automatización/IA; integraciones externas de comunicación y calendario;

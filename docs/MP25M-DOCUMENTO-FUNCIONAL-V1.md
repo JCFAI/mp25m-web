@@ -322,7 +322,18 @@ Debe permitir convocar personas o nodos segun criterios funcionales: territorio,
 
 ### Informes e impacto
 
-Debe producir reportes para responsables, autoridades y nodos. Debe medir impacto economico, productivo, territorial, organizativo, social y comunicacional.
+El Incremento 13A implementa una primera superficie de Informes e Indicadores
+operativos para responsables, autoridades y nodos, basada exclusivamente en
+información estructurada y verificable ya registrada en MP25M.
+
+Actualmente permite lecturas agregadas de red, necesidades y ofertas,
+oportunidades, análisis productivo, requerimientos, coincidencias, brechas,
+articulaciones y proyectos, con períodos y filtros compatibles con cada
+universo.
+
+La medición de impacto económico, territorial, organizativo, social y
+comunicacional más amplio continúa siendo evolutiva y sólo deberá incorporarse
+cuando exista una definición y fuente estructurada suficiente.
 
 ### Administracion, revision y auditoria
 
@@ -586,6 +597,11 @@ Los plazos legales definitivos de conservacion y eliminacion requieren una polit
 
 ## 20. Indicadores
 
+El Incremento 13A implementa la primera lectura operativa de indicadores.
+Actualmente están soportados los indicadores cuya fuente y definición pueden
+reproducirse directamente desde el modelo existente. Los restantes continúan
+como alcance futuro y no deben inferirse a partir de datos aproximados.
+
 Los indicadores minimos son:
 
 - Personas, nodos y organizaciones activas.
@@ -651,8 +667,9 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 11A | Implementado: resultados estructurados y aprendizaje de Articulaciones y Proyectos, sin economía monetaria. |
 | Incremento 12A | Implementado: Agenda operativa transversal con fechas derivadas y actividades manuales trazables, búsqueda, filtros, paginación, edición y cambios de estado, sin convocatorias ni calendarios externos. |
 | Incremento 12B | Implementado: comunicaciones y convocatorias asistidas, con definición combinable de audiencias, resolución y deduplicación de destinatarios, trazabilidad de procedencia, revisión y ajuste manual, confirmación explícita y control humano; sin envío externo automático. |
+| Incremento 13A | Implementado: primera superficie de Informes e Indicadores operativos de sólo lectura, con métricas de red, necesidades/ofertas, oportunidades, análisis, requerimientos, cobertura vigente, coincidencias, brechas, articulaciones y proyectos; períodos predefinidos y personalizados; filtros por Nodo y Responsable; sin economía ni inferencias sobre datos no estructurados. |
 
-Posteriores: economía; informes/indicadores; Radar externo automatizado;
+Posteriores: economía; ampliación de informes e indicadores; Radar externo automatizado;
 automatización/IA; integraciones externas de comunicación y calendario;
 integración futura limitada con ClubSmart.
 

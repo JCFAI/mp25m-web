@@ -581,4 +581,3 @@ La zona operativa utilizada continúa siendo
 
 Un rango personalizado inválido no se ejecuta: la UI muestra el error y el
 dashboard utiliza 90 días como período efectivo.
-

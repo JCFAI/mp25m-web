@@ -479,4 +479,3 @@ El rango personalizado conserva los filtros de Nodo y Responsable.
 Si las fechas son inválidas, faltan o Desde es posterior a Hasta, el sistema
 no calcula sobre un intervalo ambiguo: informa el problema y utiliza 90 días
 como período efectivo.
-

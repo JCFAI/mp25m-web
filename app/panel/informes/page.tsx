@@ -327,6 +327,14 @@ export default async function ReportsPage({
         </div>
 
         <form
+          key={[
+            'range',
+            preset,
+            customDateFromValue,
+            customDateToValue,
+            nodeId ?? '',
+            responsibleInternalUserId ?? '',
+          ].join(':')}
           action="/panel/informes"
           method="get"
           className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]"
@@ -410,6 +418,14 @@ export default async function ReportsPage({
         </form>
 
         <form
+          key={[
+            'filters',
+            report.period.preset,
+            report.period.dateFrom,
+            report.period.dateTo,
+            nodeId ?? '',
+            responsibleInternalUserId ?? '',
+          ].join(':')}
           action="/panel/informes"
           method="get"
           className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]"

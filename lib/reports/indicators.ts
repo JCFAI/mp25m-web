@@ -125,12 +125,36 @@ const CURRENT_MATCH_STATUSES = [
 ] as const
 
 function fail(
-  error: { message: string } | null,
+  error: {
+    message: string
+    code?: string | null
+    details?: string | null
+    hint?: string | null
+  } | null,
   context: string
 ) {
   if (error) {
+    const message =
+      error.message.trim()
+
+    const metadata = [
+      error.code,
+      error.details,
+      error.hint,
+    ]
+      .map((value) =>
+        value?.trim() ?? ''
+      )
+      .filter(Boolean)
+
+    const description = [
+      message ||
+        'empty Supabase read error',
+      ...metadata,
+    ].join(' | ')
+
     throw new Error(
-      `${context}: ${error.message}`
+      `${context}: ${description}`
     )
   }
 }
@@ -141,24 +165,57 @@ function countValue(
   return count ?? 0
 }
 
-const TRANSIENT_JWT_RETRY_DELAYS_MS = [
+const TRANSIENT_REPORT_RETRY_DELAYS_MS = [
   350,
   900,
   1800,
 ]
 
-function isTransientJwtIssuedAtFuture(
+function isTransientReportReadError(
   error: unknown
 ) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const message =
+    error.message.toLowerCase()
+
   return (
-    error instanceof Error &&
-    error.message.includes(
-      'JWT issued at future'
+    message.includes(
+      'jwt issued at future'
+    ) ||
+    message.includes(
+      'empty supabase read error'
+    ) ||
+    message.includes(
+      'fetch failed'
+    ) ||
+    message.includes(
+      'network'
+    ) ||
+    message.includes(
+      'timeout'
+    ) ||
+    message.includes(
+      'timed out'
+    ) ||
+    message.includes(
+      'temporarily unavailable'
+    ) ||
+    message.includes(
+      'connection reset'
+    ) ||
+    message.includes(
+      'econnreset'
+    ) ||
+    message.includes(
+      'etimedout'
     )
   )
 }
 
-async function withTransientJwtRetry<T>(
+async function withTransientReportRetry<T>(
   operation: () => Promise<T>
 ): Promise<T> {
   for (
@@ -170,12 +227,12 @@ async function withTransientJwtRetry<T>(
       return await operation()
     } catch (error) {
       const delay =
-        TRANSIENT_JWT_RETRY_DELAYS_MS[
+        TRANSIENT_REPORT_RETRY_DELAYS_MS[
           attempt
         ]
 
       if (
-        !isTransientJwtIssuedAtFuture(
+        !isTransientReportReadError(
           error
         ) ||
         delay === undefined
@@ -1029,7 +1086,7 @@ async function listReportFilterOptionsOnce() {
 }
 
 export async function listReportFilterOptions() {
-  return withTransientJwtRetry(
+  return withTransientReportRetry(
     () =>
       listReportFilterOptionsOnce()
   )
@@ -1852,7 +1909,7 @@ export async function getReportsDashboard(
   filters: ReportFilters = {},
   customRange?: ReportCustomRange
 ): Promise<ReportsDashboard> {
-  return withTransientJwtRetry(
+  return withTransientReportRetry(
     () =>
       getReportsDashboardOnce(
         preset,

@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { canManagePeople } from '../../../lib/people/manage'
 import { createClient } from '../../../lib/supabase/server'
 import { PersonSearch } from './person-search'
 
@@ -45,6 +47,8 @@ export default async function PeoplePage() {
           y oportunidades.
         </p>
       </section>
+
+      {canManagePeople(access) ? <Link href="/panel/personas/nueva" className="ux-button inline-flex min-h-11 items-center rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#14263D]">Nueva persona</Link> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <PersonSearch />

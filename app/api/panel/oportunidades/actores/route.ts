@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getInternalAccess } from '../../../../../lib/auth/internal-access'
 import {
   listCanonicalActorReferencePage,
+  type CanonicalActorType,
   searchOpportunityActors,
 } from '../../../../../lib/opportunities/actors'
 import {
@@ -13,6 +14,29 @@ import { createClient } from '../../../../../lib/supabase/server'
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function parseCanonicalActorTypes(
+  request: NextRequest,
+): CanonicalActorType[] {
+  const actorType =
+    request.nextUrl.searchParams.get('actor_type')
+
+  if (!actorType) {
+    return ['person', 'organization']
+  }
+
+  if (
+    actorType === 'person' ||
+    actorType === 'organization'
+  ) {
+    return [actorType]
+  }
+
+  throw new ReferenceRequestError(
+    'invalid_query',
+    'El tipo de participante no es válido.',
+  )
+}
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -53,13 +77,14 @@ export async function GET(request: NextRequest) {
     try {
       const page = await listCanonicalActorReferencePage({
         query,
-        actorTypes: ['person', 'organization'],
+        actorTypes: parseCanonicalActorTypes(request),
         nodeIds,
         cursor:
           request.nextUrl.searchParams.get('cursor'),
         limit: parseReferenceLimit(
           request.nextUrl.searchParams.get('limit')
         ),
+        minimumQueryLength: 1,
       })
 
       return NextResponse.json(page, {

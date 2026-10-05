@@ -34,8 +34,35 @@ const relationLabels: Record<FoundationRelationKind, string> = {
   contextual: 'Contextual',
 }
 
+const evidenceKindLabels: Record<string, string> = {
+  person_skill: 'Habilidad/capacidad',
+  person_skill_evidence: 'Evidencia de habilidad/capacidad',
+  person_profile: 'Perfil de la persona',
+  person_profile_activity: 'Actividad principal',
+  organization_capability: 'Capacidad de la organización',
+  organization_capability_evidence: 'Evidencia de capacidad',
+  organization_activity: 'Actividad de la organización',
+  actor_evidence_fragment: 'Evidencia del actor',
+  node_participation: 'Participación en nodo',
+  organization_node: 'Vinculación territorial',
+  actor_candidate: 'Actor pendiente',
+  actor_candidate_node: 'Vinculación territorial del actor pendiente',
+  manual_rationale: 'Fundamento manual',
+}
+
+const verificationLabels: Record<string, string> = {
+  self_reported: 'Declarada por el actor',
+  confirmed: 'Confirmada',
+  verified: 'Verificada',
+  pending: 'Pendiente de verificación',
+}
+
 function evidenceKindLabel(value: string) {
-  return value.replaceAll('_', ' ')
+  return evidenceKindLabels[value] ?? value.replaceAll('_', ' ')
+}
+
+function verificationLabel(value: string) {
+  return verificationLabels[value] ?? value.replaceAll('_', ' ')
 }
 
 export function MatchFoundationAddForm({
@@ -60,29 +87,38 @@ export function MatchFoundationAddForm({
   const [searchMessage, setSearchMessage] = useState<string | null>(null)
   const [selectionError, setSelectionError] = useState<string | null>(null)
   const [relationError, setRelationError] = useState<string | null>(null)
+  const [listOpen, setListOpen] = useState(false)
+  const selectorRef = useRef<HTMLDivElement>(null)
   const selectionRef = useRef<HTMLDivElement>(null)
   const relationRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (state.status !== 'success') return
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        selectorRef.current &&
+        !selectorRef.current.contains(event.target as Node)
+      ) {
+        setListOpen(false)
+      }
+    }
 
-    setQuery('')
-    setResults([])
-    setSelectedEvidence(null)
-    setRelationKind('')
-    setSelectionError(null)
-    setRelationError(null)
-  }, [state.status])
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setListOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   useEffect(() => {
     const term = query.trim()
-    if (term.length < 3) {
-      setResults([])
-      setCompletedQuery(null)
-      setSearchMessage(null)
-      setSearchState('idle')
-      return
-    }
 
     const controller = new AbortController()
     const timeout = window.setTimeout(async () => {
@@ -97,7 +133,7 @@ export function MatchFoundationAddForm({
         const body = await response.json() as EvidenceResult[] | { error?: string }
 
         if (!response.ok || !Array.isArray(body)) {
-          throw new Error('No se pudo buscar evidencia para este match.')
+          throw new Error('No se pudo buscar evidencia para este actor.')
         }
 
         setResults(body)
@@ -111,7 +147,7 @@ export function MatchFoundationAddForm({
         setSearchMessage(
           error instanceof Error
             ? error.message
-            : 'No se pudo buscar evidencia para este match.'
+            : 'No se pudo buscar evidencia para este actor.'
         )
       }
     }, 300)
@@ -123,16 +159,18 @@ export function MatchFoundationAddForm({
   }, [matchId, opportunityId, query])
 
   const searchTerm = query.trim()
-  const hasValidSearchTerm = searchTerm.length >= 3
-  const searchCompletedForCurrentTerm = completedQuery === searchTerm
+  const searchCompletedForCurrentTerm =
+    completedQuery === searchTerm
 
   function selectEvidence(evidence: EvidenceResult) {
     if (evidence.already_added) return
 
     setSelectedEvidence(evidence)
+    setQuery(evidence.evidence_text)
     setRelationKind('')
     setSelectionError(null)
     setRelationError(null)
+    setListOpen(false)
   }
 
   return (
@@ -159,78 +197,149 @@ export function MatchFoundationAddForm({
         Buscá evidencia existente del mismo actor. Agregarla no modifica evaluaciones ni cobertura ya registradas.
       </p>
 
-      <label className="mt-4 block text-sm font-medium text-slate-700">
-        Buscar evidencia
-        <input
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setSelectedEvidence(null)
-            setRelationKind('')
-            setSelectionError(null)
-            setRelationError(null)
-            setSearchMessage(null)
-          }}
-          className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-          placeholder="Buscar evidencia…"
-        />
-      </label>
-      <p className="mt-1 text-xs text-slate-500">La búsqueda comienza a partir de 3 caracteres.</p>
+      <div
+        ref={selectorRef}
+        className="relative mt-4"
+      >
+        <label className="block text-sm font-medium text-slate-700">
+          Buscar evidencia
+          <input
+            value={query}
+            onFocus={() => setListOpen(true)}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setSelectedEvidence(null)
+              setRelationKind('')
+              setSelectionError(null)
+              setRelationError(null)
+              setSearchMessage(null)
+              setListOpen(true)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.stopPropagation()
+                setListOpen(false)
+              }
+            }}
+            role="combobox"
+            aria-expanded={listOpen}
+            aria-controls="evidence-results"
+            aria-autocomplete="list"
+            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            placeholder="Buscar evidencia…"
+          />
+        </label>
 
-      <div ref={selectionRef} tabIndex={-1} className="mt-3 space-y-2 rounded-xl outline-none focus:ring-2 focus:ring-[#2F5D8C]/20">
-        {hasValidSearchTerm && !searchCompletedForCurrentTerm && searchState !== 'error' ? (
-          <p className="rounded-lg bg-white px-3 py-2 text-xs text-slate-500">Buscando evidencia…</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Explorá la evidencia disponible del actor o escribí desde el primer carácter.
+          Se muestran hasta 20 registros, priorizando los más recientes.
+        </p>
+
+        {listOpen ? (
+          <div
+            id="evidence-results"
+            ref={selectionRef}
+            role="listbox"
+            tabIndex={-1}
+            className="absolute z-30 mt-2 max-h-96 w-full space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg outline-none focus:ring-2 focus:ring-[#2F5D8C]/20"
+          >
+            {!searchCompletedForCurrentTerm && searchState !== 'error' ? (
+              <p className="rounded-lg px-3 py-2 text-xs text-slate-500">
+                Cargando evidencia disponible…
+              </p>
+            ) : null}
+
+            {searchCompletedForCurrentTerm && searchState === 'idle' && results.length === 0 ? (
+              <p className="rounded-lg px-3 py-2 text-xs text-slate-500">
+                {searchTerm
+                  ? 'No se encontró evidencia disponible para esta búsqueda.'
+                  : 'No hay evidencia disponible para este actor.'}
+              </p>
+            ) : null}
+
+            {searchCompletedForCurrentTerm ? results.map((evidence) => {
+              const selected =
+                selectedEvidence?.source_record_type === evidence.source_record_type &&
+                selectedEvidence?.source_record_id === evidence.source_record_id
+
+              return (
+                <button
+                  key={`${evidence.source_record_type}:${evidence.source_record_id}`}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  disabled={evidence.already_added}
+                  onClick={() => selectEvidence(evidence)}
+                  className={`block w-full rounded-xl border p-3 text-left text-xs leading-5 transition ${
+                    evidence.already_added
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                      : selected
+                        ? 'border-[#2F5D8C] bg-[#E8F0F8] text-slate-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#8EACC9]'
+                  }`}
+                >
+                  <span className="flex flex-wrap items-center gap-2 font-semibold text-slate-700">
+                    <span>{evidenceKindLabel(evidence.evidence_kind)}</span>
+
+                    {evidence.already_added ? (
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                        Ya agregada
+                      </span>
+                    ) : null}
+                  </span>
+
+                  <span className="mt-1 block whitespace-pre-wrap break-words">
+                    {evidence.evidence_text}
+                  </span>
+
+                  {evidence.skill_name || evidence.activity_name ? (
+                    <span className="mt-1 block text-slate-500">
+                      {[evidence.skill_name, evidence.activity_name]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  ) : null}
+
+                  {evidence.verification_status ? (
+                    <span className="mt-1 block text-slate-400">
+                      Verificación: {verificationLabel(evidence.verification_status)}
+                    </span>
+                  ) : null}
+
+                  {evidence.node_name ? (
+                    <span className="mt-1 block text-slate-400">
+                      Nodo: {evidence.node_name}
+                    </span>
+                  ) : null}
+
+                  {evidence.source_name || evidence.source_locator ? (
+                    <span className="mt-1 block break-words text-slate-400">
+                      Fuente: {evidence.source_name ?? evidence.source_locator}
+                    </span>
+                  ) : null}
+                </button>
+              )
+            }) : null}
+
+            {searchMessage ? (
+              <p
+                role="alert"
+                className="text-sm font-medium text-red-700"
+              >
+                {searchMessage}
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
-        {hasValidSearchTerm && searchCompletedForCurrentTerm && searchState === 'idle' && results.length === 0 ? (
-          <p className="rounded-lg bg-white px-3 py-2 text-xs text-slate-500">No se encontró evidencia disponible para este actor.</p>
+        {selectionError ? (
+          <p
+            role="alert"
+            className="mt-2 text-sm font-medium text-red-700"
+          >
+            {selectionError}
+          </p>
         ) : null}
-
-        {searchCompletedForCurrentTerm ? results.map((evidence) => {
-          const selected = selectedEvidence?.source_record_type === evidence.source_record_type &&
-            selectedEvidence?.source_record_id === evidence.source_record_id
-
-          return (
-            <button
-              key={`${evidence.source_record_type}:${evidence.source_record_id}`}
-              type="button"
-              disabled={evidence.already_added}
-              onClick={() => selectEvidence(evidence)}
-              className={`block w-full rounded-xl border p-3 text-left text-xs leading-5 transition ${
-                evidence.already_added
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                  : selected
-                    ? 'border-[#2F5D8C] bg-[#E8F0F8] text-slate-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-[#8EACC9]'
-              }`}
-            >
-              <span className="flex flex-wrap items-center gap-2 font-semibold text-slate-700">
-                <span>{evidenceKindLabel(evidence.evidence_kind)}</span>
-                {evidence.already_added ? (
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-600">Ya agregada</span>
-                ) : null}
-              </span>
-              <span className="mt-1 block whitespace-pre-wrap break-words">{evidence.evidence_text}</span>
-              {evidence.skill_name || evidence.activity_name ? (
-                <span className="mt-1 block text-slate-500">
-                  {[evidence.skill_name, evidence.activity_name].filter(Boolean).join(' · ')}
-                </span>
-              ) : null}
-              {evidence.verification_status ? (
-                <span className="mt-1 block text-slate-400">Verificación: {evidence.verification_status}</span>
-              ) : null}
-              {evidence.node_name ? <span className="mt-1 block text-slate-400">Nodo: {evidence.node_name}</span> : null}
-              {evidence.source_name || evidence.source_locator ? (
-                <span className="mt-1 block break-words text-slate-400">
-                  Fuente: {evidence.source_name ?? evidence.source_locator}
-                </span>
-              ) : null}
-            </button>
-          )
-        }) : null}
-
-        {selectionError ? <p role="alert" className="text-sm font-medium text-red-700">{selectionError}</p> : null}
-        {searchMessage ? <p role="alert" className="text-sm font-medium text-red-700">{searchMessage}</p> : null}
       </div>
 
       {selectedEvidence ? (
@@ -272,7 +381,7 @@ export function MatchFoundationAddForm({
         disabled={pending}
         className="mt-4 rounded-xl bg-[#2F5D8C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1E3A5F] disabled:cursor-wait disabled:opacity-60"
       >
-        {pending ? 'Agregando…' : 'Agregar como fundamento'}
+        {pending ? 'Agregando…' : 'Usar esta evidencia'}
       </button>
     </form>
   )

@@ -94,7 +94,7 @@ export function OpportunityGapsSection({
             <label className="mt-3 block text-sm font-medium text-slate-700">Fundamento
               <textarea name="rationale" required minLength={3} maxLength={10000} rows={3} className="mt-1.5 w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm" placeholder="Explicá por qué este faltante requiere atención..." />
             </label>
-            <p className="mt-2 text-xs leading-5 text-slate-500">Sólo puede abrirse sobre una cobertura actual parcial o faltante.</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">Sólo puede abrirse cuando la cobertura actual sea “Satisface parcialmente” o “No satisface”.</p>
             {state.message ? <p role="alert" className={`mt-3 text-sm font-medium ${state.status === 'error' ? 'text-red-700' : 'text-emerald-700'}`}>{state.message}</p> : null}
             <button disabled={pending} className="mt-4 rounded-xl bg-[#2F5D8C] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Abriendo...' : 'Abrir brecha'}</button>
           </form>
@@ -127,7 +127,7 @@ function GapCard({
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-slate-900">{gap.requirement_name}</h4><span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{statusLabels[gap.status]}</span></div>
-      <p className="mt-2 text-sm text-slate-600">{typeLabels[gap.gap_type]} · {gap.coverage_layer === 'network_mp25m' ? 'Red MP25M' : 'Ampliada Argentina'} · cobertura actual: {gap.current_coverage_status === 'missing' ? 'Faltante' : gap.current_coverage_status === 'partial' ? 'Parcial' : 'Sin dato'}</p>
+      <p className="mt-2 text-sm text-slate-600">{typeLabels[gap.gap_type]} · {gap.coverage_layer === 'network_mp25m' ? 'Red MP25M' : 'Ampliada Argentina'} · cobertura actual: {gap.current_coverage_status === 'missing' ? 'No satisface' : gap.current_coverage_status === 'partial' ? 'Satisface parcialmente' : 'Sin dato'}</p>
       <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{gap.rationale}</p>
       <p className="mt-2 text-xs text-slate-500">Responsable: {gap.responsible_display_name ?? 'Sin asignar'}</p>
       <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Acciones ({actions.length})</p>

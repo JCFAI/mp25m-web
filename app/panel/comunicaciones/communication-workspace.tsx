@@ -1,0 +1,2527 @@
+'use client'
+
+import { useActionState, useCallback, useEffect, useState } from 'react'
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
+import { useRemoteReferenceList, type RemoteReferencePage } from '../../../hooks/use-remote-reference-list'
+import type { CanonicalActorReference } from '../../../lib/opportunities/actors'
+import type { Communication, CommunicationCriterion, CommunicationRecipient, CommunicationResolution, CommunicationRecipientSourceSummary, CriterionOperation, CriterionType } from '../../../lib/communications/communications'
+import { addManualPersonAction, confirmRecipientsAction, replaceAudienceAction, resolveAudienceAction, setRecipientIncludedAction, updateCommunicationAction, type CommunicationActionState } from './actions'
+import { CommunicationCriterionLabelsContext, CommunicationMultiReferencePicker, CommunicationReferencePicker, type CommunicationReferenceKind } from './reference-picker'
+
+const initial: CommunicationActionState = { status: 'idle', message: null }
+const RECIPIENT_PAGE_SIZE = 25
+const labels: Record<CriterionType, string> = { person: 'Persona explícita', organization: 'Organización explícita', node_participants: 'Participantes directos de Nodo', articulation_participants: 'Participantes directos de Articulación', project_participants: 'Participantes directos de Proyecto', person_skill: 'Personas por habilidad', organization_capability: 'Organizaciones por capacidad', theme_responsibles: 'Responsables de Tema' }
+type Draft = { group_no: number; criterion_type: CriterionType; criterion_operation: CriterionOperation; person_id?: string; organization_id?: string; node_id?: string; articulation_id?: string; project_id?: string; skill_id?: string; theme_id?: string; verification_statuses?: string[] }
+const field = (type: CriterionType) => type === 'person' ? 'person_id' : type === 'organization' ? 'organization_id' : type === 'node_participants' ? 'node_id' : type === 'articulation_participants' ? 'articulation_id' : type === 'project_participants' ? 'project_id' : type === 'theme_responsibles' ? 'theme_id' : 'skill_id'
+const kind = (type: CriterionType): CommunicationReferenceKind => type === 'person' ? 'person' : type === 'organization' ? 'organization' : type === 'node_participants' ? 'node' : type === 'articulation_participants' ? 'articulation' : type === 'project_participants' ? 'project' : type === 'theme_responsibles' ? 'theme' : type === 'person_skill' ? 'person_skill' : 'organization_capability'
+function toDraft(item: CommunicationCriterion): Draft { return { group_no: item.group_no, criterion_type: item.criterion_type, criterion_operation: item.criterion_operation, person_id: item.person_id ?? undefined, organization_id: item.organization_id ?? undefined, node_id: item.node_id ?? undefined, articulation_id: item.articulation_id ?? undefined, project_id: item.project_id ?? undefined, skill_id: item.skill_id ?? undefined, theme_id: item.theme_id ?? undefined, verification_statuses: item.verification_statuses ?? undefined } }
+
+
+function nextGroup(items: Draft[]) {
+  return items.reduce(
+    (maximum, item) => Math.max(maximum, item.group_no),
+    0
+  ) + 1
+}
+
+function selectedIds(
+  items: Draft[],
+  type: CriterionType,
+  key: keyof Draft
+) {
+  return items
+    .filter(
+      (item) =>
+        item.criterion_type === type &&
+        item.criterion_operation === 'include'
+    )
+    .map((item) => item[key])
+    .filter((value): value is string => typeof value === 'string')
+}
+
+function replaceUnionSelections(
+  items: Draft[],
+  type: CriterionType,
+  key: keyof Draft,
+  values: string[]
+) {
+  const retained = items.filter(
+    (item) =>
+      !(
+        item.criterion_type === type &&
+        item.criterion_operation === 'include'
+      )
+  )
+
+  let group = nextGroup(retained)
+
+  const added = values.map((value) => {
+    const item: Draft = {
+      group_no: group++,
+      criterion_type: type,
+      criterion_operation: 'include',
+    }
+
+    ;(item as Record<string, unknown>)[key] = value
+
+    return item
+  })
+
+  return [...retained, ...added]
+}
+
+function uniqueStrings(
+  values: Array<string | undefined>
+) {
+  return [
+    ...new Set(
+      values.filter(
+        (value): value is string =>
+          typeof value === 'string' &&
+          value.length > 0
+      )
+    ),
+  ]
+}
+
+function rebuildSharedSkillRules(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  skillIds: string[],
+  nodeIds: string[]
+) {
+  const existing =
+    items.filter(
+      (item) =>
+        item.criterion_type ===
+          type &&
+        item.criterion_operation ===
+          'include'
+    )
+
+  const template =
+    existing[0]
+
+  const retained =
+    items.filter(
+      (item) =>
+        !(
+          item.criterion_type ===
+            type &&
+          item.criterion_operation ===
+            'include'
+        )
+    )
+
+  let group =
+    nextGroup(retained)
+
+  const scopes:
+    Array<string | undefined> =
+      nodeIds.length > 0
+        ? nodeIds
+        : [undefined]
+
+  const added =
+    skillIds.flatMap(
+      (skillId) =>
+        scopes.map(
+          (nodeId): Draft => ({
+            group_no:
+              group++,
+            criterion_type:
+              type,
+            criterion_operation:
+              'include',
+            skill_id:
+              skillId,
+            node_id:
+              nodeId,
+            verification_statuses:
+              template
+                ?.verification_statuses ??
+              ['confirmed'],
+          })
+        )
+    )
+
+  return [
+    ...retained,
+    ...added,
+  ]
+}
+
+function replaceSharedSkillSelections(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  skillIds: string[]
+) {
+  const nodeIds =
+    uniqueStrings(
+      items
+        .filter(
+          (item) =>
+            item.criterion_type ===
+              type &&
+            item.criterion_operation ===
+              'include'
+        )
+        .map(
+          (item) =>
+            item.node_id
+        )
+    )
+
+  return rebuildSharedSkillRules(
+    items,
+    type,
+    skillIds,
+    nodeIds
+  )
+}
+
+function replaceSharedSkillNodeSelections(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  nodeIds: string[]
+) {
+  const skillIds =
+    uniqueStrings(
+      items
+        .filter(
+          (item) =>
+            item.criterion_type ===
+              type &&
+            item.criterion_operation ===
+              'include'
+        )
+        .map(
+          (item) =>
+            item.skill_id
+        )
+    )
+
+  return rebuildSharedSkillRules(
+    items,
+    type,
+    skillIds,
+    nodeIds
+  )
+}
+
+function updateSharedSkillRules(
+  items: Draft[],
+  type:
+    | 'person_skill'
+    | 'organization_capability',
+  values: Partial<Draft>
+) {
+  return items.map(
+    (item) =>
+      item.criterion_type ===
+        type &&
+      item.criterion_operation ===
+        'include'
+        ? {
+            ...item,
+            ...values,
+          }
+        : item
+  )
+}
+
+function normalizeSharedSkillGroups(
+  items: Draft[]
+) {
+  const usedGroups =
+    new Set(
+      items
+        .filter(
+          (item) =>
+            !(
+              item.criterion_operation ===
+                'include' &&
+              (
+                item.criterion_type ===
+                  'person_skill' ||
+                item.criterion_type ===
+                  'organization_capability'
+              )
+            )
+        )
+        .map(
+          (item) =>
+            item.group_no
+        )
+    )
+
+  let nextAvailableGroup =
+    nextGroup(items)
+
+  return items.map(
+    (item) => {
+      const sharedSkillCriterion =
+        item.criterion_operation ===
+          'include' &&
+        (
+          item.criterion_type ===
+            'person_skill' ||
+          item.criterion_type ===
+            'organization_capability'
+        )
+
+      if (
+        !sharedSkillCriterion
+      ) {
+        return item
+      }
+
+      if (
+        !usedGroups.has(
+          item.group_no
+        )
+      ) {
+        usedGroups.add(
+          item.group_no
+        )
+        return item
+      }
+
+      const normalized = {
+        ...item,
+        group_no:
+          nextAvailableGroup++,
+      }
+
+      usedGroups.add(
+        normalized.group_no
+      )
+
+      return normalized
+    }
+  )
+}
+
+function addAudienceRule(
+  items: Draft[],
+  type: CriterionType
+) {
+  const item: Draft = {
+    group_no: nextGroup(items),
+    criterion_type: type,
+    criterion_operation: 'include',
+  }
+
+  if (
+    type === 'person_skill' ||
+    type === 'organization_capability'
+  ) {
+    item.verification_statuses = ['confirmed']
+  }
+
+  return [...items, item]
+}
+
+function MessageEditor({ communication }: { communication: Communication }) {
+  const [state, action, pending] = useActionState(
+    updateCommunicationAction.bind(null, communication.communication_id),
+    initial
+  )
+
+  const editable = communication.status === 'draft'
+  const channelLabels = communication.planned_channels.map((channel) =>
+    channel === 'email' ? 'Email' : 'WhatsApp'
+  )
+
+  if (!editable) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Mensaje</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              El contenido queda en sólo lectura una vez resuelta la audiencia.
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            Sólo lectura
+          </span>
+        </div>
+
+        <dl className="mt-4 space-y-4">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Asunto
+            </dt>
+            <dd className="mt-1 text-sm font-semibold text-slate-900">
+              {communication.subject}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Cuerpo
+            </dt>
+            <dd className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+              {communication.body}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Canales previstos
+            </dt>
+            <dd className="mt-1 text-sm text-slate-700">
+              {channelLabels.length > 0
+                ? channelLabels.join(' · ')
+                : 'Sin canales previstos'}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    )
+  }
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold">Mensaje</h2>
+      <p className="mt-2 text-sm text-slate-600">
+        Revisá el contenido y los canales previstos antes de resolver la audiencia.
+        Guardar cambios no realiza ningún envío.
+      </p>
+
+      <form action={action} className="mt-4 space-y-4">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Asunto</span>
+          <input
+            name="subject"
+            required
+            minLength={3}
+            maxLength={500}
+            defaultValue={communication.subject}
+            className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Cuerpo</span>
+          <textarea
+            name="body"
+            required
+            minLength={3}
+            rows={8}
+            defaultValue={communication.body}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm leading-6"
+          />
+        </label>
+
+        <fieldset className="rounded-xl border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-700">
+            Canales previstos
+          </legend>
+
+          <p className="mt-1 text-xs text-slate-500">
+            Indican una intención futura. No disparan ningún envío.
+          </p>
+
+          <label className="mt-3 mr-5 inline-flex items-center gap-2 text-sm">
+            <input
+              name="channel_email"
+              type="checkbox"
+              defaultChecked={communication.planned_channels.includes('email')}
+            />
+            Email
+          </label>
+
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              name="channel_whatsapp"
+              type="checkbox"
+              defaultChecked={communication.planned_channels.includes('whatsapp')}
+            />
+            WhatsApp
+          </label>
+        </fieldset>
+
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">
+            Motivo del cambio
+          </span>
+          <input
+            name="rationale"
+            placeholder="Opcional"
+            className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"
+          />
+        </label>
+
+        {state.message ? (
+          <p
+            role={state.status === 'error' ? 'alert' : 'status'}
+            className={
+              state.status === 'error'
+                ? 'rounded-xl bg-red-50 p-3 text-sm text-red-700'
+                : 'rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800'
+            }
+          >
+            {state.message}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="ux-button min-h-11 rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {pending ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+      </form>
+    </section>
+  )
+}
+
+function Audience({
+  communication,
+  criteria,
+  criterionLabels,
+}: {
+  communication: Communication
+  criteria: CommunicationCriterion[]
+  criterionLabels: Record<string, string>
+}) {
+  const criterionLabelsForReadOnly = (id: string) =>
+    criterionLabels[id] ?? (id || 'Referencia no disponible')
+
+  const [items, setItems] = useState<Draft[]>(() =>
+    normalizeSharedSkillGroups(
+      criteria.map(toDraft)
+    )
+  )
+  const [error, setError] = useState<string | null>(null)
+
+  const [state, action, pending] = useActionState(
+    replaceAudienceAction.bind(null, communication.communication_id),
+    initial
+  )
+
+  const [
+    resolveState,
+    resolve,
+    resolving,
+  ] = useActionState(
+    resolveAudienceAction.bind(
+      null,
+      communication.communication_id
+    ),
+    initial
+  )
+
+  const hasUnsavedChanges =
+    JSON.stringify(items) !==
+    JSON.stringify(criteria.map(toDraft))
+
+  const editable =
+    communication.status !== 'recipients_confirmed' &&
+    communication.status !== 'cancelled'
+
+  const update = (
+    index: number,
+    values: Partial<Draft>
+  ) =>
+    setItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, ...values }
+          : item
+      )
+    )
+
+  const validate = () => {
+    if (!items.length) {
+      return 'Agregá al menos un destinatario o criterio de audiencia.'
+    }
+
+    const missing = items.find(
+      (item) =>
+        !String(
+          (item as Record<string, unknown>)[
+            field(item.criterion_type)
+          ] ?? ''
+        )
+    )
+
+    if (missing) {
+      return `Completá la selección de ${labels[missing.criterion_type]}.`
+    }
+
+    const invalidSkill = items.find(
+      (item) =>
+        (
+          item.criterion_type === 'person_skill' ||
+          item.criterion_type === 'organization_capability'
+        ) &&
+        !(item.verification_statuses?.length)
+    )
+
+    if (invalidSkill) {
+      return 'Seleccioná al menos un estado de verificación para cada habilidad o capacidad.'
+    }
+
+    return null
+  }
+
+  const message = error ?? state.message
+  const isError =
+    Boolean(error) ||
+    state.status === 'error'
+
+  if (!editable) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">
+              Audiencia
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              La audiencia queda en sólo lectura una vez confirmados los destinatarios.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            Sólo lectura
+          </span>
+        </div>
+
+        {criteria.length === 0 ? (
+          <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
+            No hay criterios registrados.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {criteria.map((item) => {
+              const source = field(item.criterion_type)
+              const referenceId = String(
+                (item as unknown as Record<string, unknown>)[source] ?? ''
+              )
+
+              return (
+                <article
+                  key={item.criterion_id}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                >
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+                    <span>
+                      <strong>
+                        {item.criterion_operation === 'include'
+                          ? 'Incluye'
+                          : 'Excluye'}:
+                      </strong>{' '}
+                      {labels[item.criterion_type]}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-sm text-slate-600">
+                    <strong>Referencia:</strong>{' '}
+                    {criterionLabelsForReadOnly(referenceId)}
+                  </p>
+
+                  {item.node_id &&
+                  (
+                    item.criterion_type === 'person_skill' ||
+                    item.criterion_type === 'organization_capability'
+                  ) ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Nodo:{' '}
+                      {criterionLabelsForReadOnly(item.node_id)}
+                    </p>
+                  ) : null}
+
+                  {item.verification_statuses?.length ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Estados:{' '}
+                      {item.verification_statuses
+                        .map((status) =>
+                          status === 'confirmed'
+                            ? 'Confirmada'
+                            : status === 'candidate'
+                              ? 'Candidata'
+                              : status === 'self_reported'
+                                ? 'Autodeclarada'
+                                : status
+                        )
+                        .join(' · ')}
+                    </p>
+                  ) : null}
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+    )
+  }
+
+  const people = selectedIds(
+    items,
+    'person',
+    'person_id'
+  )
+
+  const organizations = selectedIds(
+    items,
+    'organization',
+    'organization_id'
+  )
+
+  const nodes = selectedIds(
+    items,
+    'node_participants',
+    'node_id'
+  )
+
+  const skillRules = items
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ item }) =>
+        item.criterion_type === 'person_skill' &&
+        item.criterion_operation === 'include'
+    )
+
+  const capabilityRules = items
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ item }) =>
+        item.criterion_type === 'organization_capability' &&
+        item.criterion_operation === 'include'
+    )
+
+  const skillIds =
+    uniqueStrings(
+      skillRules.map(
+        ({ item }) =>
+          item.skill_id
+      )
+    )
+
+  const skillNodeIds =
+    uniqueStrings(
+      skillRules.map(
+        ({ item }) =>
+          item.node_id
+      )
+    )
+
+  const skillStatuses =
+    skillRules[0]
+      ?.item
+      .verification_statuses ??
+    ['confirmed']
+
+  const capabilityIds =
+    uniqueStrings(
+      capabilityRules.map(
+        ({ item }) =>
+          item.skill_id
+      )
+    )
+
+  const capabilityNodeIds =
+    uniqueStrings(
+      capabilityRules.map(
+        ({ item }) =>
+          item.node_id
+      )
+    )
+
+  const capabilityStatuses =
+    capabilityRules[0]
+      ?.item
+      .verification_statuses ??
+    ['confirmed']
+
+  const additionalRules = items
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ item }) =>
+        item.criterion_operation === 'include' &&
+        (
+          item.criterion_type === 'articulation_participants' ||
+          item.criterion_type === 'project_participants' ||
+          item.criterion_type === 'theme_responsibles'
+        )
+    )
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold">
+        Audiencia
+      </h2>
+
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+        Elegí quiénes deben formar parte de esta comunicación.
+        Podés combinar Personas, Organizaciones, Nodos,
+        habilidades, capacidades y otros ámbitos. Las selecciones
+        se suman entre sí.
+      </p>
+
+      {message ? (
+        <p
+          role={isError ? 'alert' : 'status'}
+          className={
+            isError
+              ? 'mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700'
+              : 'mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800'
+          }
+        >
+          {message}
+        </p>
+      ) : null}
+
+      <form
+        action={action}
+        noValidate
+        onSubmit={(event) => {
+          const validation = validate()
+          setError(validation)
+
+          if (validation) {
+            event.preventDefault()
+          }
+        }}
+        className="mt-5 space-y-6"
+      >
+        <input
+          type="hidden"
+          name="criteria_json"
+          value={JSON.stringify(items)}
+        />
+
+        <div className="grid gap-4 xl:grid-cols-3">
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-900">
+            Personas específicas
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Elegí una o varias Personas canónicas.
+          </p>
+
+          <CommunicationMultiReferencePicker
+            kind="person"
+            values={people}
+            onChange={(values) =>
+              setItems((current) =>
+                replaceUnionSelections(
+                  current,
+                  'person',
+                  'person_id',
+                  values
+                )
+              )
+            }
+          />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-900">
+            Organizaciones específicas
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Elegí una o varias Organizaciones canónicas.
+          </p>
+
+          <CommunicationMultiReferencePicker
+            kind="organization"
+            values={organizations}
+            onChange={(values) =>
+              setItems((current) =>
+                replaceUnionSelections(
+                  current,
+                  'organization',
+                  'organization_id',
+                  values
+                )
+              )
+            }
+          />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-900">
+            Personas por Nodo
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Incluye las Personas con participación directa,
+            activa y confirmada en uno o varios Nodos.
+          </p>
+
+          <CommunicationMultiReferencePicker
+            kind="node"
+            values={nodes}
+            onChange={(values) =>
+              setItems((current) =>
+                replaceUnionSelections(
+                  current,
+                  'node_participants',
+                  'node_id',
+                  values
+                )
+              )
+            }
+          />
+        </section>
+        </div>
+
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">
+              Personas por habilidad
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Elegí una o varias habilidades. Se incluirán Personas
+              que tengan cualquiera de las habilidades seleccionadas.
+            </p>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Habilidades
+              </p>
+
+              <CommunicationMultiReferencePicker
+                kind="person_skill"
+                values={skillIds}
+                onChange={(values) =>
+                  setItems(
+                    (current) =>
+                      replaceSharedSkillSelections(
+                        current,
+                        'person_skill',
+                        values
+                      )
+                  )
+                }
+              />
+
+              {skillIds.length > 0 ? (
+                <>
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Alcance territorial
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-600">
+                      Sin Nodo seleccionado = todo MP25M.
+                    </p>
+
+                    <CommunicationMultiReferencePicker
+                      kind="node"
+                      values={
+                        skillNodeIds
+                      }
+                      onChange={(values) =>
+                        setItems(
+                          (current) =>
+                            replaceSharedSkillNodeSelections(
+                              current,
+                              'person_skill',
+                              values
+                            )
+                        )
+                      }
+                    />
+
+                    {skillNodeIds.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItems(
+                            (current) =>
+                              replaceSharedSkillNodeSelections(
+                                current,
+                                'person_skill',
+                                []
+                              )
+                          )
+                        }
+                        className="ux-button mt-2 text-sm font-semibold text-[#1E3A5F]"
+                      >
+                        Usar todo MP25M
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <fieldset className="mt-4">
+                    <legend className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Estados admitidos
+                    </legend>
+
+                    {[
+                      [
+                        'confirmed',
+                        'Confirmada',
+                      ],
+                      [
+                        'candidate',
+                        'Candidata',
+                      ],
+                      [
+                        'self_reported',
+                        'Autodeclarada',
+                      ],
+                    ].map(
+                      ([
+                        value,
+                        label,
+                      ]) => (
+                        <label
+                          key={
+                            value
+                          }
+                          className="mr-4 mt-2 inline-flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              skillStatuses.includes(
+                                value
+                              )
+                            }
+                            onChange={() => {
+                              const statuses =
+                                skillStatuses.includes(
+                                  value
+                                )
+                                  ? skillStatuses.filter(
+                                      (
+                                        status
+                                      ) =>
+                                        status !==
+                                        value
+                                    )
+                                  : [
+                                      ...skillStatuses,
+                                      value,
+                                    ]
+
+                              setItems(
+                                (
+                                  current
+                                ) =>
+                                  updateSharedSkillRules(
+                                    current,
+                                    'person_skill',
+                                    {
+                                      verification_statuses:
+                                        statuses,
+                                    }
+                                  )
+                              )
+                            }}
+                          />
+
+                          {label}
+                        </label>
+                      )
+                    )}
+                  </fieldset>
+                </>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">
+              Organizaciones por capacidad
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Elegí una o varias capacidades. Se incluirán
+              Organizaciones que tengan cualquiera de las capacidades
+              seleccionadas.
+            </p>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Capacidades
+              </p>
+
+              <CommunicationMultiReferencePicker
+                kind="organization_capability"
+                values={
+                  capabilityIds
+                }
+                onChange={(values) =>
+                  setItems(
+                    (current) =>
+                      replaceSharedSkillSelections(
+                        current,
+                        'organization_capability',
+                        values
+                      )
+                  )
+                }
+              />
+
+              {capabilityIds.length >
+              0 ? (
+                <>
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Alcance territorial
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-600">
+                      Sin Nodo seleccionado = todo MP25M.
+                    </p>
+
+                    <CommunicationMultiReferencePicker
+                      kind="node"
+                      values={
+                        capabilityNodeIds
+                      }
+                      onChange={(values) =>
+                        setItems(
+                          (current) =>
+                            replaceSharedSkillNodeSelections(
+                              current,
+                              'organization_capability',
+                              values
+                            )
+                        )
+                      }
+                    />
+
+                    {capabilityNodeIds.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItems(
+                            (current) =>
+                              replaceSharedSkillNodeSelections(
+                                current,
+                                'organization_capability',
+                                []
+                              )
+                          )
+                        }
+                        className="ux-button mt-2 text-sm font-semibold text-[#1E3A5F]"
+                      >
+                        Usar todo MP25M
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <fieldset className="mt-4">
+                    <legend className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Estados admitidos
+                    </legend>
+
+                    {[
+                      [
+                        'confirmed',
+                        'Confirmada',
+                      ],
+                      [
+                        'candidate',
+                        'Candidata',
+                      ],
+                      [
+                        'self_reported',
+                        'Autodeclarada',
+                      ],
+                    ].map(
+                      ([
+                        value,
+                        label,
+                      ]) => (
+                        <label
+                          key={
+                            value
+                          }
+                          className="mr-4 mt-2 inline-flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              capabilityStatuses.includes(
+                                value
+                              )
+                            }
+                            onChange={() => {
+                              const statuses =
+                                capabilityStatuses.includes(
+                                  value
+                                )
+                                  ? capabilityStatuses.filter(
+                                      (
+                                        status
+                                      ) =>
+                                        status !==
+                                        value
+                                    )
+                                  : [
+                                      ...capabilityStatuses,
+                                      value,
+                                    ]
+
+                              setItems(
+                                (
+                                  current
+                                ) =>
+                                  updateSharedSkillRules(
+                                    current,
+                                    'organization_capability',
+                                    {
+                                      verification_statuses:
+                                        statuses,
+                                    }
+                                  )
+                              )
+                            }}
+                          />
+
+                          {label}
+                        </label>
+                      )
+                    )}
+                  </fieldset>
+                </>
+              ) : null}
+            </div>
+          </section>
+        </div>
+
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-slate-900">
+                Otros ámbitos
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                También podés sumar participantes de una
+                Articulación, Proyecto o responsables de un Tema.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setItems((current) =>
+                  addAudienceRule(
+                    current,
+                    'articulation_participants'
+                  )
+                )
+              }
+              className="ux-button rounded-xl border px-3 py-2 text-sm"
+            >
+              + Articulación
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setItems((current) =>
+                  addAudienceRule(
+                    current,
+                    'project_participants'
+                  )
+                )
+              }
+              className="ux-button rounded-xl border px-3 py-2 text-sm"
+            >
+              + Proyecto
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setItems((current) =>
+                  addAudienceRule(
+                    current,
+                    'theme_responsibles'
+                  )
+                )
+              }
+              className="ux-button rounded-xl border px-3 py-2 text-sm"
+            >
+              + Tema
+            </button>
+          </div>
+
+          {additionalRules.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {additionalRules.map(({ item, index }) => (
+                <div
+                  key={`${item.group_no}-${index}`}
+                  className="rounded-xl bg-slate-50 p-4"
+                >
+                  <p className="font-semibold">
+                    {labels[item.criterion_type]}
+                  </p>
+
+                  <CommunicationReferencePicker
+                    kind={kind(item.criterion_type)}
+                    value={String(
+                      (
+                        item as Record<
+                          string,
+                          unknown
+                        >
+                      )[field(item.criterion_type)] ??
+                        ''
+                    )}
+                    onChange={(value) =>
+                      update(
+                        index,
+                        {
+                          [field(item.criterion_type)]:
+                            value,
+                        } as Partial<Draft>
+                      )
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setItems((current) =>
+                        current.filter(
+                          (_, itemIndex) =>
+                            itemIndex !== index
+                        )
+                      )
+                    }
+                    className="ux-button mt-3 text-sm font-semibold text-red-700"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2F5D8C]">
+            Paso 1
+          </p>
+
+          <h3 className="mt-1 font-semibold text-slate-950">
+            Guardar definición de audiencia
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Guarda Personas, Organizaciones, Nodos y demás
+            criterios seleccionados. Podés seguir modificándolos
+            mientras la audiencia no haya sido confirmada.
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              disabled={pending}
+              className="ux-button min-h-11 rounded-xl bg-[#1E3A5F] px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {pending
+                ? 'Guardando audiencia...'
+                : 'Guardar audiencia'}
+            </button>
+
+            <p className="text-xs text-slate-500">
+              Esta acción no genera destinatarios ni realiza envíos.
+            </p>
+          </div>
+        </div>
+      </form>
+
+      {communication.status === 'draft' ? (
+        <form
+          action={resolve}
+          noValidate
+          className="mt-5 rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">
+            Paso 2
+          </p>
+
+          <h3 className="mt-1 font-semibold text-slate-950">
+            Resolver audiencia
+          </h3>
+
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
+            Toma la definición guardada y genera la lista de
+            destinatarios para que puedas revisarla antes de
+            confirmarla. Resolver no envía mensajes.
+          </p>
+
+          {hasUnsavedChanges ? (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-900"
+            >
+              Hay cambios en la audiencia que todavía no están
+              guardados. Guardalos antes de resolver.
+            </p>
+          ) : criteria.length === 0 ? (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-amber-900"
+            >
+              Primero definí y guardá al menos un criterio de audiencia.
+            </p>
+          ) : (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+            >
+              La definición guardada está lista para resolver.
+            </p>
+          )}
+
+          {resolveState.message ? (
+            <p
+              role={
+                resolveState.status === 'error'
+                  ? 'alert'
+                  : 'status'
+              }
+              className={
+                resolveState.status === 'error'
+                  ? 'mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700'
+                  : 'mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800'
+              }
+            >
+              {resolveState.message}
+            </p>
+          ) : null}
+
+          <button
+            disabled={
+              resolving ||
+              criteria.length === 0 ||
+              hasUnsavedChanges
+            }
+            className="ux-button mt-4 min-h-11 rounded-xl bg-amber-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {resolving
+              ? 'Resolviendo...'
+              : 'Resolver audiencia'}
+          </button>
+        </form>
+      ) : null}
+    </section>
+  )
+}
+
+
+
+type RecipientSource = {
+  criterion_id: string | null
+  criterion_type:
+    | CriterionType
+    | 'manual'
+}
+
+function getRecipientSources(
+  recipient: CommunicationRecipient
+): RecipientSource[] {
+  if (!Array.isArray(recipient.sources)) {
+    return []
+  }
+
+  return recipient.sources.flatMap(
+    (value) => {
+      if (
+        !value ||
+        typeof value !== 'object'
+      ) {
+        return []
+      }
+
+      const source =
+        value as Record<
+          string,
+          unknown
+        >
+
+      const criterionType =
+        typeof source.criterion_type ===
+        'string'
+          ? source.criterion_type
+          : ''
+
+      if (
+        criterionType !== 'manual' &&
+        !(
+          criterionType in labels
+        )
+      ) {
+        return []
+      }
+
+      return [
+        {
+          criterion_id:
+            typeof source.criterion_id ===
+            'string'
+              ? source.criterion_id
+              : null,
+          criterion_type:
+            criterionType as
+              | CriterionType
+              | 'manual',
+        },
+      ]
+    }
+  )
+}
+
+function criterionReferenceId(
+  criterion: CommunicationCriterion
+) {
+  return String(
+    (
+      criterion as unknown as
+        Record<string, unknown>
+    )[
+      field(
+        criterion.criterion_type
+      )
+    ] ?? ''
+  )
+}
+
+function criterionSourceLabel(
+  criterion: CommunicationCriterion,
+  criterionLabels: Record<
+    string,
+    string
+  >
+) {
+  const referenceId =
+    criterionReferenceId(
+      criterion
+    )
+
+  const referenceLabel =
+    criterionLabels[referenceId] ??
+    'Referencia no disponible'
+
+  const nodeLabel =
+    criterion.node_id
+      ? criterionLabels[
+          criterion.node_id
+        ] ??
+        'Nodo no disponible'
+      : null
+
+  switch (
+    criterion.criterion_type
+  ) {
+    case 'person':
+      return `Persona específica: ${referenceLabel}`
+
+    case 'organization':
+      return `Organización específica: ${referenceLabel}`
+
+    case 'node_participants':
+      return `Nodo: ${referenceLabel}`
+
+    case 'articulation_participants':
+      return `Articulación: ${referenceLabel}`
+
+    case 'project_participants':
+      return `Proyecto: ${referenceLabel}`
+
+    case 'theme_responsibles':
+      return `Tema: ${referenceLabel}`
+
+    case 'person_skill':
+      return nodeLabel
+        ? `Habilidad: ${referenceLabel} · Nodo: ${nodeLabel}`
+        : `Habilidad: ${referenceLabel} · Todo MP25M`
+
+    case 'organization_capability':
+      return nodeLabel
+        ? `Capacidad: ${referenceLabel} · Nodo: ${nodeLabel}`
+        : `Capacidad: ${referenceLabel} · Todo MP25M`
+  }
+}
+
+function sourceLabel(
+  source: RecipientSource,
+  criterionById: Map<
+    string,
+    CommunicationCriterion
+  >,
+  criterionLabels: Record<
+    string,
+    string
+  >
+) {
+  if (
+    source.criterion_type ===
+    'manual'
+  ) {
+    return 'Incorporación manual'
+  }
+
+  if (!source.criterion_id) {
+    return labels[
+      source.criterion_type
+    ]
+  }
+
+  const criterion =
+    criterionById.get(
+      source.criterion_id
+    )
+
+  return criterion
+    ? criterionSourceLabel(
+        criterion,
+        criterionLabels
+      )
+    : labels[
+        source.criterion_type
+      ]
+}
+
+function Recipients({
+  communication,
+  resolution,
+  criteria,
+  criterionLabels,
+  recipientSourceSummary,
+}: {
+  communication: Communication
+  resolution: CommunicationResolution
+  criteria: CommunicationCriterion[]
+  criterionLabels: Record<
+    string,
+    string
+  >
+  recipientSourceSummary:
+    CommunicationRecipientSourceSummary[]
+}) {
+  const [revision, setRevision] =
+    useState(0)
+
+  const [
+    paginationView,
+    setPaginationView,
+  ] = useState<{
+    key: string
+    pageIndex: number
+  }>({
+    key: '',
+    pageIndex: 0,
+  })
+
+  const [
+    recipientView,
+    setRecipientView,
+  ] = useState<
+    'summary' | 'recipients'
+  >('summary')
+
+  const [
+    state,
+    confirm,
+    confirming,
+  ] = useActionState(
+    confirmRecipientsAction.bind(
+      null,
+      communication.communication_id,
+      resolution.resolution_id
+    ),
+    initial
+  )
+
+  const fetchPage =
+    useCallback(
+      async ({
+        query,
+        cursor,
+        signal,
+      }: {
+        query: string
+        cursor: string | null
+        signal: AbortSignal
+      }) => {
+        const params =
+          new URLSearchParams({
+            resolution_id:
+              resolution.resolution_id,
+            q: query,
+            limit: String(
+              RECIPIENT_PAGE_SIZE
+            ),
+          })
+
+        if (cursor) {
+          params.set(
+            'cursor',
+            cursor
+          )
+        }
+
+        const response =
+          await fetch(
+            `/api/panel/comunicaciones/recipients?${params}`,
+            { signal }
+          )
+
+        if (!response.ok) {
+          throw new Error(
+            'No se pudieron cargar destinatarios.'
+          )
+        }
+
+        return (
+          await response.json()
+        ) as RemoteReferencePage<
+          CommunicationRecipient
+        >
+      },
+      [
+        resolution.resolution_id,
+      ]
+    )
+
+  const list =
+    useRemoteReferenceList({
+      contextKey:
+        `${resolution.resolution_id}:${revision}`,
+      getItemKey:
+        (item) =>
+          item.recipient_id,
+      fetchPage,
+      enabledInitially: true,
+    })
+
+  const requestedPageIndex =
+    paginationView.key ===
+    list.paginationKey
+      ? paginationView.pageIndex
+      : 0
+
+  const maxLoadedPageIndex =
+    list.items.length > 0
+      ? Math.floor(
+          (list.items.length - 1) /
+            RECIPIENT_PAGE_SIZE
+        )
+      : 0
+
+  const pageIndex =
+    Math.min(
+      requestedPageIndex,
+      maxLoadedPageIndex
+    )
+
+  const pageStart =
+    pageIndex *
+    RECIPIENT_PAGE_SIZE
+
+  const visibleRecipients =
+    list.items.slice(
+      pageStart,
+      pageStart +
+        RECIPIENT_PAGE_SIZE
+    )
+
+  const hasLoadedNextPage =
+    list.items.length >
+    pageStart +
+      RECIPIENT_PAGE_SIZE
+
+  const canGoNext =
+    hasLoadedNextPage ||
+    list.hasMore
+
+  const firstVisible =
+    visibleRecipients.length > 0
+      ? pageStart + 1
+      : 0
+
+  const lastVisible =
+    pageStart +
+    visibleRecipients.length
+
+  function scrollRecipientsIntoView() {
+    window.requestAnimationFrame(
+      () => {
+        document
+          .getElementById(
+            'communication-recipient-list'
+          )
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+      }
+    )
+  }
+
+  function goToPreviousRecipientPage() {
+    if (
+      pageIndex === 0 ||
+      list.loadingMore
+    ) {
+      return
+    }
+
+    setPaginationView({
+      key: list.paginationKey,
+      pageIndex:
+        Math.max(
+          0,
+          pageIndex - 1
+        ),
+    })
+
+    scrollRecipientsIntoView()
+  }
+
+  function goToNextRecipientPage() {
+    if (
+      list.loadingMore ||
+      !canGoNext
+    ) {
+      return
+    }
+
+    setPaginationView({
+      key: list.paginationKey,
+      pageIndex:
+        pageIndex + 1,
+    })
+
+    if (!hasLoadedNextPage) {
+      list.loadMore()
+    }
+
+    scrollRecipientsIntoView()
+  }
+
+  const editable =
+    communication.status ===
+      'audience_resolved' &&
+    !resolution.confirmed_at
+
+  const allRecipientsLoaded =
+    !list.initialLoading &&
+    !list.initialError &&
+    !list.loadingMore &&
+    !list.hasMore &&
+    !list.query
+
+  const canConfirm =
+    editable &&
+    allRecipientsLoaded
+
+  const criterionById =
+    new Map(
+      criteria.map(
+        (criterion) => [
+          criterion.criterion_id,
+          criterion,
+        ]
+      )
+    )
+
+  const summaryCountByCriterion =
+    new Map(
+      recipientSourceSummary.map(
+        (item) => [
+          item.criterion_id,
+          item.recipient_count,
+        ]
+      )
+    )
+
+  const multipleSourceCount =
+    recipientSourceSummary[0]
+      ?.multi_criterion_recipient_count ??
+    0
+
+  const sourceSummary =
+    criteria.flatMap(
+      (criterion) => {
+        const count =
+          summaryCountByCriterion.get(
+            criterion.criterion_id
+          ) ?? 0
+
+        if (count === 0) {
+          return []
+        }
+
+        return [
+          {
+            criterion,
+            count,
+          },
+        ]
+      }
+    )
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold">
+        Destinatarios
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-600">
+        Resolución{' '}
+        {resolution.resolution_no}:{' '}
+        {resolution.recipient_count}{' '}
+        en total,{' '}
+        {
+          resolution.included_recipient_count
+        }{' '}
+        incluidos,{' '}
+        {
+          resolution.excluded_recipient_count
+        }{' '}
+        excluidos y{' '}
+        {
+          resolution.duplicate_recipient_count
+        }{' '}
+        duplicados.
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Sin Email:{' '}
+        {
+          resolution.person_email_unavailable_count
+        }{' '}
+        · sin WhatsApp:{' '}
+        {
+          resolution.person_whatsapp_unavailable_count
+        }{' '}
+        · organizaciones sin canal institucional:{' '}
+        {
+          resolution.unsupported_organization_count
+        }
+      </p>
+
+      <div
+        role="tablist"
+        aria-label="Vista de destinatarios"
+        className="mt-4 inline-flex flex-wrap gap-2 rounded-xl bg-slate-100 p-1"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={
+            recipientView ===
+            'summary'
+          }
+          onClick={() =>
+            setRecipientView(
+              'summary'
+            )
+          }
+          className={
+            recipientView ===
+            'summary'
+              ? 'ux-button rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1E3A5F] shadow-sm'
+              : 'ux-button rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white/70'
+          }
+        >
+          Resumen por criterios
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={
+            recipientView ===
+            'recipients'
+          }
+          onClick={() =>
+            setRecipientView(
+              'recipients'
+            )
+          }
+          className={
+            recipientView ===
+            'recipients'
+              ? 'ux-button rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1E3A5F] shadow-sm'
+              : 'ux-button rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white/70'
+          }
+        >
+          Destinatarios ({resolution.recipient_count})
+        </button>
+      </div>
+
+      {recipientView ===
+      'summary' ? (
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <h3 className="font-semibold text-slate-950">
+          Procedencia de la audiencia
+        </h3>
+
+        <>
+            <div className="mt-3 grid gap-2">
+              {sourceSummary.length >
+              0 ? (
+                sourceSummary.map(
+                  ({
+                    criterion,
+                    count,
+                  }) => (
+                    <div
+                      key={
+                        criterion.criterion_id
+                      }
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium text-slate-700">
+                        {criterionSourceLabel(
+                          criterion,
+                          criterionLabels
+                        )}
+                      </span>
+
+                      <strong className="text-slate-950">
+                        {count}{' '}
+                        {count === 1
+                          ? 'destinatario'
+                          : 'destinatarios'}
+                      </strong>
+                    </div>
+                  )
+                )
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No hay procedencias
+                  automáticas para mostrar.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
+              <span>
+                <strong>
+                  Destinatarios únicos:
+                </strong>{' '}
+                {
+                  resolution.recipient_count
+                }
+              </span>
+
+              <span>
+                <strong>
+                  Alcanzados por más de un criterio:
+                </strong>{' '}
+                {multipleSourceCount}
+              </span>
+            </div>
+        </>
+      </div>
+      ) : null}
+
+      {recipientView ===
+      'recipients' ? (
+        <>
+      <div
+        id="communication-recipient-list"
+        className="scroll-mt-4"
+      >
+        <input
+          type="search"
+          value={list.query}
+          onFocus={list.open}
+          onChange={(event) =>
+            list.setQuery(
+              event.target.value
+            )
+          }
+          placeholder="Buscar destinatario..."
+          className="mt-4 min-h-10 w-full rounded-lg border border-slate-300 px-3"
+        />
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <p role="status">
+            {list.initialLoading
+              ? 'Cargando destinatarios...'
+              : list.initialError
+                ? list.initialError
+                : list.query
+                  ? `${visibleRecipients.length} resultados en esta página`
+                  : `Mostrando ${firstVisible}–${lastVisible} de ${resolution.recipient_count} destinatarios`}
+          </p>
+
+          {!list.initialLoading &&
+          !list.initialError &&
+          visibleRecipients.length > 0 ? (
+            <p className="font-semibold text-slate-600">
+              Página {pageIndex + 1}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-2 space-y-2">
+          {visibleRecipients.map(
+            (recipient) => (
+              <Recipient
+                key={`${recipient.recipient_id}:${recipient.included}`}
+                communicationId={
+                  communication.communication_id
+                }
+                recipient={
+                  recipient
+                }
+                editable={
+                  editable
+                }
+                criterionById={
+                  criterionById
+                }
+                criterionLabels={
+                  criterionLabels
+                }
+                onChanged={() =>
+                  setRevision(
+                    (value) =>
+                      value + 1
+                  )
+                }
+              />
+            )
+          )}
+        </div>
+
+        {list.loadMoreError ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {list.loadMoreError}
+          </p>
+        ) : null}
+
+        {!list.initialLoading &&
+        !list.initialError &&
+        (
+          pageIndex > 0 ||
+          canGoNext
+        ) ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={
+                goToPreviousRecipientPage
+              }
+              disabled={
+                pageIndex === 0 ||
+                list.loadingMore
+              }
+              className="ux-button min-h-10 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 text-sm font-semibold text-[#1E3A5F] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ← Anterior
+            </button>
+
+            <span className="text-sm font-semibold text-slate-600">
+              Página {pageIndex + 1}
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                goToNextRecipientPage
+              }
+              disabled={
+                !canGoNext ||
+                list.loadingMore
+              }
+              className="ux-button min-h-10 rounded-xl border border-[#2F5D8C]/30 bg-white px-4 text-sm font-semibold text-[#1E3A5F] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {list.loadingMore
+                ? 'Cargando...'
+                : list.loadMoreError
+                  ? 'Reintentar siguiente →'
+                  : 'Siguiente →'}
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {editable ? (
+        <ManualPersonForm
+          communicationId={
+            communication.communication_id
+          }
+          resolutionId={
+            resolution.resolution_id
+          }
+          existingIds={
+            list.items.flatMap(
+              (recipient) =>
+                recipient.person_id
+                  ? [
+                      recipient.person_id,
+                    ]
+                  : []
+            )
+          }
+          onChanged={() =>
+            setRevision(
+              (value) =>
+                value + 1
+            )
+          }
+        />
+      ) : null}
+
+      {editable ? (
+        <form
+          action={confirm}
+          noValidate
+          className="mt-5 rounded-xl bg-emerald-50 p-4"
+        >
+          <p className="font-semibold text-emerald-950">
+            La confirmación abarca la
+            resolución completa. No realiza
+            ningún envío.
+          </p>
+
+          {!canConfirm ? (
+            <p
+              role="status"
+              className="mt-2 text-sm text-emerald-900"
+            >
+              Esperá la carga inicial,
+              cargá todas las páginas y
+              borrá la búsqueda antes de
+              confirmar destinatarios.
+            </p>
+          ) : null}
+
+          {state.message ? (
+            <p
+              role={
+                state.status === 'error'
+                  ? 'alert'
+                  : 'status'
+              }
+              className={
+                state.status === 'error'
+                  ? 'mt-2 text-sm text-red-700'
+                  : 'mt-2 text-sm text-emerald-950'
+              }
+            >
+              {state.message}
+            </p>
+          ) : null}
+
+          <button
+            disabled={
+              confirming ||
+              !canConfirm
+            }
+            className="ux-button mt-3 min-h-11 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {confirming
+              ? 'Confirmando...'
+              : 'Confirmar destinatarios'}
+          </button>
+        </form>
+      ) : (
+        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-950">
+          Destinatarios confirmados. El
+          envío externo no está habilitado.
+        </p>
+      )}
+        </>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">
+          Usá “Destinatarios” para revisar,
+          excluir, reincorporar o confirmar
+          la lista resultante.
+        </p>
+      )}
+
+    </section>
+  )
+}
+
+function ManualPersonForm({ communicationId, resolutionId, existingIds, onChanged }: { communicationId: string; resolutionId: string; existingIds: string[]; onChanged: () => void }) { const [selected, setSelected] = useState<CanonicalActorReference | null>(null); const [reason, setReason] = useState(''); const [error, setError] = useState<string | null>(null); const [state, action, pending] = useActionState(addManualPersonAction.bind(null, communicationId, resolutionId), initial); useEffect(() => { if (state.status === 'success') onChanged() }, [onChanged, state.status]); const fetchPage = useCallback(async ({ query, cursor, signal }: { query: string; cursor: string | null; signal: AbortSignal }) => { const params = new URLSearchParams({ mode: 'reference', actor_type: 'person', q: query, limit: '50' }); if (cursor) params.set('cursor', cursor); const response = await fetch(`/api/panel/oportunidades/actores?${params}`, { signal }); if (!response.ok) throw new Error('No se pudo cargar Personas.'); return await response.json() as RemoteReferencePage<CanonicalActorReference> }, []); const people = useRemoteReferenceList({ contextKey: 'manual-communication-person', getItemKey: (item) => item.actor_id, fetchPage }); const excluded = new Set(existingIds); return <form action={action} noValidate onSubmit={(event) => { if (!selected || reason.trim().length < 3) { event.preventDefault(); setError('Elegí una Persona canónica e indicá un motivo de al menos 3 caracteres.') } }} className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-semibold">Agregar Persona canónica</p><p className="mt-1 text-sm text-slate-600">Sólo se agrega a esta resolución; no crea una Persona ni una relación de dominio.</p><input type="hidden" name="person_id" value={selected?.actor_id ?? ''} /><ReferenceListDialog buttonClassName="mt-3" title="Personas canónicas" description="Buscá o explorá Personas existentes." items={people.items.filter((person) => !excluded.has(person.actor_id))} getItemKey={(person) => person.actor_id} getItemSearchText={(person) => person.display_name} emptyMessage="No hay Personas disponibles." onOpen={people.open} onSelect={setSelected} renderItem={(person) => <strong>{person.display_name}</strong>} remote={{ ...people, autoLoad: true, onQueryChange: people.setQuery, onLoadMore: people.loadMore, onRetry: people.retry }} /><p role="status" className="mt-2 text-sm">{selected ? `Seleccionada: ${selected.display_name}` : 'Sin Persona seleccionada.'}</p><label className="mt-2 block text-sm">Motivo<input name="reason" value={reason} onChange={(event) => { setReason(event.target.value); setError(null) }} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3" /></label>{error || state.message ? <p role="alert" className="mt-2 text-sm text-red-700">{error ?? state.message}</p> : null}<button disabled={pending || !selected} className="ux-button mt-3 min-h-10 rounded-lg bg-[#1E3A5F] px-3 text-sm font-semibold text-white disabled:opacity-60">{pending ? 'Agregando...' : 'Agregar Persona'}</button></form> }
+
+function Recipient({
+  communicationId,
+  recipient,
+  editable,
+  criterionById,
+  criterionLabels,
+  onChanged,
+}: {
+  communicationId: string
+  recipient: CommunicationRecipient
+  editable: boolean
+  criterionById: Map<
+    string,
+    CommunicationCriterion
+  >
+  criterionLabels: Record<
+    string,
+    string
+  >
+  onChanged: () => void
+}) {
+  const [
+    state,
+    action,
+    pending,
+  ] = useActionState(
+    setRecipientIncludedAction.bind(
+      null,
+      communicationId,
+      recipient.recipient_id,
+      !recipient.included
+    ),
+    initial
+  )
+
+  useEffect(() => {
+    if (
+      state.status === 'success'
+    ) {
+      onChanged()
+    }
+  }, [
+    onChanged,
+    state.status,
+  ])
+
+  const kindLabel =
+    recipient.recipient_kind ===
+    'person'
+      ? 'Persona'
+      : recipient.recipient_kind ===
+          'organization'
+        ? 'Organización'
+        : recipient.recipient_kind ===
+            'internal_user'
+          ? 'Usuario interno'
+          : 'Destinatario'
+
+  const availabilityLabel = (
+    status: string,
+    channel:
+      | 'email'
+      | 'whatsapp'
+  ) => {
+    if (
+      status ===
+      'available_verified'
+    ) {
+      return 'Disponible verificado'
+    }
+
+    if (
+      status ===
+      'available_unverified'
+    ) {
+      return 'Disponible sin verificar'
+    }
+
+    if (status === 'missing') {
+      return channel === 'email'
+        ? 'Sin email'
+        : 'Sin WhatsApp'
+    }
+
+    if (
+      status === 'restricted'
+    ) {
+      return 'Restringido'
+    }
+
+    if (
+      status ===
+      'unsupported_recipient'
+    ) {
+      return 'No disponible para este destinatario'
+    }
+
+    return 'Estado no disponible'
+  }
+
+  const emailLabel =
+    availabilityLabel(
+      recipient.email_availability_status,
+      'email'
+    )
+
+  const whatsappLabel =
+    availabilityLabel(
+      recipient.whatsapp_availability_status,
+      'whatsapp'
+    )
+
+  const provenance =
+    getRecipientSources(
+      recipient
+    ).map((source) =>
+      sourceLabel(
+        source,
+        criterionById,
+        criterionLabels
+      )
+    )
+
+  return (
+    <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-sm text-slate-950">
+              {
+                recipient.display_name_snapshot
+              }
+            </strong>
+
+            {!recipient.included ? (
+              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                Excluido
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-0.5 text-xs text-slate-500">
+            {kindLabel} · Email:{' '}
+            {emailLabel} · WhatsApp:{' '}
+            {whatsappLabel}
+          </p>
+
+          {provenance.length > 0 ? (
+            <p className="mt-1.5 text-xs leading-5 text-[#1E3A5F]">
+              <strong>
+                Incluido por:
+              </strong>{' '}
+              {provenance.join(' · ')}
+            </p>
+          ) : null}
+        </div>
+
+        {editable ? (
+          <form action={action}>
+            <button
+              disabled={pending}
+              className={
+                recipient.included
+                  ? 'ux-button shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60'
+                  : 'ux-button shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60'
+              }
+            >
+              {pending
+                ? 'Guardando...'
+                : recipient.included
+                  ? 'Excluir'
+                  : 'Reincorporar'}
+            </button>
+          </form>
+        ) : null}
+      </div>
+
+      {state.message ? (
+        <p
+          role={
+            state.status === 'error'
+              ? 'alert'
+              : 'status'
+          }
+          className={
+            state.status === 'error'
+              ? 'mt-2 text-xs text-red-700'
+              : 'mt-2 text-xs text-emerald-700'
+          }
+        >
+          {state.message}
+        </p>
+      ) : null}
+    </article>
+  )
+}
+
+export function CommunicationWorkspace({
+  communication,
+  criteria,
+  criterionLabels,
+  resolution,
+  recipientSourceSummary,
+}: {
+  communication: Communication
+  criteria: CommunicationCriterion[]
+  criterionLabels: Record<string, string>
+  resolution: CommunicationResolution | null
+  recipientSourceSummary:
+    CommunicationRecipientSourceSummary[]
+}) {
+  return (
+    <CommunicationCriterionLabelsContext.Provider
+      value={criterionLabels}
+    >
+      <div className="space-y-6">
+        <section className="rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-6 text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">
+            {communication.status === 'draft'
+              ? 'Borrador'
+              : communication.status === 'audience_resolved'
+                ? 'Audiencia resuelta'
+                : 'Destinatarios confirmados'}
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold">
+            {communication.subject}
+          </h1>
+
+          <p className="mt-2 text-sm">
+            Contexto:{' '}
+            {communication.context_type === 'independent'
+              ? 'Sin contexto'
+              : communication.context_title ??
+                communication.context_type}
+          </p>
+        </section>
+
+        <MessageEditor
+          communication={communication}
+        />
+
+        <Audience
+          key={`${communication.communication_id}:${communication.status}:${communication.audience_revision}`}
+          communication={communication}
+          criteria={criteria}
+          criterionLabels={criterionLabels}
+        />
+
+        {resolution ? (
+          <Recipients
+            communication={communication}
+            resolution={resolution}
+            criteria={criteria}
+            criterionLabels={
+              criterionLabels
+            }
+            recipientSourceSummary={
+              recipientSourceSummary
+            }
+          />
+        ) : null}
+      </div>
+    </CommunicationCriterionLabelsContext.Provider>
+  )
+}

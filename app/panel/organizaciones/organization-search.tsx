@@ -1,11 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   useEffect,
   useId,
   useState,
 } from 'react'
+
+import { ReferenceListDialog } from '../../../components/reference-list-dialog'
 
 type OrganizationSearchResult = {
   id: string
@@ -22,8 +25,6 @@ type OrganizationTypeOption = {
   name: string
   display_order: number
 }
-
-const MINIMUM_QUERY_LENGTH = 3
 
 function organizationMetadata(
   organization: OrganizationSearchResult
@@ -50,6 +51,7 @@ export function OrganizationSearch({
 }: {
   organizationTypes: OrganizationTypeOption[]
 }) {
+  const router = useRouter()
   const inputId = useId()
   const typeId = useId()
   const resultsId = useId()
@@ -65,27 +67,19 @@ export function OrganizationSearch({
     useState(false)
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null)
+  const [inputFocused, setInputFocused] =
+    useState(false)
 
   const term = query.trim()
   const hasTypeFilter =
     organizationTypeCode.length > 0
-  const canSearch =
-    hasTypeFilter ||
-    term.length >= MINIMUM_QUERY_LENGTH
-
-  const searchIsOpen =
-    canSearch
-
   const hasActiveFilters =
     term.length > 0 || hasTypeFilter
 
   function clearFilters() {
     setQuery('')
     setOrganizationTypeCode('')
-    setResults([])
-    setHasSearched(false)
     setErrorMessage(null)
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -93,25 +87,17 @@ export function OrganizationSearch({
     const currentType =
       organizationTypeCode.trim()
 
-    setResults([])
-    setHasSearched(false)
-    setErrorMessage(null)
-
-    if (
-      !currentType &&
-      currentTerm.length <
-      MINIMUM_QUERY_LENGTH
-    ) {
-      setLoading(false)
-      return
-    }
-
     const controller = new AbortController()
-
-    setLoading(true)
 
     const timeout = window.setTimeout(
       async () => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        setLoading(true)
+        setErrorMessage(null)
+
         try {
           const searchParams =
             new URLSearchParams()
@@ -144,6 +130,7 @@ export function OrganizationSearch({
 
           if (!controller.signal.aborted) {
             setResults(data)
+            setHasSearched(true)
           }
         } catch (error) {
           if (
@@ -155,6 +142,7 @@ export function OrganizationSearch({
 
           if (!controller.signal.aborted) {
             setResults([])
+            setHasSearched(true)
             setErrorMessage(
               'No se pudo completar la búsqueda. Intentá nuevamente.'
             )
@@ -162,11 +150,10 @@ export function OrganizationSearch({
         } finally {
           if (!controller.signal.aborted) {
             setLoading(false)
-            setHasSearched(true)
           }
         }
       },
-      250
+      currentTerm ? 200 : 0
     )
 
     return () => {
@@ -185,33 +172,101 @@ export function OrganizationSearch({
       </label>
 
       <p className="mt-1 text-sm leading-6 text-slate-500">
-        Buscá empresas, cooperativas, universidades,
-        sindicatos, instituciones y otras organizaciones
-        incorporadas al registro canónico.
+        Explorá el directorio o escribí desde el primer
+        carácter para buscar empresas, cooperativas,
+        universidades, sindicatos e instituciones.
       </p>
 
       <div className="mt-3 grid gap-3 sm:mt-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:gap-4">
-        <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Nombre
-          </span>
+        <div
+          className="relative"
+          onFocusCapture={() =>
+            setInputFocused(true)
+          }
+          onBlurCapture={(event) => {
+            const nextTarget =
+              event.relatedTarget as Node | null
 
-          <input
-            id={inputId}
-            value={query}
-            onChange={(event) =>
-              setQuery(event.target.value)
+            if (
+              !nextTarget ||
+              !event.currentTarget.contains(
+                nextTarget
+              )
+            ) {
+              setInputFocused(false)
             }
-            placeholder="Ej.: universidad, cooperativa..."
-            autoComplete="off"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={searchIsOpen}
-            aria-controls={resultsId}
-            aria-busy={loading}
-            className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
-          />
-        </label>
+          }}
+        >
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Nombre
+            </span>
+
+            <input
+              id={inputId}
+              value={query}
+              onChange={(event) =>
+                setQuery(event.target.value)
+              }
+              placeholder="Ej.: universidad, cooperativa..."
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={inputFocused}
+              aria-controls={resultsId}
+              aria-busy={loading}
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            />
+          </label>
+
+          {inputFocused ? (
+            <div
+              id={resultsId}
+              className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+            >
+              <p className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs leading-5 text-slate-500">
+                {term
+                  ? `Buscando “${term}” en el directorio de organizaciones.`
+                  : `${results.length} organización${results.length === 1 ? '' : 'es'} disponible${results.length === 1 ? '' : 's'}. Desplazate para explorar o escribí para filtrar.`}
+              </p>
+
+              {loading ? (
+                <p className="px-4 py-3 text-sm text-slate-500">
+                  {term
+                    ? 'Buscando organizaciones...'
+                    : 'Cargando organizaciones...'}
+                </p>
+              ) : errorMessage ? (
+                <p className="px-4 py-3 text-sm text-red-600">
+                  {errorMessage}
+                </p>
+              ) : results.length > 0 ? (
+                results.map((organization) => (
+                  <Link
+                    key={organization.id}
+                    href={`/panel/organizaciones/${organization.id}`}
+                    prefetch={false}
+                    className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  >
+                    <p className="break-words text-sm font-semibold text-slate-900">
+                      {organization.display_name}
+                    </p>
+
+                    <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                      {organizationMetadata(
+                        organization
+                      )}
+                    </p>
+                  </Link>
+                ))
+              ) : hasSearched ? (
+                <p className="px-4 py-3 text-sm text-slate-500">
+                  No se encontraron organizaciones con estos filtros.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
         <label
           htmlFor={typeId}
@@ -224,15 +279,11 @@ export function OrganizationSearch({
           <select
             id={typeId}
             value={organizationTypeCode}
-            onChange={(event) => {
-              setQuery('')
-              setResults([])
-              setHasSearched(false)
-              setErrorMessage(null)
+            onChange={(event) =>
               setOrganizationTypeCode(
                 event.target.value
               )
-            }}
+            }
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
           >
             <option value="">
@@ -251,54 +302,54 @@ export function OrganizationSearch({
         </label>
       </div>
 
-      <div className="relative">
-        {searchIsOpen ? (
-          <div
-            id={resultsId}
-            className="absolute left-0 right-0 z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-          >
-            {loading ? (
-              <p className="px-4 py-3 text-sm text-slate-500">
-                Buscando organizaciones...
-              </p>
-            ) : errorMessage ? (
-              <p className="px-4 py-3 text-sm text-red-600">
-                {errorMessage}
-              </p>
-            ) : results.length > 0 ? (
-              results.map((organization) => (
-                <Link
-                  key={organization.id}
-                  href={`/panel/organizaciones/${organization.id}`}
-                  prefetch={false}
-                  className="block min-h-14 border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
-                >
-                  <p className="break-words text-sm font-semibold text-slate-900">
-                    {organization.display_name}
-                  </p>
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <ReferenceListDialog
+            buttonLabel="Ver lista"
+            title="Directorio de organizaciones"
+            description="Explorá organizaciones canónicas activas o filtrá la lista por nombre, tipo y datos asociados."
+            items={results}
+            loading={loading}
+            errorMessage={errorMessage}
+            searchPlaceholder="Filtrar organización..."
+            emptyMessage="No se encontraron organizaciones para esta búsqueda."
+            getItemKey={(organization) =>
+              organization.id
+            }
+            getItemSearchText={(organization) =>
+              [
+                organization.display_name,
+                organization.organization_type_name,
+                organizationMetadata(
+                  organization
+                ),
+              ].join(' ')
+            }
+            renderItem={(organization) => (
+              <div>
+                <p className="break-words text-sm font-semibold text-slate-900">
+                  {organization.display_name}
+                </p>
+                <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                  {organizationMetadata(
+                    organization
+                  )}
+                </p>
+              </div>
+            )}
+            onSelect={(organization) => {
+              router.push(
+                `/panel/organizaciones/${organization.id}`
+              )
+            }}
+          />
 
-                  <p className="mt-1 break-words text-xs leading-5 text-slate-500">
-                    {organizationMetadata(
-                      organization
-                    )}
-                  </p>
-                </Link>
-              ))
-            ) : hasSearched ? (
-              <p className="px-4 py-3 text-sm text-slate-500">
-                No se encontraron organizaciones con estos filtros.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs leading-5 text-slate-400">
-          Sin filtro de tipo, escribí al menos tres
-          caracteres. Con tipo seleccionado se muestran
-          hasta veinte organizaciones de ese tipo.
-        </p>
+          <p className="mt-2 text-xs leading-5 text-slate-400">
+            Podés explorar la lista completa o escribir
+            desde el primer carácter. El tipo funciona como
+            filtro adicional.
+          </p>
+        </div>
 
         {hasActiveFilters ? (
           <button

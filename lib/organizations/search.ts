@@ -17,9 +17,9 @@ export type SearchOrganizationsInput = {
   organizationTypeCode?: string | null
 }
 
-const MINIMUM_QUERY_LENGTH = 3
-const NAME_SEARCH_LIMIT = 10
-const TYPE_SEARCH_LIMIT = 20
+const MINIMUM_QUERY_LENGTH = 1
+const NAME_SEARCH_LIMIT = 50
+const TYPE_SEARCH_LIMIT = 50
 
 const ORGANIZATION_TYPE_CODE_PATTERN =
   /^[a-z0-9_]+$/i
@@ -55,7 +55,7 @@ export async function searchOrganizations(
   }
 
   if (
-    !organizationTypeCode &&
+    term.length > 0 &&
     term.length < MINIMUM_QUERY_LENGTH
   ) {
     return []

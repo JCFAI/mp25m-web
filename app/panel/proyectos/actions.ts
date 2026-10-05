@@ -349,10 +349,11 @@ export async function createProjectFollowupAction(projectId: string, _state: Pro
 
 export async function addProjectParticipantAction(projectId: string, _state: ProjectActionState, formData: FormData): Promise<ProjectActionState> {
   const actor = String(formData.get('actor') ?? '')
-  const [actorType, actorId] = actor.split(':', 2)
+  const [actorType, actorId, extra] = actor.split(':')
   const participationRole = String(formData.get('participation_role') ?? '').trim()
   const contributionSummary = String(formData.get('contribution_summary') ?? '').trim()
-  if (!actorId || !['person', 'organization'].includes(actorType) || participationRole.length < 3 || contributionSummary.length < 3) return { status: 'error', message: 'Elegí un participante e indicá su rol y contribución.' }
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actorId ?? '')
+  if (!actorId || extra !== undefined || !isUuid || !['person', 'organization'].includes(actorType) || participationRole.length < 3 || contributionSummary.length < 3) return { status: 'error', message: 'Elegí una persona u organización canónica e indicá su rol y contribución.' }
   try { await addProjectParticipant(await getCurrentAccess(), { projectId, personId: actorType === 'person' ? actorId : null, organizationId: actorType === 'organization' ? actorId : null, participationRole, contributionSummary }) }
   catch (error) { console.error('[MP25M] Project participant failed:', error); return { status: 'error', message: 'No se pudo incorporar el participante. Puede que ya esté activo.' } }
   revalidatePath(`/panel/proyectos/${projectId}`)

@@ -185,6 +185,21 @@ export type OpportunityAnalysisCandidateState = {
   resolved_organization_id: string | null
 }
 
+export type OpportunityRequirementMatchCandidate = {
+  actor_kind: MatchActorKind
+  actor_id: string
+  actor_display_name: string
+  strongest_relation_kind: FoundationRelationKind
+  foundation_count: number
+  verification_summary: Record<string, number>
+  territorially_related: boolean
+  search_mode: string
+  persistence_allowed: boolean
+  existing_match_id: string | null
+  existing_match_status: MatchStatus | null
+  foundations: Array<Record<string, unknown>>
+}
+
 export type ActorSearchEvidence = {
   actor_kind: MatchActorKind
   actor_id: string
@@ -651,6 +666,172 @@ export function canOperateOpportunityRequirementEvaluation(
   return canFormulateOpportunityRequirement(access, opportunity)
 }
 
+function analysisActorInternalUserId(
+  access: InternalAccess[]
+) {
+  const ids = [
+    ...new Set(
+      access
+        .map((item) => item.internal_user_id)
+        .filter(Boolean)
+    ),
+  ]
+
+  if (ids.length !== 1) {
+    throw new Error(
+      'Unable to resolve a single internal user for opportunity analysis'
+    )
+  }
+
+  return ids[0]
+}
+
+export async function searchOpportunityRequirementMatchCandidates(
+  access: InternalAccess[],
+  requirementRevisionId: string
+): Promise<OpportunityRequirementMatchCandidate[]> {
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase.rpc(
+    'search_opportunity_requirement_match_candidates',
+    {
+      p_actor_internal_user_id:
+        analysisActorInternalUserId(access),
+      p_requirement_revision_id:
+        requirementRevisionId,
+      p_actor_kind:
+        null,
+      p_include_contextual:
+        true,
+      p_limit:
+        50,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to search opportunity requirement match candidates: ${error.message}`
+    )
+  }
+
+  return (
+    data ?? []
+  ) as OpportunityRequirementMatchCandidate[]
+}
+
+export async function createManualOpportunityRequirementMatch(
+  access: InternalAccess[],
+  input: {
+    requirementRevisionId: string
+    actorKind: 'person' | 'organization'
+    actorId: string
+    relationKind: 'related' | 'contextual'
+    observedText: string
+    inferenceText: string
+  }
+) {
+  const { data, error } = await createAdminClient().rpc(
+    'create_manual_opportunity_requirement_match',
+    {
+      p_actor_internal_user_id:
+        analysisActorInternalUserId(access),
+      p_requirement_revision_id:
+        input.requirementRevisionId,
+      p_actor_kind:
+        input.actorKind,
+      p_actor_id:
+        input.actorId,
+      p_relation_kind:
+        input.relationKind,
+      p_observed_text:
+        input.observedText,
+      p_inference_text:
+        input.inferenceText,
+    }
+  )
+
+  if (error) {
+    throw new OpportunityAnalysisRpcError(
+      error.message,
+      error.code
+    )
+  }
+
+  return data
+}
+
+export async function decideOpportunityRequirementMatch(
+  access: InternalAccess[],
+  input: {
+    matchId: string
+    expectedStatus: MatchStatus
+    decisionKind: 'discard' | 'reconsider'
+    reason: string
+  }
+) {
+  const { data, error } = await createAdminClient().rpc(
+    'decide_opportunity_requirement_match',
+    {
+      p_actor_internal_user_id:
+        analysisActorInternalUserId(access),
+      p_match_id:
+        input.matchId,
+      p_expected_status:
+        input.expectedStatus,
+      p_decision_kind:
+        input.decisionKind,
+      p_reason:
+        input.reason,
+    }
+  )
+
+  if (error) {
+    throw new OpportunityAnalysisRpcError(
+      error.message,
+      error.code
+    )
+  }
+
+  return data
+}
+
+export async function acceptOpportunityRequirementMatchCandidate(
+  access: InternalAccess[],
+  input: {
+    requirementRevisionId: string
+    actorKind: MatchActorKind
+    actorId: string
+  }
+) {
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase.rpc(
+    'materialize_opportunity_requirement_match',
+    {
+      p_actor_internal_user_id:
+        analysisActorInternalUserId(access),
+      p_requirement_revision_id:
+        input.requirementRevisionId,
+      p_actor_kind:
+        input.actorKind,
+      p_actor_id:
+        input.actorId,
+      p_decision_kind:
+        'accept',
+      p_reason:
+        null,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to incorporate actor into requirement analysis: ${error.message}`
+    )
+  }
+
+  return data
+}
+
 function normalizeEvidenceSearchTerm(value: string) {
   return value
     .replace(/\s+/g, ' ')
@@ -729,10 +910,10 @@ export async function searchActorEvidence(
   }
 ): Promise<ActorSearchEvidence[]> {
   const term = normalizeEvidenceSearchTerm(input.query)
-  if (term.length < 3) return []
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase
+
+  let query = supabase
     .from('actor_search_evidence')
     .select(`
       actor_kind, actor_id, evidence_kind, evidence_text,
@@ -742,7 +923,15 @@ export async function searchActorEvidence(
     `)
     .eq('actor_kind', input.actorKind)
     .eq('actor_id', input.actorId)
-    .ilike('evidence_text', `%${term}%`)
+
+  if (term) {
+    query = query.ilike(
+      'evidence_text',
+      `%${term}%`
+    )
+  }
+
+  const { data, error } = await query
     .order('source_updated_at', { ascending: false, nullsFirst: false })
     .order('source_record_type', { ascending: true })
     .order('source_record_id', { ascending: true })

@@ -211,7 +211,7 @@ export async function searchOpportunityActors(
 ): Promise<OpportunityActorSearchResult[]> {
   const term = query.trim()
 
-  if (term.length < 2) {
+  if (term.length < 1) {
     return []
   }
 

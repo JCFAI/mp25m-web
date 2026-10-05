@@ -118,7 +118,7 @@ export async function searchOpportunityNodes(
 ): Promise<OpportunityNodeSearchResult[]> {
   const term = normalizeNodeSearchTerm(query)
 
-  if (term.length < 2) {
+  if (term.length < 1) {
     return []
   }
 

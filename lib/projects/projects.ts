@@ -78,6 +78,7 @@ export type ProjectParticipant = {
   participant_id: string
   project_id: string
   participant_type: 'person' | 'organization'
+  actor_id: string
   display_name: string
   participation_role: string
   contribution_summary: string

@@ -8,9 +8,12 @@ import {
   type InternalAccess,
 } from '../../../../lib/auth/internal-access'
 import {
+  acceptOpportunityRequirementMatchCandidate,
   assessOpportunityRequirementMatch,
   addOpportunityRequirementMatchFoundation,
   createOpportunityCoverageSnapshot,
+  createManualOpportunityRequirementMatch,
+  decideOpportunityRequirementMatch,
   createOpportunityGapAction,
   evaluateOpportunityRequirementCoverage,
   openOpportunityGap,
@@ -18,7 +21,9 @@ import {
   transitionOpportunityGapAction as transitionOpportunityGapActionRecord,
   OpportunityAnalysisRpcError,
   type FoundationRelationKind,
+  type MatchActorKind,
   type MatchAssessmentKind,
+  type MatchStatus,
   type RequirementCoverageStatus,
   type OpportunityGapType,
   type OpportunityGapStatus,
@@ -122,34 +127,34 @@ function analysisErrorMessage(error: unknown, fallback: string) {
     }
 
     const translated: Array<[string, string]> = [
-      ['Substantive match assessments require at least one frozen foundation', 'Seleccioná al menos un fundamento de este match.'],
-      ['Every selected foundation must belong to the assessed match', 'Todos los fundamentos seleccionados deben pertenecer a este match.'],
+      ['Substantive match assessments require at least one frozen foundation', 'Seleccioná al menos una evidencia para fundamentar la evaluación.'],
+      ['Every selected foundation must belong to the assessed match', 'Todas las evidencias seleccionadas deben pertenecer a este actor.'],
       ['Unresolved candidates may only be assessed as insufficient_evidence', 'Un actor pendiente sólo puede evaluarse como evidencia insuficiente.'],
-      ['This evidence is already a foundation of the match', 'Esta evidencia ya fue agregada como fundamento del match.'],
+      ['This evidence is already a foundation of the match', 'Esta evidencia ya fue incorporada al análisis de este actor.'],
       ['Direct added evidence requires exact canonical skill or activity equality', 'La relación directa requiere una coincidencia canónica exacta con la habilidad o actividad requerida.'],
       ['Unresolved candidate added evidence may only be contextual', 'Un candidato no resuelto sólo admite evidencia contextual.'],
       ['Resolved or inactive actor candidates cannot receive new foundations', 'Este candidato ya no está operativo para agregar evidencia.'],
       ['Evidence is not a current searchable record of the matched actor', 'La evidencia seleccionada ya no está disponible para este actor. Recargá la búsqueda.'],
-      ['Only accepted_for_analysis matches may receive added evidence', 'Sólo los matches aceptados para análisis pueden recibir evidencia adicional.'],
-      ['Historical or withdrawn opportunity requirement matches are read-only', 'Los matches de revisiones históricas o retiradas son sólo de lectura.'],
-      ['Only validated current requirement matches may receive added evidence', 'Sólo los matches de la revisión actual validada pueden recibir evidencia adicional.'],
-      ['Internal user cannot add opportunity requirement match foundations', 'Tu acceso actual no permite agregar fundamentos a este match.'],
-      ['Only accepted_for_analysis matches may be assessed', 'Sólo los matches aceptados para análisis pueden evaluarse.'],
-      ['Historical opportunity requirement matches cannot be newly assessed', 'Los matches de revisiones históricas son sólo de lectura.'],
-      ['Only validated current opportunity requirement matches may be assessed', 'Sólo pueden evaluarse matches de la revisión actual validada.'],
-      ['Covered requires at least one current match assessment', 'Cubierto requiere al menos una evaluación vigente.'],
-      ['Covered requires a satisfies assessment or at least two partially_satisfies assessments', 'Cubierto requiere una evaluación “Satisface” o al menos dos “Satisface parcialmente”.'],
-      ['Partial coverage requires at least one current match assessment', 'Parcial requiere al menos una evaluación vigente.'],
-      ['Partial coverage cannot use a satisfies assessment', 'Parcial no puede incluir una evaluación “Satisface”.'],
-      ['Partial coverage requires at least one partially_satisfies assessment', 'Parcial requiere al menos una evaluación “Satisface parcialmente”.'],
-      ['Missing coverage cannot use satisfies or partially_satisfies assessments', 'Faltante sólo puede apoyarse en evaluaciones “No satisface”.'],
-      ['Insufficient evidence cannot support a missing coverage conclusion', 'Evidencia insuficiente no demuestra que el requerimiento esté faltante.'],
-      ['Coverage may only use current assessments from accepted matches of this exact requirement revision', 'La cobertura sólo puede usar evaluaciones vigentes de matches aceptados de esta revisión.'],
+      ['Only accepted_for_analysis matches may receive added evidence', 'Sólo los actores incorporados al análisis pueden recibir evidencia adicional.'],
+      ['Historical or withdrawn opportunity requirement matches are read-only', 'Los actores de revisiones históricas o retiradas son sólo de lectura.'],
+      ['Only validated current requirement matches may receive added evidence', 'Sólo los actores de la revisión actual validada pueden recibir evidencia adicional.'],
+      ['Internal user cannot add opportunity requirement match foundations', 'Tu acceso actual no permite agregar evidencia a este actor.'],
+      ['Only accepted_for_analysis matches may be assessed', 'Sólo los actores incorporados al análisis pueden evaluarse.'],
+      ['Historical opportunity requirement matches cannot be newly assessed', 'Los actores de revisiones históricas son sólo de lectura.'],
+      ['Only validated current opportunity requirement matches may be assessed', 'Sólo pueden evaluarse actores de la revisión actual validada.'],
+      ['Covered requires at least one current match assessment', '“Satisface” requiere al menos una evaluación vigente.'],
+      ['Covered requires a satisfies assessment or at least two partially_satisfies assessments', '“Satisface” requiere una evaluación “Satisface” o al menos dos “Satisface parcialmente”.'],
+      ['Partial coverage requires at least one current match assessment', '“Satisface parcialmente” requiere al menos una evaluación vigente.'],
+      ['Partial coverage cannot use a satisfies assessment', '“Satisface parcialmente” no puede incluir una evaluación “Satisface”.'],
+      ['Partial coverage requires at least one partially_satisfies assessment', '“Satisface parcialmente” requiere al menos una evaluación “Satisface parcialmente”.'],
+      ['Missing coverage cannot use satisfies or partially_satisfies assessments', '“No satisface” sólo puede apoyarse en evaluaciones “No satisface”.'],
+      ['Insufficient evidence cannot support a missing coverage conclusion', 'Evidencia insuficiente no demuestra que el requerimiento tenga estado “No satisface”.'],
+      ['Coverage may only use current assessments from accepted matches of this exact requirement revision', 'La cobertura sólo puede usar evaluaciones vigentes de actores incorporados en esta revisión.'],
       ['Historical opportunity requirement revisions cannot receive new coverage evaluations', 'Las revisiones históricas son sólo de lectura.'],
       ['Only validated current opportunity requirement revisions may receive coverage evaluations', 'Sólo la revisión actual validada puede recibir evaluaciones de cobertura.'],
       ['Withdrawn opportunity requirements cannot receive new coverage evaluations', 'Los requerimientos retirados son sólo de lectura.'],
-      ['Internal user cannot create this opportunity coverage snapshot', 'Tu acceso actual no permite crear un snapshot de cobertura.'],
-      ['Opportunity gaps require a current partial or missing coverage conclusion', 'Sólo podés abrir una brecha cuando la cobertura actual sea parcial o faltante.'],
+      ['Internal user cannot create this opportunity coverage snapshot', 'Tu acceso actual no permite registrar este estado de cobertura.'],
+      ['Opportunity gaps require a current partial or missing coverage conclusion', 'Sólo podés abrir una brecha cuando la cobertura actual sea “Satisface parcialmente” o “No satisface”.'],
       ['Only validated current opportunity requirement revisions may open gaps', 'Sólo podés abrir brechas sobre la revisión actual validada del requerimiento.'],
       ['Internal user cannot open this opportunity gap', 'Tu acceso actual no permite abrir esta brecha.'],
       ['Internal user cannot update this opportunity gap', 'Tu acceso actual no permite actualizar esta brecha.'],
@@ -157,6 +162,12 @@ function analysisErrorMessage(error: unknown, fallback: string) {
       ['Internal user cannot create this opportunity gap action', 'Tu acceso actual no permite registrar acciones para esta brecha.'],
       ['Internal user cannot update this opportunity gap action', 'Tu acceso actual no permite actualizar esta acción.'],
       ['Opportunity gap action not found', 'La acción ya no está disponible. Recargá la página.'],
+      ['A match already exists for this actor and requirement revision', 'Este actor ya forma parte del análisis de esta revisión.'],
+      ['Actor is not eligible for manual matching', 'El actor seleccionado ya no está disponible para incorporarlo manualmente.'],
+      ['Internal user cannot create manual opportunity requirement matches', 'Tu acceso actual no permite incorporar actores manualmente.'],
+      ['Only active opportunity requirements may materialize matches', 'Sólo podés incorporar actores en requerimientos activos.'],
+      ['Only the current opportunity requirement revision may materialize matches', 'Sólo podés incorporar actores en la revisión actual del requerimiento.'],
+      ['Only validated opportunity requirement revisions may materialize matches', 'Sólo podés incorporar actores en una revisión validada.'],
     ]
 
     const match = translated.find(([source]) => error.message.includes(source))
@@ -177,6 +188,250 @@ function analysisErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
+export async function acceptOpportunityRequirementMatchCandidateAction(
+  opportunityId: string,
+  requirementRevisionId: string,
+  actorKind: MatchActorKind,
+  actorId: string,
+  _previousState: AnalysisActionState,
+  _formData: FormData
+): Promise<AnalysisActionState> {
+  void _previousState
+  void _formData
+
+  const access = await resolveCurrentAccess()
+
+  try {
+    if (
+      actorKind !== 'person' &&
+      actorKind !== 'organization' &&
+      actorKind !== 'candidate'
+    ) {
+      throw new Error(
+        'Seleccioná un actor válido para analizar.'
+      )
+    }
+
+    if (!actorId) {
+      throw new Error(
+        'Seleccioná un actor válido para analizar.'
+      )
+    }
+
+    await acceptOpportunityRequirementMatchCandidate(
+      access,
+      {
+        requirementRevisionId,
+        actorKind,
+        actorId,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Requirement analysis actor incorporation failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message: analysisErrorMessage(
+        error,
+        'No se pudo incorporar el actor al análisis. No se modificó ningún dato.'
+      ),
+    }
+  }
+
+  revalidatePath(
+    `/panel/oportunidades/${opportunityId}`
+  )
+
+  return {
+    status: 'success',
+    message:
+      'El actor fue incorporado al análisis.',
+  }
+}
+
+export async function createManualOpportunityRequirementMatchAction(
+  opportunityId: string,
+  requirementRevisionId: string,
+  _previousState: AnalysisActionState,
+  formData: FormData
+): Promise<AnalysisActionState> {
+  void _previousState
+
+  const access = await resolveCurrentAccess()
+
+  try {
+    const actorValue =
+      String(
+        formData.get('actor') ?? ''
+      ).trim()
+
+    const [
+      actorKind,
+      actorId,
+      extra,
+    ] = actorValue.split(':')
+
+    if (
+      extra !== undefined ||
+      (
+        actorKind !== 'person' &&
+        actorKind !== 'organization'
+      ) ||
+      !actorId
+    ) {
+      throw new Error(
+        'Seleccioná una persona u organización.'
+      )
+    }
+
+    const relationKind =
+      String(
+        formData.get('relation_kind') ?? ''
+      ).trim()
+
+    if (
+      relationKind !== 'related' &&
+      relationKind !== 'contextual'
+    ) {
+      throw new Error(
+        'Elegí cómo se relaciona el actor con el requerimiento.'
+      )
+    }
+
+    const observedText =
+      String(
+        formData.get('observed_text') ?? ''
+      ).trim()
+
+    const inferenceText =
+      String(
+        formData.get('inference_text') ?? ''
+      ).trim()
+
+    if (
+      observedText.length < 3 ||
+      observedText.length > 4000
+    ) {
+      throw new Error(
+        'La observación debe tener entre 3 y 4.000 caracteres.'
+      )
+    }
+
+    if (
+      inferenceText.length < 3 ||
+      inferenceText.length > 4000
+    ) {
+      throw new Error(
+        'La explicación debe tener entre 3 y 4.000 caracteres.'
+      )
+    }
+
+    await createManualOpportunityRequirementMatch(
+      access,
+      {
+        requirementRevisionId,
+        actorKind,
+        actorId,
+        relationKind,
+        observedText,
+        inferenceText,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Manual requirement actor incorporation failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message: analysisErrorMessage(
+        error,
+        'No se pudo incorporar el actor manualmente. No se modificó ningún dato.'
+      ),
+    }
+  }
+
+  revalidatePath(
+    `/panel/oportunidades/${opportunityId}`
+  )
+
+  return {
+    status: 'success',
+    message:
+      'El actor fue incorporado manualmente al análisis.',
+  }
+}
+
+export async function decideOpportunityRequirementMatchAction(
+  opportunityId: string,
+  matchId: string,
+  expectedStatus: MatchStatus,
+  decisionKind: 'discard' | 'reconsider',
+  _previousState: AnalysisActionState,
+  formData: FormData
+): Promise<AnalysisActionState> {
+  void _previousState
+
+  const access = await resolveCurrentAccess()
+
+  try {
+    const reason =
+      String(
+        formData.get('reason') ?? ''
+      ).trim()
+
+    if (
+      reason.length < 3 ||
+      reason.length > 4000
+    ) {
+      throw new Error(
+        'El motivo debe tener entre 3 y 4.000 caracteres.'
+      )
+    }
+
+    await decideOpportunityRequirementMatch(
+      access,
+      {
+        matchId,
+        expectedStatus,
+        decisionKind,
+        reason,
+      }
+    )
+  } catch (error) {
+    console.error(
+      '[MP25M] Requirement analysis decision failed:',
+      error
+    )
+
+    return {
+      status: 'error',
+      message: analysisErrorMessage(
+        error,
+        decisionKind === 'discard'
+          ? 'No se pudo descartar el actor. No se modificó ningún dato.'
+          : 'No se pudo reincorporar el actor. No se modificó ningún dato.'
+      ),
+    }
+  }
+
+  revalidatePath(
+    `/panel/oportunidades/${opportunityId}`
+  )
+
+  return {
+    status: 'success',
+    message:
+      decisionKind === 'discard'
+        ? 'El actor fue descartado del análisis.'
+        : 'El actor fue reincorporado al análisis.',
+  }
+}
+
 export async function assessOpportunityRequirementMatchAction(
   opportunityId: string,
   matchId: string,
@@ -189,14 +444,14 @@ export async function assessOpportunityRequirementMatchAction(
   try {
     const assessmentKind = String(formData.get('assessment_kind') ?? '') as MatchAssessmentKind
     if (!assessmentKinds.has(assessmentKind)) {
-      throw new Error('Elegí una conclusión para el match.')
+      throw new Error('Elegí una conclusión para el actor.')
     }
 
     const rationale = requiredRationale(formData)
     const foundationIds = uniqueTextValues(formData, 'foundation_ids')
 
     if (assessmentKind !== 'insufficient_evidence' && foundationIds.length === 0) {
-      throw new Error('Seleccioná al menos un fundamento de este match.')
+      throw new Error('Seleccioná al menos una evidencia para fundamentar la evaluación.')
     }
 
     await assessOpportunityRequirementMatch(access, {
@@ -265,7 +520,7 @@ export async function addOpportunityRequirementMatchFoundationAction(
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
   return {
     status: 'success',
-    message: 'La evidencia fue agregada como fundamento del match.',
+    message: 'La evidencia fue incorporada al análisis del actor.',
   }
 }
 
@@ -332,6 +587,9 @@ export async function createOpportunityCoverageSnapshotAction(
   _previousState: AnalysisActionState,
   _formData: FormData
 ): Promise<AnalysisActionState> {
+  void _previousState
+  void _formData
+
   const access = await resolveCurrentAccess()
 
   try {
@@ -340,14 +598,14 @@ export async function createOpportunityCoverageSnapshotAction(
     console.error('[MP25M] Opportunity coverage snapshot failed:', error)
     return {
       status: 'error',
-      message: analysisErrorMessage(error, 'No se pudo crear el snapshot. No se modificó ningún dato.'),
+      message: analysisErrorMessage(error, 'No se pudo registrar el estado de cobertura. No se modificó ningún dato.'),
     }
   }
 
   revalidatePath(`/panel/oportunidades/${opportunityId}`)
   return {
     status: 'success',
-    message: 'El snapshot de cobertura fue creado correctamente.',
+    message: 'El estado de cobertura fue registrado correctamente.',
   }
 }
 

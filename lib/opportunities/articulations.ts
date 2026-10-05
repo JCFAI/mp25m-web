@@ -46,6 +46,8 @@ export type OpportunityArticulationParticipant = {
   articulation_id: string
   participant_type: 'person' | 'organization'
   display_name: string
+  person_id: string | null
+  organization_id: string | null
   rationale: string
   added_at: string
   added_by_display_name: string

@@ -220,7 +220,7 @@ export async function listNodeReferencePage({
   ReferencePage<NodeSearchResult>
 > {
   const normalizedQuery =
-    normalizeReferenceQuery(query)
+    normalizeReferenceQuery(query, 1)
   const normalizedExcludeOrganizationId =
     excludeOrganizationId &&
     UUID_PATTERN.test(excludeOrganizationId)

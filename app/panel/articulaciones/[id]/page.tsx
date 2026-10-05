@@ -143,7 +143,24 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           <ul className="mt-4 space-y-3">
             {articulationParticipants.map((participant) => (
               <li key={participant.participant_id} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-                <strong>{participant.display_name}</strong> · {participant.participant_type === 'person' ? 'Persona' : 'Organización'}
+                {participant.participant_type === 'person' && participant.person_id ? (
+                  <Link
+                    href={`/panel/personas/${participant.person_id}`}
+                    className="font-semibold text-[#1E3A5F] hover:underline"
+                  >
+                    {participant.display_name}
+                  </Link>
+                ) : participant.participant_type === 'organization' && participant.organization_id ? (
+                  <Link
+                    href={`/panel/organizaciones/${participant.organization_id}`}
+                    className="font-semibold text-[#1E3A5F] hover:underline"
+                  >
+                    {participant.display_name}
+                  </Link>
+                ) : (
+                  <strong>{participant.display_name}</strong>
+                )}{' · '}
+                {participant.participant_type === 'person' ? 'Persona' : 'Organización'}
                 <p className="mt-1 text-slate-600">{participant.rationale}</p>
               </li>
             ))}

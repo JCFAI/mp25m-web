@@ -5,6 +5,7 @@ import {
   listReportFilterOptions,
   normalizeReportFilterValue,
   normalizeReportPeriodPreset,
+  validateReportCustomRange,
   type ReportPeriodPreset,
 } from '../../../lib/reports/indicators'
 
@@ -13,6 +14,8 @@ export const dynamic = 'force-dynamic'
 type ReportsPageProps = {
   searchParams: Promise<{
     period?: string | string[]
+    from?: string | string[]
+    to?: string | string[]
     node?: string | string[]
     responsible?: string | string[]
   }>
@@ -147,6 +150,16 @@ export default async function ReportsPage({
       ? params.responsible[0]
       : params.responsible
 
+  const rawDateFrom =
+    Array.isArray(params.from)
+      ? params.from[0]
+      : params.from
+
+  const rawDateTo =
+    Array.isArray(params.to)
+      ? params.to[0]
+      : params.to
+
   const nodeId =
     normalizeReportFilterValue(
       rawNode
@@ -157,20 +170,75 @@ export default async function ReportsPage({
       rawResponsible
     )
 
+  const customValidation =
+    preset === 'custom'
+      ? validateReportCustomRange(
+          rawDateFrom,
+          rawDateTo
+        )
+      : {
+          range: null,
+          error: null,
+        }
+
+  const effectivePreset:
+    ReportPeriodPreset =
+      preset === 'custom' &&
+      !customValidation.range
+        ? '90d'
+        : preset
+
   const [
     report,
     filterOptions,
   ] = await Promise.all([
     getReportsDashboard(
-      preset,
+      effectivePreset,
       {
         nodeId,
         responsibleInternalUserId,
-      }
+      },
+      customValidation.range ??
+        undefined
     ),
 
     listReportFilterOptions(),
   ])
+
+  const customDateFromValue =
+    preset === 'custom'
+      ? rawDateFrom ?? ''
+      : report.period.dateFrom
+
+  const customDateToValue =
+    preset === 'custom'
+      ? rawDateTo ?? ''
+      : report.period.dateTo
+
+  function clearFiltersHref() {
+    const query =
+      new URLSearchParams({
+        period:
+          report.period.preset,
+      })
+
+    if (
+      report.period.preset ===
+      'custom'
+    ) {
+      query.set(
+        'from',
+        report.period.dateFrom
+      )
+
+      query.set(
+        'to',
+        report.period.dateTo
+      )
+    }
+
+    return `/panel/informes?${query.toString()}`
+  }
 
   function periodHref(
     value: ReportPeriodPreset
@@ -232,7 +300,7 @@ export default async function ReportsPage({
               (option) => {
                 const active =
                   option.value ===
-                  preset
+                  report.period.preset
 
                 return (
                   <Link
@@ -266,8 +334,114 @@ export default async function ReportsPage({
           <input
             type="hidden"
             name="period"
-            value={preset}
+            value="custom"
           />
+
+          {nodeId ? (
+            <input
+              type="hidden"
+              name="node"
+              value={nodeId}
+            />
+          ) : null}
+
+          {responsibleInternalUserId ? (
+            <input
+              type="hidden"
+              name="responsible"
+              value={
+                responsibleInternalUserId
+              }
+            />
+          ) : null}
+
+          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+            Desde
+
+            <input
+              type="date"
+              name="from"
+              required
+              defaultValue={
+                customDateFromValue
+              }
+              className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal text-slate-700 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            />
+          </label>
+
+          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+            Hasta
+
+            <input
+              type="date"
+              name="to"
+              required
+              defaultValue={
+                customDateToValue
+              }
+              className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal text-slate-700 outline-none focus:border-[#2F5D8C] focus:ring-2 focus:ring-[#2F5D8C]/10"
+            />
+          </label>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className={[
+                'min-h-11 rounded-xl px-4 text-sm font-semibold transition',
+                report.period.preset ===
+                'custom'
+                  ? 'bg-[#1E3A5F] text-white'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:border-[#2F5D8C]/40',
+              ].join(' ')}
+            >
+              Aplicar rango
+            </button>
+          </div>
+
+          {customValidation.error ? (
+            <p
+              role="alert"
+              className="sm:col-span-2 xl:col-span-3 text-sm font-medium text-red-700"
+            >
+              {customValidation.error}{' '}
+              Se muestran 90 días.
+            </p>
+          ) : null}
+        </form>
+
+        <form
+          action="/panel/informes"
+          method="get"
+          className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]"
+        >
+          <input
+            type="hidden"
+            name="period"
+            value={
+              report.period.preset
+            }
+          />
+
+          {report.period.preset ===
+          'custom' ? (
+            <>
+              <input
+                type="hidden"
+                name="from"
+                value={
+                  report.period.dateFrom
+                }
+              />
+
+              <input
+                type="hidden"
+                name="to"
+                value={
+                  report.period.dateTo
+                }
+              />
+            </>
+          ) : null}
 
           <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
             Nodo
@@ -331,7 +505,7 @@ export default async function ReportsPage({
             </button>
 
             <Link
-              href={`/panel/informes?period=${preset}`}
+              href={clearFiltersHref()}
               className="grid min-h-11 place-items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
             >
               Limpiar

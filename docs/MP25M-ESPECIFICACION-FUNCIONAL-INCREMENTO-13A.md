@@ -465,3 +465,18 @@ Quedan fuera de 13A:
 6. no se presenten como medidos indicadores sin soporte real;
 7. funcione correctamente en desktop y móvil;
 8. Informes no permita operaciones de escritura.
+
+### Rango personalizado
+
+Además de los accesos rápidos de 30 días, 90 días y Año actual, Informes
+permite indicar un rango personalizado mediante fechas Desde y Hasta.
+
+Las dos fechas son inclusivas a nivel de día y afectan únicamente los
+indicadores definidos como flujo.
+
+El rango personalizado conserva los filtros de Nodo y Responsable.
+
+Si las fechas son inválidas, faltan o Desde es posterior a Hasta, el sistema
+no calcula sobre un intervalo ambiguo: informa el problema y utiliza 90 días
+como período efectivo.
+

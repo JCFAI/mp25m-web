@@ -554,3 +554,31 @@ warning nuevo introducido por 13A.
 7. build y TypeScript finalicen sin errores;
 8. los warnings preexistentes de lint no aumenten por 13A;
 9. las limitaciones permanezcan documentadas.
+
+### Resolución técnica del rango personalizado
+
+La lógica temporal se concentra en `lib/reports/periods.ts`.
+
+Los presets soportados son:
+
+- `30d`;
+- `90d`;
+- `year`;
+- `custom`.
+
+Para `custom`, la URL utiliza:
+
+- `period=custom`;
+- `from=YYYY-MM-DD`;
+- `to=YYYY-MM-DD`.
+
+Desde y Hasta son inclusivos para la lectura funcional. Técnicamente el
+límite superior se transforma en el inicio del día siguiente y se consulta
+como exclusivo.
+
+La zona operativa utilizada continúa siendo
+`America/Argentina/Buenos_Aires`.
+
+Un rango personalizado inválido no se ejecuta: la UI muestra el error y el
+dashboard utiliza 90 días como período efectivo.
+

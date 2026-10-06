@@ -231,6 +231,13 @@ Las tablas no se expondrán directamente al navegador.
 
 Se implementarán funciones servidor/RPC gobernadas.
 
+La RPC de escritura operará como `SECURITY DEFINER`, con `search_path`
+explícito y ejecución concedida únicamente a `service_role`.
+
+`service_role` conservará lectura directa necesaria para las vistas
+`security_invoker`, pero no tendrá `INSERT`, `UPDATE` ni `DELETE` directo
+sobre las tablas económicas. Todas las escrituras deberán atravesar la RPC.
+
 Operaciones mínimas:
 
     create_economic_profile_revision(...)

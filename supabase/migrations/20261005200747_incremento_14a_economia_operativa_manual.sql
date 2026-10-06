@@ -297,7 +297,7 @@ revoke all
   from public, anon, authenticated, service_role;
 
 
-grant select, insert
+grant select
   on table
     mp25m.economic_profiles,
     mp25m.economic_profile_revisions
@@ -689,7 +689,7 @@ returns table (
   revision_no integer
 )
 language plpgsql
-security invoker
+security definer
 set search_path =
   pg_catalog,
   mp25m,

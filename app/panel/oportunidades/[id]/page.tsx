@@ -4,6 +4,12 @@ import { notFound } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
+  canManageEconomicSource,
+  getEconomicProfileCurrent,
+  listEconomicProfileRevisions,
+} from '../../../../lib/economics/economics'
+import { EconomicSection } from '../../economia/economic-section'
+import {
   canManageOpportunity,
   getOpportunityDetail,
   listOpportunityAssigneeOptions,
@@ -763,12 +769,22 @@ export default async function OpportunityDetailPage({
     assigneeOptions,
     articulations,
     projects,
+    economicProfile,
+    economicHistory,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
     listOpportunityAssigneeOptions(),
     listOpportunityArticulations(id),
     listProjectsByOpportunity(id),
+    getEconomicProfileCurrent(
+      'opportunity',
+      id,
+    ),
+    listEconomicProfileRevisions(
+      'opportunity',
+      id,
+    ),
   ])
 
   if (!detail) {
@@ -787,6 +803,13 @@ export default async function OpportunityDetailPage({
 
   const canManage =
     canManageOpportunity(access)
+
+  const canManageEconomics =
+    await canManageEconomicSource(
+      access,
+      'opportunity',
+      id,
+    )
 
   const {
     opportunity,
@@ -1016,6 +1039,14 @@ export default async function OpportunityDetailPage({
           </article>
         </div>
       </section>
+
+      <EconomicSection
+        sourceType="opportunity"
+        sourceId={id}
+        profile={economicProfile}
+        history={economicHistory}
+        canManage={canManageEconomics}
+      />
 
       <OpportunityRequirementsSection
         opportunityId={opportunity.id}

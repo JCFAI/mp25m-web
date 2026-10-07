@@ -2,6 +2,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import {
+  canManageEconomicSource,
+  getEconomicProfileCurrent,
+  listEconomicProfileRevisions,
+} from '../../../../lib/economics/economics'
+import {
   canManageArticulation,
   getArticulation,
   listArticulationFollowups,
@@ -19,6 +24,7 @@ import {
   listResultsForSource,
 } from '../../../../lib/results/results'
 import { createClient } from '../../../../lib/supabase/server'
+import { EconomicSection } from '../../economia/economic-section'
 import { ResultSection } from '../../resultados/result-section'
 import { AutonomousArticulationControls } from '../articulation-controls'
 
@@ -43,6 +49,8 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     linkedProjects,
     results,
     resultCandidates,
+    economicProfile,
+    economicHistory,
   ] = await Promise.all([
     listArticulationParticipants(id),
     listArticulationFollowups(id),
@@ -52,6 +60,14 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     listProjectsByArticulation(id),
     listResultsForSource('articulation', id),
     listResultContributorCandidates('articulation', id),
+    getEconomicProfileCurrent(
+      'articulation',
+      id,
+    ),
+    listEconomicProfileRevisions(
+      'articulation',
+      id,
+    ),
   ])
 
   const resultContributions =
@@ -66,6 +82,13 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     access,
     articulation.articulation_id,
   )
+
+  const canManageEconomics =
+    await canManageEconomicSource(
+      access,
+      'articulation',
+      id,
+    )
 
   return (
     <div className="space-y-6">
@@ -128,6 +151,14 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           assigneeOptions={assigneeOptions}
         />
       ) : null}
+      <EconomicSection
+        sourceType="articulation"
+        sourceId={id}
+        profile={economicProfile}
+        history={economicHistory}
+        canManage={canManageEconomics}
+      />
+
       <ResultSection
         sourceType="articulation"
         sourceId={id}

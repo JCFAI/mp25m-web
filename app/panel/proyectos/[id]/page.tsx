@@ -3,6 +3,11 @@ import { notFound } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
+  canManageEconomicSource,
+  getEconomicProfileCurrent,
+  listEconomicProfileRevisions,
+} from '../../../../lib/economics/economics'
+import {
   listArticulations,
 } from '../../../../lib/opportunities/articulations'
 import {
@@ -26,6 +31,7 @@ import {
   listResultsForSource,
 } from '../../../../lib/results/results'
 import { createClient } from '../../../../lib/supabase/server'
+import { EconomicSection } from '../../economia/economic-section'
 import { ResultSection } from '../../resultados/result-section'
 import { ProjectDetailForms } from '../project-forms'
 import { ProjectLinks } from '../project-links'
@@ -65,6 +71,8 @@ export default async function ProjectDetailPage({
     results,
     resultCandidates,
     supabase,
+    economicProfile,
+    economicHistory,
   ] = await Promise.all([
     listOpportunityAssigneeOptions(),
     listProjectFollowups(id),
@@ -77,6 +85,14 @@ export default async function ProjectDetailPage({
     listResultsForSource('project', id),
     listResultContributorCandidates('project', id),
     createClient(),
+    getEconomicProfileCurrent(
+      'project',
+      id,
+    ),
+    listEconomicProfileRevisions(
+      'project',
+      id,
+    ),
   ])
 
   const resultContributions =
@@ -97,6 +113,13 @@ export default async function ProjectDetailPage({
 
   const canManageResults =
     await canManageResultSource(
+      access,
+      'project',
+      id,
+    )
+
+  const canManageEconomics =
+    await canManageEconomicSource(
       access,
       'project',
       id,
@@ -182,6 +205,14 @@ export default async function ProjectDetailPage({
             status: articulation.status,
           })
         )}
+      />
+
+      <EconomicSection
+        sourceType="project"
+        sourceId={id}
+        profile={economicProfile}
+        history={economicHistory}
+        canManage={canManageEconomics}
       />
 
       <ResultSection

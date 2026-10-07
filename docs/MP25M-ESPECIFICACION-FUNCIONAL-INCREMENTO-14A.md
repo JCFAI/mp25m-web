@@ -2,6 +2,13 @@
 
 ## Economía operativa manual
 
+> **Estado:** Implementado y validado en producción el 7 de octubre de 2026.
+> La implementación conserva fichas económicas independientes para
+> Oportunidades, Articulaciones y Proyectos, revisiones inmutables,
+> concurrencia optimista, distinción entre dato ausente y cero y escritura
+> gobernada desde servidor. Los indicadores económicos agregados continúan
+> fuera de 14A.
+
 ## 1. Objetivo
 
 El Incremento 14A incorpora un núcleo de información económica monetaria

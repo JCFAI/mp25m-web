@@ -668,10 +668,11 @@ La numeración original era planificación histórica, no evidencia de entregas.
 | Incremento 12A | Implementado: Agenda operativa transversal con fechas derivadas y actividades manuales trazables, búsqueda, filtros, paginación, edición y cambios de estado, sin convocatorias ni calendarios externos. |
 | Incremento 12B | Implementado: comunicaciones y convocatorias asistidas, con definición combinable de audiencias, resolución y deduplicación de destinatarios, trazabilidad de procedencia, revisión y ajuste manual, confirmación explícita y control humano; sin envío externo automático. |
 | Incremento 13A | Implementado: primera superficie de Informes e Indicadores operativos de sólo lectura, con métricas de red, necesidades/ofertas, oportunidades, análisis, requerimientos, cobertura vigente, coincidencias, brechas, articulaciones y proyectos; períodos predefinidos y personalizados; filtros por Nodo y Responsable; sin economía ni inferencias sobre datos no estructurados. |
+| Incremento 14A | Implementado: economía operativa manual y trazable para Oportunidades, Articulaciones y Proyectos, con fichas independientes, revisiones inmutables, moneda, estimaciones, valores acordados, cobro manual, datos finales, evidencia, auditoría y concurrencia optimista; sin pagos, facturación, conversión de moneda ni distribución automática. |
 
-Posteriores: economía; ampliación de informes e indicadores; Radar externo automatizado;
-automatización/IA; integraciones externas de comunicación y calendario;
-integración futura limitada con ClubSmart.
+Posteriores: ampliación de informes e indicadores, incluidos los económicos;
+Radar externo automatizado; automatización/IA; integraciones externas de
+comunicación y calendario; integración futura limitada con ClubSmart.
 
 La prioridad sigue siendo una vertical útil, verificable y ampliable, sin
 adelantar reglas económicas ni automatizaciones que todavía requieren

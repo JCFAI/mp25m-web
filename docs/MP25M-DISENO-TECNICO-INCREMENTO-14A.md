@@ -292,6 +292,13 @@ asignación de acceso vigente y cuyo rol:
 - sea `articulator`; o
 - sea `authority_analyst`.
 
+En MP25M1 esta autorización para Oportunidades es global: basta una asignación
+de acceso interna activa con alguno de esos roles y no se aplica todavía un
+filtro por territorio o nodo de la Oportunidad. Es una limitación explícita de
+la primera versión; la eventual territorialización deberá analizarse como
+alcance posterior, sin reinterpretar retrospectivamente los permisos ya
+otorgados.
+
 La regla no reutilizará
 `can_operate_opportunity_requirement(..., 'formulate')`, porque ese helper
 pertenece al gobierno del análisis de requerimientos y posee una composición
@@ -389,8 +396,12 @@ El componente deberá recibir explícitamente:
 
 - sourceType;
 - sourceId;
-- permiso de lectura;
-- permiso de edición.
+- permiso efectivo de gestión económica.
+
+En MP25M1 no existe un permiso económico separado de sólo lectura: quien puede
+gestionar una ficha económica puede consultar su estado vigente e historial;
+quien no puede gestionarla no recibe ni visualiza esos datos. La página debe
+resolver este permiso antes de cargar la ficha y sus revisiones.
 
 Deberá mostrar:
 
@@ -412,6 +423,11 @@ Los formularios deberán:
 - validar importes;
 - validar probabilidad;
 - requerir motivo de cambio.
+
+Los importes monetarios admitirán hasta cuatro decimales. La probabilidad
+aceptará valores entre 0 y 100 con hasta dos decimales; una precisión mayor se
+rechazará en la aplicación para evitar redondeos silenciosos frente a la
+precisión persistida.
 
 La representación visual podrá usar formato local, pero la escritura deberá
 usar una representación numérica inequívoca.

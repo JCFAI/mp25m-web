@@ -2,6 +2,13 @@
 
 ## Economía operativa manual
 
+> **Estado:** Implementado y validado en producción el 7 de octubre de 2026.
+> La implementación utiliza `mp25m.economic_profiles`,
+> `mp25m.economic_profile_revisions`, vistas de lectura vigentes e históricas
+> y una RPC de escritura `SECURITY DEFINER` gobernada desde servidor.
+> La migración canónica es
+> `20261005200747_incremento_14a_economia_operativa_manual.sql`.
+
 ## 1. Objetivo técnico
 
 14A incorpora un modelo económico monetario transversal, manual y trazable sin

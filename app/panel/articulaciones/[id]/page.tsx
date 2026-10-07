@@ -49,8 +49,6 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     linkedProjects,
     results,
     resultCandidates,
-    economicProfile,
-    economicHistory,
   ] = await Promise.all([
     listArticulationParticipants(id),
     listArticulationFollowups(id),
@@ -60,14 +58,6 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     listProjectsByArticulation(id),
     listResultsForSource('articulation', id),
     listResultContributorCandidates('articulation', id),
-    getEconomicProfileCurrent(
-      'articulation',
-      id,
-    ),
-    listEconomicProfileRevisions(
-      'articulation',
-      id,
-    ),
   ])
 
   const resultContributions =
@@ -89,6 +79,26 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
       'articulation',
       id,
     )
+
+  const economicData =
+    canManageEconomics
+      ? await Promise.all([
+          getEconomicProfileCurrent(
+            'articulation',
+            id,
+          ),
+          listEconomicProfileRevisions(
+            'articulation',
+            id,
+          ),
+        ])
+      : null
+
+  const economicProfile =
+    economicData?.[0] ?? null
+
+  const economicHistory =
+    economicData?.[1] ?? []
 
   return (
     <div className="space-y-6">
@@ -151,6 +161,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           assigneeOptions={assigneeOptions}
         />
       ) : null}
+      {canManageEconomics ? (
       <EconomicSection
         sourceType="articulation"
         sourceId={id}
@@ -158,6 +169,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
         history={economicHistory}
         canManage={canManageEconomics}
       />
+      ) : null}
 
       <ResultSection
         sourceType="articulation"

@@ -71,8 +71,6 @@ export default async function ProjectDetailPage({
     results,
     resultCandidates,
     supabase,
-    economicProfile,
-    economicHistory,
   ] = await Promise.all([
     listOpportunityAssigneeOptions(),
     listProjectFollowups(id),
@@ -85,14 +83,6 @@ export default async function ProjectDetailPage({
     listResultsForSource('project', id),
     listResultContributorCandidates('project', id),
     createClient(),
-    getEconomicProfileCurrent(
-      'project',
-      id,
-    ),
-    listEconomicProfileRevisions(
-      'project',
-      id,
-    ),
   ])
 
   const resultContributions =
@@ -124,6 +114,26 @@ export default async function ProjectDetailPage({
       'project',
       id,
     )
+
+  const economicData =
+    canManageEconomics
+      ? await Promise.all([
+          getEconomicProfileCurrent(
+            'project',
+            id,
+          ),
+          listEconomicProfileRevisions(
+            'project',
+            id,
+          ),
+        ])
+      : null
+
+  const economicProfile =
+    economicData?.[0] ?? null
+
+  const economicHistory =
+    economicData?.[1] ?? []
 
   return (
     <div className="space-y-6">
@@ -207,6 +217,7 @@ export default async function ProjectDetailPage({
         )}
       />
 
+      {canManageEconomics ? (
       <EconomicSection
         sourceType="project"
         sourceId={id}
@@ -214,6 +225,7 @@ export default async function ProjectDetailPage({
         history={economicHistory}
         canManage={canManageEconomics}
       />
+      ) : null}
 
       <ResultSection
         sourceType="project"

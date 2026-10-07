@@ -38,6 +38,9 @@ const UUID_PATTERN =
 const NON_NEGATIVE_DECIMAL_PATTERN =
   /^\d+(?:[.,]\d{1,4})?$/
 
+const PROBABILITY_PERCENT_PATTERN =
+  /^\d+(?:[.,]\d{1,2})?$/
+
 const SIGNED_DECIMAL_PATTERN =
   /^-?\d+(?:[.,]\d{1,4})?$/
 
@@ -86,6 +89,20 @@ function decimalOrNull(
       : NON_NEGATIVE_DECIMAL_PATTERN
 
   if (!pattern.test(value)) {
+    return undefined
+  }
+
+  return normalizeDecimal(value)
+}
+
+function probabilityPercentOrNull(
+  value: string,
+): string | null | undefined {
+  if (!value) {
+    return null
+  }
+
+  if (!PROBABILITY_PERCENT_PATTERN.test(value)) {
     return undefined
   }
 
@@ -240,7 +257,7 @@ export async function saveEconomicProfileAction(
     )
 
   const probabilityPercent =
-    decimalOrNull(
+    probabilityPercentOrNull(
       field(
         data,
         'probability_percent',
@@ -312,10 +329,17 @@ export async function saveEconomicProfileAction(
       true,
     )
 
+  if (probabilityPercent === undefined) {
+    return {
+      status: 'error',
+      message:
+        'La probabilidad debe usar hasta dos decimales.',
+    }
+  }
+
   const numericValues = [
     estimatedValue,
     estimatedCosts,
-    probabilityPercent,
     participantIncomePotential,
     mp25mContributionPotential,
     agreedValue,

@@ -769,22 +769,12 @@ export default async function OpportunityDetailPage({
     assigneeOptions,
     articulations,
     projects,
-    economicProfile,
-    economicHistory,
   ] = await Promise.all([
     createClient(),
     getOpportunityDetail(id),
     listOpportunityAssigneeOptions(),
     listOpportunityArticulations(id),
     listProjectsByOpportunity(id),
-    getEconomicProfileCurrent(
-      'opportunity',
-      id,
-    ),
-    listEconomicProfileRevisions(
-      'opportunity',
-      id,
-    ),
   ])
 
   if (!detail) {
@@ -810,6 +800,26 @@ export default async function OpportunityDetailPage({
       'opportunity',
       id,
     )
+
+  const economicData =
+    canManageEconomics
+      ? await Promise.all([
+          getEconomicProfileCurrent(
+            'opportunity',
+            id,
+          ),
+          listEconomicProfileRevisions(
+            'opportunity',
+            id,
+          ),
+        ])
+      : null
+
+  const economicProfile =
+    economicData?.[0] ?? null
+
+  const economicHistory =
+    economicData?.[1] ?? []
 
   const {
     opportunity,
@@ -1040,6 +1050,7 @@ export default async function OpportunityDetailPage({
         </div>
       </section>
 
+      {canManageEconomics ? (
       <EconomicSection
         sourceType="opportunity"
         sourceId={id}
@@ -1047,6 +1058,7 @@ export default async function OpportunityDetailPage({
         history={economicHistory}
         canManage={canManageEconomics}
       />
+      ) : null}
 
       <OpportunityRequirementsSection
         opportunityId={opportunity.id}

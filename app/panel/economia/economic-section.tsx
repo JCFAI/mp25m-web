@@ -2,6 +2,8 @@
 
 import {
   useActionState,
+  useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -70,6 +72,26 @@ function inputDecimal(
   }
 
   return String(value)
+}
+
+function restoreFormValues(
+  form: HTMLFormElement,
+  data: FormData,
+) {
+  for (
+    const [name, value] of data.entries()
+  ) {
+    const control =
+      form.elements.namedItem(name)
+
+    if (
+      control instanceof HTMLInputElement ||
+      control instanceof HTMLSelectElement ||
+      control instanceof HTMLTextAreaElement
+    ) {
+      control.value = String(value)
+    }
+  }
 }
 
 function moneyText(
@@ -310,6 +332,28 @@ function EconomicForm({
     initialState,
   )
 
+  const formRef =
+    useRef<HTMLFormElement>(null)
+
+  const submittedValues =
+    useRef<FormData | null>(null)
+
+  useEffect(() => {
+    if (
+      state.status === 'idle' ||
+      state.status === 'success' ||
+      !formRef.current ||
+      !submittedValues.current
+    ) {
+      return
+    }
+
+    restoreFormValues(
+      formRef.current,
+      submittedValues.current,
+    )
+  }, [state])
+
   const [
     dismissedFeedback,
     setDismissedFeedback,
@@ -321,15 +365,31 @@ function EconomicForm({
       dismissedFeedback !== state.message,
     )
 
+  const nextRevisionNo =
+    (profile?.revision_no ?? 0) + 1
+
   return (
     <details className="rounded-xl border border-slate-200 p-4">
       <summary className="cursor-pointer text-sm font-semibold text-[#1E3A5F]">
         {profile
-          ? 'Registrar nueva revisión'
+          ? `Actualizar ficha económica · crea la revisión #${nextRevisionNo}`
           : 'Registrar ficha económica'}
       </summary>
 
+      {profile ? (
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          La revisión vigente se conserva. Completá o corregí los datos y,
+          al guardar, se registrará la revisión #{nextRevisionNo}.
+        </p>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Podés completar la ficha gradualmente. Cada guardado posterior
+          conservará esta primera revisión y creará una nueva.
+        </p>
+      )}
+
       <form
+        ref={formRef}
         key={`${sourceType}:${sourceId}:${profile?.revision_no ?? 0}`}
         action={action}
         noValidate
@@ -340,7 +400,10 @@ function EconomicForm({
             )
           }
         }}
-        onSubmit={() => {
+        onSubmit={(event) => {
+          submittedValues.current =
+            new FormData(event.currentTarget)
+
           setDismissedFeedback(null)
         }}
         className="mt-4 space-y-5"
@@ -653,7 +716,7 @@ function EconomicForm({
           {pending
             ? 'Guardando...'
             : profile
-              ? 'Guardar nueva revisión'
+              ? `Guardar actualización (revisión #${nextRevisionNo})`
               : 'Registrar ficha económica'}
         </button>
       </form>

@@ -7,7 +7,7 @@
 > `mp25m.economic_profile_revisions`, vistas de lectura vigentes e históricas
 > y una RPC de escritura `SECURITY DEFINER` gobernada desde servidor.
 > La migración canónica es
-> `20261005200747_incremento_14a_economia_operativa_manual.sql`.
+> `20261006190350_incremento_14a_economia_operativa_manual.sql`.
 
 ## 1. Objetivo técnico
 

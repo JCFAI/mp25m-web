@@ -188,7 +188,7 @@ Para representar el estado operativo actual se utilizará:
 
 Esta vista de sólo lectura se incorpora mediante:
 
-    supabase/migrations/20261005133500_incremento_13a_current_coverage_read_model.sql
+    supabase/migrations/20261005173237_incremento_13a_current_coverage_read_model.sql
 
 El universo está compuesto por requerimientos activos cuya revisión vigente se
 encuentra validada.

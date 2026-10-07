@@ -229,6 +229,11 @@ También se expondrá el historial mediante:
 
     mp25m_api.economic_profile_revision_list
 
+La interfaz deberá precargar la revisión vigente para permitir completar la
+ficha de manera gradual. Cada guardado exitoso creará una nueva revisión, sin
+modificar la anterior. Si una validación falla, conservará el borrador ingresado
+para que el usuario sólo corrija el dato observado.
+
 La vista actual deberá incluir datos mínimos de la entidad de origen necesarios
 para la UI, sin duplicar sus fuentes de verdad.
 

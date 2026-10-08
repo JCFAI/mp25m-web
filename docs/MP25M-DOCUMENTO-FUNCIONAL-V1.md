@@ -232,9 +232,16 @@ Registra aportes, ingresos, honorarios, costos, gastos, distribucion acordada, f
 
 Registra documentos, enlaces, referencias, comprobantes, reuniones, verificaciones, aprobaciones, rechazos y observaciones que sustentan o cuestionan un dato.
 
-## 9. Modelo funcional minimo del MVP
+## 9. Modelo funcional mínimo original del MVP (referencia histórica)
 
-Estado alineado con el cierre del Incremento 6. Las entidades marcadas como nuevas siguen siendo diseño futuro; los subincrementos 7A–7G no se implementan en 7.0.
+> **Referencia histórica.** Este bloque conserva la fotografía funcional del
+> cierre del Incremento 6. No describe el estado vigente de MP25M1 ni limita
+> las capacidades implementadas posteriormente. El estado consolidado se
+> encuentra en la sección 22 y en
+> `MP25M1-ACTA-DE-CIERRE.md`.
+
+Las entidades marcadas como nuevas en esta fotografía correspondían al diseño
+futuro en ese momento; los incrementos posteriores modificaron ese estado.
 
 | Entidad | Estado para el MVP | Observacion |
 |---|---|---|
@@ -672,11 +679,12 @@ La numeración original era planificación histórica, no evidencia de entregas.
 
 ### Etapas posteriores al Incremento 14A
 
-**MP25M1** es el objetivo actual: cerrar la primera versión realmente operativa,
-estable, coherente, segura, trazable y apta para uso cotidiano. Durante este
-cierre se priorizará completar, corregir, integrar y estabilizar lo existente,
-sin incorporar grandes capacidades nuevas que desplacen innecesariamente la
-línea de cierre.
+**MP25M1** queda formalmente cerrado como primera versión operativa,
+estable, coherente, trazable y apta para uso cotidiano. La evidencia de
+validación, las limitaciones explícitamente aceptadas y la línea técnica de
+cierre se registran en `MP25M1-ACTA-DE-CIERRE.md`.
+
+Las capacidades posteriores no se incorporarán por inercia a MP25M1.
 
 **MP25M2** será revisado formalmente antes de comenzar su implementación. Su
 alcance candidato incluye Radar externo automatizado, IA y automatizaciones,

@@ -32,6 +32,47 @@ export type EconomicActionState = {
   message: string | null
 }
 
+function isEconomicProfileConflict(
+  error: unknown,
+) {
+  if (
+    error instanceof
+      EconomicProfileWriteError
+  ) {
+    return (
+      error.code === 'PT409' ||
+      error.code === '40001' ||
+      error.message.includes(
+        'Economic profile revision is stale',
+      )
+    )
+  }
+
+  if (
+    typeof error !== 'object' ||
+    error === null
+  ) {
+    return false
+  }
+
+  const candidate =
+    error as {
+      code?: unknown
+      message?: unknown
+    }
+
+  return (
+    candidate.code === 'PT409' ||
+    candidate.code === '40001' ||
+    (
+      typeof candidate.message === 'string' &&
+      candidate.message.includes(
+        'Economic profile revision is stale',
+      )
+    )
+  )
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -570,15 +611,11 @@ export async function saveEconomicProfileAction(
       error,
     )
 
-    if (
-      error instanceof
-        EconomicProfileWriteError &&
-      error.code === '40001'
-    ) {
+    if (isEconomicProfileConflict(error)) {
       return {
         status: 'conflict',
         message:
-          'La ficha económica cambió mientras la estabas editando. Recargá la página antes de volver a guardar.',
+          'Se guardó otra actualización antes que la tuya. Tus datos siguen en el formulario. Copiá lo que necesites, recargá la página y volvé a guardar sobre la versión vigente.',
       }
     }
 

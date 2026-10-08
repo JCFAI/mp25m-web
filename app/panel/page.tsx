@@ -1,10 +1,17 @@
 import Link from 'next/link'
+import {
+  getCurrentReleaseStage,
+  getReleaseModuleByKey,
+  isReleaseStageAvailable,
+  type ReleaseStage,
+} from '../../lib/release-stage'
 
 type PanelModule = {
   name: string
   description: string
   status: 'active' | 'next' | 'planned'
   href?: string
+  availableFrom?: ReleaseStage
 }
 
 const modules: PanelModule[] = [
@@ -14,6 +21,7 @@ const modules: PanelModule[] = [
       'Registro y seguimiento de oportunidades productivas como base para su análisis.',
     status: 'active',
     href: '/panel/oportunidades',
+    availableFrom: 'L',
   },
   {
     name: 'Necesidades y ofertas',
@@ -21,6 +29,7 @@ const modules: PanelModule[] = [
       'Registro independiente de necesidades y ofertas, con responsables, estados, seguimiento e historial.',
     status: 'active',
     href: '/panel/necesidades-ofertas',
+    availableFrom: 'L',
   },
   {
     name: 'Personas',
@@ -77,10 +86,28 @@ const modules: PanelModule[] = [
       'Indicadores operativos y lecturas agregadas para seguir la evolución del sistema.',
     status: 'active',
     href: '/panel/informes',
+    availableFrom: 'M',
   },
 ]
 
-function moduleBadge(module: PanelModule) {
+function moduleBadge(
+  module: PanelModule,
+  currentStage: ReleaseStage,
+) {
+  if (
+    module.availableFrom &&
+    !isReleaseStageAvailable(
+      currentStage,
+      module.availableFrom,
+    )
+  ) {
+    return {
+      label: `MP25M_${module.availableFrom}`,
+      className:
+        'rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200',
+    }
+  }
+
   if (module.status === 'active') {
     return {
       label: 'Activo',
@@ -112,11 +139,22 @@ function moduleCardClass(isActive: boolean) {
 
 function ModuleCard({
   module,
+  currentStage,
 }: {
   module: PanelModule
+  currentStage: ReleaseStage
 }) {
-  const badge = moduleBadge(module)
+  const badge = moduleBadge(
+    module,
+    currentStage,
+  )
   const active = Boolean(module.href)
+  const available =
+    !module.availableFrom ||
+    isReleaseStageAvailable(
+      currentStage,
+      module.availableFrom,
+    )
   const content = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -139,7 +177,9 @@ function ModuleCard({
 
       {active ? (
         <span className="mt-4 inline-flex text-xs font-semibold text-[#2F5D8C] transition group-hover:text-[#1E3A5F] group-hover:underline">
-          Ingresar →
+          {available
+            ? 'Ingresar →'
+            : `Se incorporará en MP25M_${module.availableFrom} →`}
         </span>
       ) : null}
     </>
@@ -163,7 +203,24 @@ function ModuleCard({
   )
 }
 
-export default function PanelPage() {
+type PanelPageProps = {
+  searchParams: Promise<{
+    release?: string
+    module?: string
+  }>
+}
+
+export default async function PanelPage({
+  searchParams,
+}: PanelPageProps) {
+  const currentStage =
+    getCurrentReleaseStage()
+  const query = await searchParams
+  const unavailableModule =
+    query.release === 'unavailable'
+      ? getReleaseModuleByKey(query.module)
+      : undefined
+
   return (
     <div className="space-y-5 sm:space-y-7">
       <section className="overflow-hidden rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#2F5D8C] md:to-[#14263D] md:p-6 md:text-white">
@@ -182,6 +239,20 @@ export default function PanelPage() {
           </p>
         </div>
       </section>
+
+      {unavailableModule ? (
+        <section
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm"
+        >
+          <h2 className="text-base font-semibold">
+            {unavailableModule.label} todavía no está disponible
+          </h2>
+          <p className="mt-1 text-sm leading-6">
+            Se incorporará en MP25M_{unavailableModule.availableFrom}. Actualmente estás recorriendo MP25M_{currentStage}.
+          </p>
+        </section>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -231,16 +302,16 @@ export default function PanelPage() {
             </p>
 
             <span className="rounded-full bg-[#DDE8F3] px-2.5 py-1 text-xs font-semibold text-[#2F5D8C]">
-              Incremento 13A
+              MP25M_{currentStage}
             </span>
           </div>
 
           <h2 className="mt-4 text-base font-semibold text-[#1E3A5F] sm:mt-5 sm:text-lg">
-            Informes e indicadores
+            Recorrido vigente
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            {'El sistema incorpora una primera lectura agregada y explicable de la red, las oportunidades, el análisis productivo y la ejecución, sin crear una fuente paralela de datos.'}
+            {'Las funciones se liberan globalmente en etapas sucesivas para incorporar el uso del sistema de forma gradual.'}
           </p>
         </article>
       </section>
@@ -267,6 +338,7 @@ export default function PanelPage() {
             <ModuleCard
               key={module.name}
               module={module}
+              currentStage={currentStage}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 # MP25M_S — Alcance y piloto de adopción
 
-- **Estado:** alcance de piloto aprobado; implementación pendiente
+- **Estado:** gate global implementado; habilitación del piloto pendiente
 - **Relación con MP25M1:** recorte didáctico de la versión cerrada
 - **Relación con MP25M2:** el piloto S precede cualquier incremento técnico de M2
 
@@ -13,6 +13,21 @@ entrada toda la complejidad disponible en MP25M1.
 No es un producto separado ni una asignación individual de versiones. La
 liberación será global y secuencial: primero S, luego M, después L y,
 eventualmente, XL.
+
+## 1.1 Gate global de liberación
+
+La etapa se configura globalmente en el despliegue mediante
+\`MP25M_RELEASE_STAGE\`. Los valores admitidos son \`S\`, \`M\`, \`L\` y
+\`XL\`; un valor ausente o inválido se interpreta de forma segura como \`S\`.
+
+Las funciones de etapas posteriores permanecen visibles como mapa de crecimiento.
+Si una persona intenta abrir una página todavía no habilitada, vuelve a Inicio y
+recibe un aviso claro sobre la próxima etapa. Las APIs equivalentes responden
+\`403\`, por lo que no quedan disponibles sólo por conocer su URL.
+
+La primera implementación cubre las rutas y APIs de los módulos independientes.
+Economía operativa y Resultados, hoy embebidos en fichas de Articulaciones y
+Proyectos, se restringirán en un segundo incremento pequeño y verificable.
 
 ## 2. Módulos incluidos
 

@@ -12,6 +12,7 @@ import {
   listArticulationFollowups,
   listArticulationOpportunityLinks,
   listArticulationParticipants,
+  listArticulationStatusHistory,
 } from '../../../../lib/opportunities/articulations'
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
 import {
@@ -43,6 +44,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
   const [
     articulationParticipants,
     articulationFollowups,
+    articulationStatusHistory,
     opportunityLinks,
     supabase,
     assigneeOptions,
@@ -52,6 +54,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
   ] = await Promise.all([
     listArticulationParticipants(id),
     listArticulationFollowups(id),
+    listArticulationStatusHistory(id),
     listArticulationOpportunityLinks(id),
     createClient(),
     listOpportunityAssigneeOptions(),
@@ -152,6 +155,44 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
             </div>
           ) : <p className="mt-4 text-sm text-slate-500">Todavía no hay proyectos vinculados a esta articulación.</p>}
         </div>
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">
+          Historial de estados
+        </h2>
+        {articulationStatusHistory.length ? (
+          <ol className="mt-4 space-y-3">
+            {articulationStatusHistory.map((item) => (
+              <li
+                key={item.history_id}
+                className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700"
+              >
+                <div className="flex flex-wrap justify-between gap-2">
+                  <strong>{statusLabels[item.status]}</strong>
+                  <time className="text-xs text-slate-500">
+                    {formatDateTime(item.changed_at)}
+                  </time>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Transición {item.transition_no}
+                  {' · '}
+                  Responsable:{' '}
+                  {item.responsible_display_name ?? 'Sin asignar'}
+                  {' · '}
+                  Registró:{' '}
+                  {item.changed_by_display_name}
+                </p>
+                <p className="mt-2 whitespace-pre-line">
+                  {item.rationale}
+                </p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">
+            Todavía no hay cambios de estado registrados.
+          </p>
+        )}
       </section>
       {canManage ? (
         <AutonomousArticulationControls

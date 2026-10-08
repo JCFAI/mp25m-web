@@ -699,8 +699,9 @@ La base para esa revisión se documenta en
 limitada con ClubSmart se analizará recién en esa etapa y queda expresamente
 fuera de MP25M2.
 
-La prioridad inmediata sigue siendo cerrar MP25M1 como una vertical útil,
-verificable y operativa.
+La prioridad inmediata es preparar y validar el piloto global MP25M_S como
+recorte didáctico de MP25M1. La revisión inicial de MP25M2 no aprobó todavía
+ningún incremento técnico de Radar, IA, integraciones o Informes ampliados.
 
 ## 23. Decisiones pendientes
 

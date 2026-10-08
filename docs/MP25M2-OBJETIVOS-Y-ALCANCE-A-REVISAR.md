@@ -17,25 +17,14 @@ históricos de MP25M1.
 
 ## 1. Etapas del producto
 
-### MP25M1
+### MP25M1 (cerrado)
 
-MP25M1 es la primera versión realmente operativa del sistema.
+MP25M1 es la primera versión realmente operativa del sistema. Su cierre formal
+se documenta en `MP25M1-ACTA-DE-CIERRE.md`.
 
-El objetivo actual es cerrar una versión:
-
-- utilizable de punta a punta;
-- estable;
-- coherente entre módulos;
-- segura;
-- trazable;
-- suficientemente documentada;
-- apta para operación cotidiana real.
-
-Durante el cierre de MP25M1 se priorizará completar, corregir, integrar,
-simplificar y estabilizar lo ya construido.
-
-No se incorporarán grandes capacidades nuevas que desplacen innecesariamente
-la línea de cierre de MP25M1.
+La línea cerrada es utilizable de punta a punta, estable, coherente entre
+módulos, trazable y apta para operación cotidiana, dentro de sus limitaciones
+explícitamente documentadas.
 
 ### MP25M2
 
@@ -287,9 +276,10 @@ independientes.
 
 ## 7. Próximo paso
 
-El próximo objetivo del proyecto es:
+MP25M1 quedó formalmente cerrado el 8 de octubre de 2026.
 
-**cerrar MP25M1 como una V1 realmente operativa.**
+El próximo objetivo del proyecto es realizar la revisión formal de MP25M2:
+confirmar problemas, alcance, prioridades, riesgos, dependencias y criterios
+de aceptación antes de crear cualquier incremento técnico.
 
-Una vez cerrado MP25M1 se utilizará este documento como punto de partida para
-la revisión formal de MP25M2.
+Este documento se utilizará como punto de partida de esa revisión.

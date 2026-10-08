@@ -274,12 +274,18 @@ independientes.
 
 ---
 
-## 7. Próximo paso
+## 7. Resultado de la revisión inicial y próximo paso
 
 MP25M1 quedó formalmente cerrado el 8 de octubre de 2026.
 
-El próximo objetivo del proyecto es realizar la revisión formal de MP25M2:
-confirmar problemas, alcance, prioridades, riesgos, dependencias y criterios
-de aceptación antes de crear cualquier incremento técnico.
+La revisión inicial resolvió no aprobar todavía ningún incremento técnico de
+MP25M2. Radar, IA, integraciones externas e Informes ampliados permanecen como
+candidatos y no como compromiso de implementación.
 
-Este documento se utilizará como punto de partida de esa revisión.
+El próximo paso es preparar y validar MP25M_S, un piloto global y didáctico
+basado en un recorte de MP25M1. Su alcance se documenta en
+MP25M-S-ALCANCE-Y-PILOTO.md.
+
+La evidencia del piloto permitirá volver a revisar problemas, prioridades,
+riesgos, dependencias y criterios de aceptación antes de aprobar MP25M_M o
+cualquier incremento técnico de MP25M2.

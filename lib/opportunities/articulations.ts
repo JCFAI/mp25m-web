@@ -63,6 +63,19 @@ export type OpportunityArticulationFollowup = {
   created_by_display_name: string
 }
 
+export type OpportunityArticulationStatusHistory = {
+  history_id: string
+  articulation_id: string
+  transition_no: number
+  status: OpportunityArticulation['status']
+  rationale: string
+  responsible_internal_user_id: string | null
+  responsible_display_name: string | null
+  changed_by_internal_user_id: string
+  changed_by_display_name: string
+  changed_at: string
+}
+
 function actorId(access: InternalAccess[]) {
   const ids = [...new Set(access.map((item) => item.internal_user_id))]
   if (ids.length !== 1) throw new Error('Unable to resolve a unique internal user')
@@ -146,6 +159,24 @@ export async function getArticulation(articulationId: string) {
   if (error) throw new Error(`Unable to load articulation: ${error.message}`)
 
   return data as OpportunityArticulation | null
+}
+
+export async function listArticulationStatusHistory(
+  articulationId: string,
+) {
+  const { data, error } = await createAdminClient()
+    .from('opportunity_articulation_status_history_list')
+    .select('*')
+    .eq('articulation_id', articulationId)
+    .order('transition_no', { ascending: false })
+
+  if (error) {
+    throw new Error(
+      `Unable to load articulation status history: ${error.message}`,
+    )
+  }
+
+  return (data ?? []) as OpportunityArticulationStatusHistory[]
 }
 
 export async function createArticulation(

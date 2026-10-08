@@ -46,9 +46,18 @@ test('standalone and N:M detail render without reading the legacy opportunity', 
         canManageArticulation: async () => true,
         listArticulationParticipants: list('participants', []),
         listArticulationFollowups: list('followups', []),
+        listArticulationStatusHistory: list('status history', []),
         listArticulationOpportunityLinks: list('links', Array.from({ length: count }, (_, index) => ({
           link_id: `link${index}`, opportunity_id: `opportunity${index}`, opportunity_title: `Oportunidad ${index}`, relation_type: 'related',
         }))),
+      },
+      '../../../../lib/economics/economics': {
+        canManageEconomicSource: async (receivedAccess, sourceType, sourceId) => {
+          assert.equal(receivedAccess, access)
+          assert.equal(sourceType, 'articulation')
+          assert.equal(sourceId, id)
+          return false
+        },
       },
       '../../../../lib/auth/internal-access': { getInternalAccess: async () => access },
       '../../../../lib/opportunities/detail': { canManageOpportunity: () => true, listOpportunityAssigneeOptions: async () => [] },
@@ -70,6 +79,14 @@ test('standalone and N:M detail render without reading the legacy opportunity', 
         },
       },
       '../../../../lib/supabase/server': auth,
+      '../../economia/economic-section': {
+        EconomicSection: ({ sourceType, sourceId, canManage }) => {
+          assert.equal(sourceType, 'articulation')
+          assert.equal(sourceId, id)
+          assert.equal(canManage, false)
+          return React.createElement('span', null, 'Economía')
+        },
+      },
       '../../resultados/result-section': {
         ResultSection: ({ sourceType, sourceId }) => {
           assert.equal(sourceType, 'articulation')
@@ -82,7 +99,7 @@ test('standalone and N:M detail render without reading the legacy opportunity', 
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ id }) }))
     assert.match(html, /Controles autónomos/)
     assert.match(html, /Resultados estructurados/)
-    assert.equal(reads.length, 4)
+    assert.equal(reads.length, 5)
     for (const [, readId] of reads) assert.equal(readId, id)
     if (!count) assert.match(html, /No hay oportunidades vinculadas/)
     else for (let index = 0; index < count; index++) {

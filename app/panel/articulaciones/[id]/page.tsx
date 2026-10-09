@@ -24,6 +24,7 @@ import {
   listResultContributorCandidates,
   listResultsForSource,
 } from '../../../../lib/results/results'
+import { isReleaseModuleEnabled } from '../../../../lib/release-stage'
 import { createClient } from '../../../../lib/supabase/server'
 import { EconomicSection } from '../../economia/economic-section'
 import { ResultSection } from '../../resultados/result-section'
@@ -40,6 +41,9 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
   const { id } = await params
   const articulation = await getArticulation(id)
   if (!articulation) notFound()
+
+  const resultsEnabled = isReleaseModuleEnabled('results')
+  const economicsEnabled = isReleaseModuleEnabled('economics')
 
   const [
     articulationParticipants,
@@ -59,14 +63,16 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
     createClient(),
     listOpportunityAssigneeOptions(),
     listProjectsByArticulation(id),
-    listResultsForSource('articulation', id),
-    listResultContributorCandidates('articulation', id),
+    resultsEnabled ? listResultsForSource('articulation', id) : Promise.resolve([]),
+    resultsEnabled ? listResultContributorCandidates('articulation', id) : Promise.resolve([]),
   ])
 
   const resultContributions =
-    await listResultContributions(
-      results.map((result) => result.result_id),
-    )
+    resultsEnabled
+      ? await listResultContributions(
+          results.map((result) => result.result_id),
+        )
+      : []
   const { data: claimsData } = await supabase.auth.getClaims()
   const authUserId = claimsData?.claims?.sub
   const access = authUserId ? await getInternalAccess(authUserId) : []
@@ -77,7 +83,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
   )
 
   const canManageEconomics =
-    await canManageEconomicSource(
+    economicsEnabled && await canManageEconomicSource(
       access,
       'articulation',
       id,
@@ -212,6 +218,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
       />
       ) : null}
 
+      {resultsEnabled ? (
       <ResultSection
         sourceType="articulation"
         sourceId={id}
@@ -220,6 +227,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
         candidates={resultCandidates}
         canManage={canManage}
       />
+      ) : null}
 
       <section data-tour="articulation-participants" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Participantes ({articulationParticipants.length})</h2>

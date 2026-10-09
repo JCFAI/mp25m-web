@@ -19,6 +19,7 @@ import {
   type ResultSourceType,
   type ResultType,
 } from '../../../lib/results/results'
+import { isReleaseModuleEnabled } from '../../../lib/release-stage'
 import {
   createClient,
 } from '../../../lib/supabase/server'
@@ -193,6 +194,10 @@ export async function createResultAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,
@@ -291,6 +296,10 @@ export async function updateResultAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,
@@ -406,6 +415,10 @@ export async function voidResultAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,
@@ -477,6 +490,10 @@ export async function addResultContributionAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,
@@ -591,6 +608,10 @@ export async function updateResultContributionAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,
@@ -686,6 +707,10 @@ export async function removeResultContributionAction(
   _state: ResultActionState,
   data: FormData,
 ): Promise<ResultActionState> {
+  if (!isReleaseModuleEnabled('results')) {
+    return failure('Esta función no está habilitada en la etapa actual.')
+  }
+
   if (
     !validateSource(
       sourceType,

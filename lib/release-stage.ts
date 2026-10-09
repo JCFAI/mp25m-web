@@ -151,3 +151,17 @@ export function getReleaseModuleForPath(
     ),
   )
 }
+
+/** Gate for embedded UI and server actions, independent of route gating. */
+export function isReleaseModuleEnabled(
+  key: ReleaseModuleKey,
+) {
+  const releaseModule = getReleaseModuleByKey(key)
+  return Boolean(
+    releaseModule &&
+    isReleaseStageAvailable(
+      getCurrentReleaseStage(),
+      releaseModule.availableFrom,
+    ),
+  )
+}

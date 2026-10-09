@@ -148,3 +148,61 @@ test('registered modules retain their agreed release stage', () => {
     undefined,
   )
 })
+
+test('embedded economics and results are available only from XL', () => {
+  for (const stage of ['S', 'M', 'L']) {
+    withReleaseStage(stage, () => {
+      assert.equal(releaseStage.isReleaseModuleEnabled('economics'), false)
+      assert.equal(releaseStage.isReleaseModuleEnabled('results'), false)
+    })
+  }
+  withReleaseStage('XL', () => {
+    assert.equal(releaseStage.isReleaseModuleEnabled('economics'), true)
+    assert.equal(releaseStage.isReleaseModuleEnabled('results'), true)
+  })
+})
+
+test('embedded UI and all seven server writes retain release checks', () => {
+  for (const path of [
+    'app/panel/articulaciones/[id]/page.tsx',
+    'app/panel/proyectos/[id]/page.tsx',
+  ]) {
+    const content = readFileSync(resolve(root, path), 'utf8')
+    assert.ok(content.includes("isReleaseModuleEnabled('economics')"), path)
+    assert.ok(content.includes("isReleaseModuleEnabled('results')"), path)
+    assert.match(content, /\{resultsEnabled \? \(\s*<ResultSection/)
+    assert.match(content, /\{canManageEconomics \? \(\s*<EconomicSection/)
+  }
+
+  for (const { path, key, names } of [
+    {
+      path: 'app/panel/economia/actions.ts',
+      key: 'economics',
+      names: ['saveEconomicProfileAction'],
+    },
+    {
+      path: 'app/panel/resultados/actions.ts',
+      key: 'results',
+      names: [
+        'createResultAction',
+        'updateResultAction',
+        'voidResultAction',
+        'addResultContributionAction',
+        'updateResultContributionAction',
+        'removeResultContributionAction',
+      ],
+    },
+  ]) {
+    const content = readFileSync(resolve(root, path), 'utf8')
+    for (const name of names) {
+      const start = content.indexOf(`export async function ${name}(`)
+      assert.notEqual(start, -1, `Falta la acción ${name}`)
+      const next = content.indexOf('export async function ', start + 1)
+      const section = content.slice(start, next < 0 ? undefined : next)
+      assert.ok(
+        section.includes(`if (!isReleaseModuleEnabled('${key}'))`),
+        `Falta protección ${key} en ${name}`,
+      )
+    }
+  }
+})

@@ -7,6 +7,7 @@ import { getInternalUserProfile } from '../../lib/auth/internal-profile'
 import { createClient } from '../../lib/supabase/server'
 import { PanelMobileNavigation } from './panel-mobile-navigation'
 import { PanelNavigation } from './panel-navigation'
+import { PanelTour } from '../../components/panel-tour'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,8 @@ export default async function PanelLayout({
         roleName={roleName}
         scopeName={scopeName}
       />
+
+      <PanelTour />
 
       <div className="mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[270px_1fr]">
         <aside className="hidden bg-[#1E3A5F] text-white md:sticky md:top-0 md:flex md:h-dvh md:self-start md:flex-col md:overflow-x-hidden md:overflow-y-auto">

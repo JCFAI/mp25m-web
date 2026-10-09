@@ -119,7 +119,7 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulation-followup',
         title: 'Registrá el seguimiento',
         description:
-          'Usá el seguimiento para registrar lo que ocurrió: por ejemplo, una llamada, una reunión o un compromiso. Elegí el tipo de novedad, describí el hecho y luego guardalo cuando estés operando realmente. Durante esta prueba no registres nada.',
+          'Usá el seguimiento para registrar lo que ocurrió: por ejemplo, una llamada, una reunión o un compromiso. Elegí el tipo de novedad, describí el hecho y luego guardalo cuando estés operando realmente. Durante este tutorial no registres nada.',
       },
       {
         key: 'articulation-participant-action',

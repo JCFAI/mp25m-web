@@ -360,6 +360,28 @@ export function PanelTour() {
             top: margin,
           }
         }
+        if (pathname.startsWith('/panel/articulaciones/') && viewportWidth >= 900) {
+          // Starting positions selected from the validated desktop walkthrough.
+          // Users can still drag the guide elsewhere at any moment.
+          const detailPositions: Record<string, { horizontal: number; vertical: number }> = {
+            'articulation-management': { horizontal: 0.66, vertical: 0 },
+            'articulation-status': { horizontal: 0.98, vertical: 0 },
+            'articulation-followup': { horizontal: 0.30, vertical: 0 },
+            'articulation-participant-action': { horizontal: 0.98, vertical: 0 },
+            'articulation-followups': { horizontal: 0.64, vertical: 0.21 },
+          }
+          const preferred = detailPositions[activeStep?.key ?? '']
+          if (preferred) {
+            const horizontalRoom = Math.max(0, viewportWidth - panelWidth - margin * 2)
+            return {
+              left: margin + horizontalRoom * preferred.horizontal,
+              top: Math.min(
+                Math.max(margin, viewportHeight - 300),
+                margin + viewportHeight * preferred.vertical,
+              ),
+            }
+          }
+        }
         if (pathname.startsWith('/panel/articulaciones/') && viewportWidth >= 720) {
           const left = clamp(
             targetRect.left + targetRect.width / 2 - panelWidth / 2,

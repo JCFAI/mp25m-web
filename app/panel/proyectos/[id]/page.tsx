@@ -30,6 +30,7 @@ import {
   listResultContributorCandidates,
   listResultsForSource,
 } from '../../../../lib/results/results'
+import { isReleaseModuleEnabled } from '../../../../lib/release-stage'
 import { createClient } from '../../../../lib/supabase/server'
 import { EconomicSection } from '../../economia/economic-section'
 import { ResultSection } from '../../resultados/result-section'
@@ -59,6 +60,9 @@ export default async function ProjectDetailPage({
     notFound()
   }
 
+  const resultsEnabled = isReleaseModuleEnabled('results')
+  const economicsEnabled = isReleaseModuleEnabled('economics')
+
   const [
     assigneeOptions,
     followups,
@@ -80,15 +84,17 @@ export default async function ProjectDetailPage({
     listProjectArticulationLinks(id),
     listOpportunities(),
     listArticulations(),
-    listResultsForSource('project', id),
-    listResultContributorCandidates('project', id),
+    resultsEnabled ? listResultsForSource('project', id) : Promise.resolve([]),
+    resultsEnabled ? listResultContributorCandidates('project', id) : Promise.resolve([]),
     createClient(),
   ])
 
   const resultContributions =
-    await listResultContributions(
-      results.map((result) => result.result_id),
-    )
+    resultsEnabled
+      ? await listResultContributions(
+          results.map((result) => result.result_id),
+        )
+      : []
 
   const { data: claimsData } =
     await supabase.auth.getClaims()
@@ -102,14 +108,14 @@ export default async function ProjectDetailPage({
       : []
 
   const canManageResults =
-    await canManageResultSource(
+    resultsEnabled && await canManageResultSource(
       access,
       'project',
       id,
     )
 
   const canManageEconomics =
-    await canManageEconomicSource(
+    economicsEnabled && await canManageEconomicSource(
       access,
       'project',
       id,
@@ -227,6 +233,7 @@ export default async function ProjectDetailPage({
       />
       ) : null}
 
+      {resultsEnabled ? (
       <ResultSection
         sourceType="project"
         sourceId={id}
@@ -235,6 +242,7 @@ export default async function ProjectDetailPage({
         candidates={resultCandidates}
         canManage={canManageResults}
       />
+      ) : null}
 
       <ProjectOperationForms
         projectId={id}

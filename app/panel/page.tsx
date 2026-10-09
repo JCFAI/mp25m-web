@@ -236,7 +236,7 @@ export default async function PanelPage({
           </p>
 
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl md:mt-0">
-            Backoffice MP25M
+            Backoffice MP25M_{currentStage}
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 md:text-slate-50/80">

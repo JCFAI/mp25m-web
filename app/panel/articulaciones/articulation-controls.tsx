@@ -20,9 +20,9 @@ const followupLabels = { general: 'Novedad general', meeting: 'Reunión', commit
 
 type Action = (state: ArticulationActionState, data: FormData) => Promise<ArticulationActionState>
 
-function ActionForm({ action, label, children }: { action: Action; label: string; children: ReactNode }) {
+function ActionForm({ action, label, children, tourId }: { action: Action; label: string; children: ReactNode; tourId?: string }) {
   const [state, submit, pending] = useActionState(action, initialState)
-  return <form action={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
+  return <form data-tour={tourId} action={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
     <fieldset disabled={pending} className="space-y-3">
       <legend className="mb-3 font-semibold text-slate-900">{label}</legend>
       {children}
@@ -49,12 +49,13 @@ export function AutonomousArticulationControls({ articulation, participants, opp
   assigneeOptions: OpportunityAssigneeOption[]
 }) {
   const id = articulation.articulation_id
-  return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  return <section data-tour="articulation-management" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 className="text-lg font-semibold">Gestionar articulación</h2>
     <div className="grid gap-4 lg:grid-cols-2">
       <ActionForm
         key={`transition-${articulation.updated_at}`}
         action={transitionArticulationAction.bind(null, id)}
+        tourId="articulation-status"
         label="Actualizar estado y responsable"
       >
         <label className="block text-sm">Estado<select name="status" defaultValue={articulation.status} className={inputClass}>
@@ -69,13 +70,13 @@ export function AutonomousArticulationControls({ articulation, participants, opp
           <textarea name="closing_summary" defaultValue={articulation.closing_summary ?? ''} maxLength={10000} rows={3} className={inputClass} />
         </label>
       </ActionForm>
-      <ActionForm action={createArticulationFollowupAction.bind(null, id)} label="Registrar seguimiento">
+      <ActionForm action={createArticulationFollowupAction.bind(null, id)} tourId="articulation-followup" label="Registrar seguimiento">
         <label className="block text-sm">Tipo<select name="followup_type" className={inputClass}>
           {Object.entries(followupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></label>
         <label className="block text-sm">Detalle<textarea name="detail" required minLength={3} maxLength={10000} rows={4} className={inputClass} /></label>
       </ActionForm>
-      <ActionForm action={addArticulationParticipantAction.bind(null, id)} label="Agregar participante">
+      <ActionForm action={addArticulationParticipantAction.bind(null, id)} tourId="articulation-participant-action" label="Agregar participante">
         <ArticulationReferencePicker key={participants.map((item) => item.participant_id).join(',')} kind="actor" />
         <Reason />
       </ActionForm>

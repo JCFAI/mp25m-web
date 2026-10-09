@@ -26,7 +26,7 @@ export default async function ArticulationsPage() {
 
   return (
     <div className="space-y-6">
-      <section>
+      <section data-tour="articulations-intro">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
           Articulaciones
         </p>
@@ -47,7 +47,7 @@ export default async function ArticulationsPage() {
         assigneeOptions={assigneeOptions}
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="articulation-directory" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">
             Articulaciones registradas

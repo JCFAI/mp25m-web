@@ -47,6 +47,7 @@ export function ArticulationCreationForm({
 
   return (
     <details
+      data-tour="articulation-create"
       className="rounded-2xl border border-slate-200 bg-white shadow-sm"
       open
     >

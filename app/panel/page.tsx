@@ -189,6 +189,11 @@ function ModuleCard({
     return (
       <Link
         href={module.href}
+        data-tour={
+          module.name === 'Articulaciones'
+            ? 'module-articulations'
+            : undefined
+        }
         className={moduleCardClass(true)}
       >
         {content}
@@ -223,7 +228,7 @@ export default async function PanelPage({
 
   return (
     <div className="space-y-5 sm:space-y-7">
-      <section className="overflow-hidden rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#2F5D8C] md:to-[#14263D] md:p-6 md:text-white">
+      <section data-tour="panel-hero" className="overflow-hidden rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#2F5D8C] md:to-[#14263D] md:p-6 md:text-white">
         <div className="max-w-3xl">
 
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C] md:hidden">
@@ -316,7 +321,7 @@ export default async function PanelPage({
         </article>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 md:rounded-3xl md:p-7">
+      <section data-tour="panel-modules" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 md:rounded-3xl md:p-7">
         <div className="flex flex-col justify-between gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-end sm:gap-4 sm:pb-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">

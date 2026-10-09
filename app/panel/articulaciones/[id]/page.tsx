@@ -108,7 +108,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
       <Link href="/panel/articulaciones" className="text-sm font-semibold text-[#2F5D8C] hover:underline">
         ← Volver a articulaciones
       </Link>
-      <section className="rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-6 text-white shadow-sm">
+      <section data-tour="articulation-summary" className="rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-6 text-white shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-100/75">Articulación</p>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{articulation.title}</h1>
@@ -156,7 +156,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           ) : <p className="mt-4 text-sm text-slate-500">Todavía no hay proyectos vinculados a esta articulación.</p>}
         </div>
       </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="articulation-history" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">
           Historial de estados
         </h2>
@@ -221,7 +221,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
         canManage={canManage}
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="articulation-participants" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Participantes ({articulationParticipants.length})</h2>
         {articulationParticipants.length ? (
           <ul className="mt-4 space-y-3">
@@ -251,7 +251,7 @@ export default async function ArticulationDetailPage({ params }: { params: Promi
           </ul>
         ) : <p className="mt-3 text-sm text-slate-500">Todavía no hay participantes incorporados.</p>}
       </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="articulation-followups" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Novedades y seguimiento</h2>
         {articulationFollowups.length ? (
           <ul className="mt-4 space-y-3">

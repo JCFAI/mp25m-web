@@ -35,6 +35,13 @@ create table if not exists mp25m.access_role_assignments (
   granted_by_internal_user_id uuid, revoked_by_internal_user_id uuid,
   reason text, updated_at timestamptz default now()
 );
+alter table mp25m.access_roles add column if not exists deleted_at timestamptz;
+alter table mp25m.access_scopes add column if not exists scope_entity_id uuid;
+alter table mp25m.access_role_assignments
+  add column if not exists granted_by_internal_user_id uuid,
+  add column if not exists revoked_by_internal_user_id uuid,
+  add column if not exists reason text,
+  add column if not exists updated_at timestamptz default now();
 alter table mp25m.access_role_assignments alter column id set default gen_random_uuid();
 create table if not exists mp25m.audit_events (
   id bigint generated always as identity primary key,

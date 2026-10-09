@@ -30,16 +30,16 @@ export default async function SolicitudesAccesoPage() {
 
   const users = usersPage.users
   const ids = users.map(user => user.id)
-  const { data: activeAccess, error: accessError } = ids.length
-    ? await admin.from('active_internal_access')
+  // A previously enabled, suspended, or revoked internal user is NOT a new request.
+  const { data: linkedAccounts, error: linksError } = ids.length
+    ? await admin.from('internal_account_links')
         .select('auth_user_id')
         .in('auth_user_id', ids)
     : { data: [], error: null }
+  if (linksError) throw new Error('No se pudo verificar la vinculación de cuentas.')
 
-  if (accessError) throw new Error('No se pudo comprobar los permisos existentes.')
-
-  const enabledIds = new Set((activeAccess ?? []).map(item => item.auth_user_id))
-  const withoutAccess = users.filter(user => !enabledIds.has(user.id))
+  const linkedIds = new Set((linkedAccounts ?? []).map(row => row.auth_user_id))
+  const withoutAccess = users.filter(user => !linkedIds.has(user.id))
 
   const approvalsEnabled = process.env.MP25M_ENABLE_ACCESS_APPROVALS === 'true'
   const { data: scopeRows, error: scopeError } = approvalsEnabled
@@ -54,17 +54,17 @@ export default async function SolicitudesAccesoPage() {
         Volver a Administración de accesos
       </Link>
       <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-950">Cuentas sin acceso vigente</h1>
+        <h1 className="text-2xl font-semibold text-slate-950">Cuentas aún no incorporadas</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Vista de consulta exclusiva para Administradores Generales.
-          Muestra las cuentas sin permisos activos dentro de las primeras 50 cuentas
-          registradas en Supabase Auth. No todas son necesariamente solicitudes nuevas:
-          también pueden incluir cuentas suspendidas o sin asignaciones vigentes.
+          Muestra cuentas de Supabase Auth todavía no vinculadas a un usuario interno,
+          dentro de las primeras 50 cuentas registradas. Las cuentas existentes,
+          incluso suspendidas o revocadas, no aparecen para evitar una segunda alta.
           La aprobación solo se habilita cuando el administrador activa expresamente
           el circuito de aprobación y verifica cada cuenta.
         </p>
         <p className="mt-4 text-sm text-slate-600">
-          {withoutAccess.length} cuenta(s) sin acceso vigente en esta página.
+          {withoutAccess.length} cuenta(s) sin vinculación interna en esta página.
         </p>
         {withoutAccess.length ? (
           <ul className="mt-5 divide-y divide-slate-200">
@@ -87,7 +87,7 @@ export default async function SolicitudesAccesoPage() {
             ))}
           </ul>
         ) : (
-          <p className="mt-5 text-sm text-slate-600">No se encontraron cuentas sin acceso vigente en esta página.</p>
+          <p className="mt-5 text-sm text-slate-600">No se encontraron cuentas sin vinculación interna en esta página.</p>
         )}
         {users.length === 50 ? (
           <p className="mt-4 text-sm text-amber-800">

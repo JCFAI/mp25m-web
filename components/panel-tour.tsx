@@ -203,8 +203,9 @@ export function PanelTour() {
         '(prefers-reduced-motion: reduce)',
       ).matches
 
-      if (pathname === '/panel/articulaciones' && activeStep?.key === 'articulation-purpose') {
-        // Keep the introductory heading in its natural position: don't jump to the form.
+      if (pathname === '/panel/articulaciones') {
+        // Keep the heading, form and cards in their natural page positions.
+        // Centering large targets pushed the guide on top of the form.
         window.scrollTo({ top: 0, behavior: 'auto' })
       } else {
         element.scrollIntoView({
@@ -236,7 +237,7 @@ export function PanelTour() {
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
-  }, [activeStep, open])
+  }, [activeStep, open, pathname])
 
   useEffect(() => {
     if (!open) return
@@ -288,13 +289,18 @@ export function PanelTour() {
             activeStep?.key === 'articulation-directory') &&
           viewportWidth >= 720
         ) {
+          const actualPanelHeight =
+            dialogRef.current?.getBoundingClientRect().height ?? 330
           return {
             left: clamp(
               targetRect.left + targetRect.width / 2 - panelWidth / 2,
               margin,
               Math.max(margin, viewportWidth - panelWidth - margin),
             ),
-            top: margin,
+            top: Math.max(
+              margin,
+              targetRect.top - actualPanelHeight - gap,
+            ),
           }
         }
         const rightSpace = viewportWidth - targetRect.right

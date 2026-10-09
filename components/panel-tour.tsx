@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { usePathname } from 'next/navigation'
 
@@ -138,6 +139,16 @@ function stepsForPath(pathname: string): TourStep[] {
 export function PanelTour() {
   const pathname = usePathname()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const dragStartRef = useRef<{
+    x: number
+    y: number
+    left: number
+    top: number
+  } | null>(null)
+  const [floatingPosition, setFloatingPosition] = useState<{
+    left: number
+    top: number
+  } | null>(null)
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] =
@@ -158,6 +169,7 @@ export function PanelTour() {
       )
 
       setStepIndex(0)
+      setFloatingPosition(null)
       setAvailableSteps(nextSteps)
     })
 
@@ -274,7 +286,43 @@ export function PanelTour() {
 
   function startTour() {
     setStepIndex(0)
+    setFloatingPosition(null)
     setOpen(true)
+  }
+
+  function startDragging(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    const rect = dialogRef.current?.getBoundingClientRect()
+    if (!rect) return
+    dragStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      left: rect.left,
+      top: rect.top,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  function dragDialog(event: ReactPointerEvent<HTMLDivElement>) {
+    const start = dragStartRef.current
+    if (!start) return
+    const rect = dialogRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const margin = 8
+    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin)
+    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin)
+    setFloatingPosition({
+      left: Math.max(margin, Math.min(maxLeft, start.left + event.clientX - start.x)),
+      top: Math.max(margin, Math.min(maxTop, start.top + event.clientY - start.y)),
+    })
+  }
+
+  function stopDragging(event: ReactPointerEvent<HTMLDivElement>) {
+    dragStartRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
   }
 
   if (availableSteps.length === 0) {
@@ -396,18 +444,27 @@ export function PanelTour() {
             role="dialog"
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
-            style={popoverStyle}
+            style={{ ...popoverStyle, ...floatingPosition }}
             className={
               targetRect
                 ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >
+            <div
+              onPointerDown={startDragging}
+              onPointerMove={dragDialog}
+              onPointerUp={stopDragging}
+              onPointerCancel={stopDragging}
+              className="mb-3 flex cursor-grab touch-none select-none items-center justify-between gap-3 border-b border-slate-100 pb-3 active:cursor-grabbing"
+              title="Arrastrá esta barra para mover la explicación"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
+                Recorrido MP25M
+              </p>
+              <span className="text-xs text-slate-500">↕ Arrastrar</span>
+            </div>
             <div className="min-h-0 overflow-y-auto">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
-              Recorrido MP25M
-            </p>
-
             <h2 className="mt-2 text-lg font-semibold">
               {activeStep.title}
             </h2>
@@ -434,7 +491,10 @@ export function PanelTour() {
                 {stepIndex > 0 && (
                   <button
                     type="button"
-                    onClick={() => setStepIndex((index) => index - 1)}
+                    onClick={() => {
+                      setFloatingPosition(null)
+                      setStepIndex((index) => index - 1)
+                    }}
                     className="rounded-xl px-3 py-2 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none"
                   >
                     Anterior
@@ -448,6 +508,7 @@ export function PanelTour() {
                       return
                     }
 
+                    setFloatingPosition(null)
                     setStepIndex((index) => index + 1)
                   }}
                   className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"

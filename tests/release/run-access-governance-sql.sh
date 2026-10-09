@@ -53,7 +53,8 @@ SQL
 for name in \
   20261009200000_access_governance_catalog_and_last_admin.sql \
   20261009210000_grant_internal_access.sql \
-  20261009220000_revoke_internal_access.sql; do
+  20261009220000_revoke_internal_access.sql \
+  20261009230000_admin_catalog_scope_expiry_guards.sql; do
   cat "$ROOT/supabase/migrations/$name" >> "$TMP"
   printf '\n' >> "$TMP"
 done
@@ -139,6 +140,30 @@ BEGIN
  END;
  IF NOT blocked THEN RAISE EXCEPTION 'Last global administrator removed'; END IF;
  RAISE NOTICE 'PASS: last global administrator protected';
+ blocked := false;
+ BEGIN
+   UPDATE mp25m.access_roles SET is_active=false WHERE code='administrator';
+ EXCEPTION WHEN insufficient_privilege THEN blocked := true;
+ END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Administrator catalog could be disabled'; END IF;
+ RAISE NOTICE 'PASS: administrator catalog protected';
+ blocked := false;
+ BEGIN
+   UPDATE mp25m.access_scopes SET is_active=false WHERE id=global_scope;
+ EXCEPTION WHEN insufficient_privilege THEN blocked := true;
+ END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Global administrator scope could be disabled'; END IF;
+ RAISE NOTICE 'PASS: global scope protected';
+ blocked := false;
+ BEGIN
+   UPDATE mp25m.access_role_assignments
+     SET valid_until=now()+interval '1 day'
+   WHERE id='40000000-0000-4000-8000-000000000001';
+ EXCEPTION WHEN insufficient_privilege THEN blocked := true;
+ END;
+ IF NOT blocked THEN RAISE EXCEPTION 'Administrator grant was allowed to expire'; END IF;
+ RAISE NOTICE 'PASS: automatic administrator expiry blocked';
+
 END;
 $test$;
 ROLLBACK;

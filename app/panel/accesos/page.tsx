@@ -79,10 +79,10 @@ export default async function AccessGovernancePage() {
             Gestión de autorizaciones
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            La incorporación de usuarios, las designaciones y las revocaciones se habilitarán
-            cuando completemos las protecciones ante desactivaciones y vencimientos, la
-            revisión del esquema real y las pruebas de extremo a extremo.
-            Hasta entonces esta sección es solo de consulta.
+            Las migraciones y los permisos ya superaron las pruebas sobre un Supabase aislado.
+            Falta implementar y validar el registro pendiente, la aprobación de cuentas
+            y los controles de acceso desde la interfaz. Hasta entonces esta sección
+            es solo de consulta.
           </p>
         </section>
       ) : null}

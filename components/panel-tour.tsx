@@ -295,28 +295,40 @@ export function PanelTour() {
   const viewportHeight =
     typeof window === 'undefined' ? 768 : window.innerHeight
 
-  const popoverTop = targetRect
-    ? Math.max(
-        16,
-        Math.min(
-          targetRect.bottom + 18,
-          viewportHeight - Math.min(dialogHeight, viewportHeight - 32) - 16,
-        ),
-      )
-    : 16
+  const margin = 16
+  const gap = 18
+  const visibleHeight = Math.min(dialogHeight, viewportHeight - 2 * margin)
 
-  const popoverStyle: CSSProperties | undefined =
-    targetRect
-      ? {
-          left: Math.max(
-            16,
-            Math.min(targetRect.left, viewportWidth - 336),
-          ),
-          top: popoverTop,
-          maxHeight: `calc(100dvh - ${popoverTop + 16}px)`,
-          overflowY: 'auto',
-        }
-      : undefined
+  const popoverTop = (() => {
+    if (!targetRect) return margin
+
+    const below = targetRect.bottom + gap
+    const above = targetRect.top - gap - visibleHeight
+
+    if (viewportHeight - below - margin >= visibleHeight) {
+      return below
+    }
+
+    if (above >= margin) {
+      return above
+    }
+
+    const freeBelow = viewportHeight - targetRect.bottom
+    const freeAbove = targetRect.top
+
+    return freeBelow >= freeAbove
+      ? Math.max(margin, viewportHeight - visibleHeight - margin)
+      : margin
+  })()
+
+  const popoverStyle: CSSProperties | undefined = targetRect
+    ? {
+        left: Math.max(margin, Math.min(targetRect.left, viewportWidth - 336)),
+        top: popoverTop,
+        maxHeight: `calc(100dvh - ${popoverTop + margin}px)`,
+        overflowY: 'auto',
+      }
+    : undefined
 
   return (
     <>
@@ -378,7 +390,7 @@ export function PanelTour() {
               Paso {stepIndex + 1} de {availableSteps.length}
             </p>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={closeTour}
@@ -387,25 +399,33 @@ export function PanelTour() {
                 Salir
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (
-                    stepIndex + 1 >=
-                    availableSteps.length
-                  ) {
-                    closeTour()
-                    return
-                  }
+              <div className="flex items-center gap-2">
+                {stepIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStepIndex((index) => index - 1)}
+                    className="rounded-xl px-3 py-2 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none"
+                  >
+                    Anterior
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (stepIndex + 1 >= availableSteps.length) {
+                      closeTour()
+                      return
+                    }
 
-                  setStepIndex((index) => index + 1)
-                }}
-                className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
-              >
-                {stepIndex + 1 >= availableSteps.length
-                  ? 'Finalizar'
-                  : 'Siguiente'}
-              </button>
+                    setStepIndex((index) => index + 1)
+                  }}
+                  className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
+                >
+                  {stepIndex + 1 >= availableSteps.length
+                    ? 'Finalizar'
+                    : 'Siguiente'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

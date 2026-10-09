@@ -36,3 +36,16 @@ test('participante y usuario sin roles no otorgan permisos', () => {
   assert.equal(allowed([{ role: 'participant', scopeType: 'node', scopeEntityId: 'nodo-a' }], 'node_referent', 'node', 'nodo-a'), false)
   assert.equal(allowed([], 'participant', 'node', 'nodo-a'), false)
 })
+
+test('rechaza roles desconocidos o ámbitos inválidos incluso para administrador general', () => {
+  assert.equal(allowed(general, 'unknown_role', 'global'), false)
+  assert.equal(allowed(general, 'administrator', 'node', 'nodo-a'), false)
+  assert.equal(allowed(general, 'local_administrator', 'global'), false)
+  assert.equal(allowed(general, 'founder_access', 'node'), false)
+  assert.equal(allowed(general, 'participant', 'project', 'proyecto-a'), false)
+})
+
+test('un administrador general requiere alcance global exacto', () => {
+  assert.equal(allowed([{ role: 'administrator', scopeType: 'node', scopeEntityId: 'nodo-a' }], 'administrator', 'global'), false)
+  assert.equal(allowed([{ role: 'administrator', scopeType: 'global', scopeEntityId: 'nodo-a' }], 'administrator', 'global'), false)
+})

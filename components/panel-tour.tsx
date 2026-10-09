@@ -289,8 +289,7 @@ export function PanelTour() {
             activeStep?.key === 'articulation-directory') &&
           viewportWidth >= 720
         ) {
-          const actualPanelHeight =
-            dialogRef.current?.getBoundingClientRect().height ?? 330
+          const actualPanelHeight = 350
           return {
             left: clamp(
               targetRect.left + targetRect.width / 2 - panelWidth / 2,

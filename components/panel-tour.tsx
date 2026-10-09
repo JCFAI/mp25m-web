@@ -52,21 +52,21 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulations-intro',
         title: '¿Para qué sirve una articulación?',
         description:
-          'Una articulación coordina personas, organizaciones y recursos para alcanzar un objetivo común. No requiere una oportunidad previa: podés crearla ahora y vincular otros actores o proyectos después.',
+          'Una articulación es un trabajo coordinado entre personas u organizaciones para conseguir un objetivo concreto. Por ejemplo, reunir recursos y responsables para organizar una entrega. No necesitás registrar primero una Oportunidad: podés iniciar la Articulación por sí misma y vincular luego personas, organizaciones, proyectos u otros recursos. El primer paso es reconocer qué se quiere lograr y quiénes podrían participar.',
       },
       {
         key: 'articulation-create',
         target: 'articulation-create',
         title: 'Cómo registrar una articulación',
         description:
-          'Completá el nombre y el propósito: qué se busca lograr. Podés elegir un responsable o dejarlo sin asignar. El botón «Crear articulación» guarda la propuesta; luego podrás agregar información. En este recorrido no lo pulses: estamos practicando sin guardar datos.',
+          'En «Nombre de la articulación», escribí una frase breve que permita identificarla; por ejemplo, «Entrega de materiales a una escuela». En «Objetivo o propósito inicial», explicá qué se quiere conseguir y para quién. En el desplegable podés elegir a la persona responsable de coordinarla, si ya está definida, o mantener «Sin responsable inicial». El botón «Crear articulación» guarda el registro para completarlo y seguir su evolución más adelante. Durante este recorrido no lo pulses: solo estamos conociendo el formulario.',
       },
       {
         key: 'articulation-directory',
         target: 'articulation-directory',
         title: 'Abrí una articulación existente',
         description:
-          'Cada tarjeta muestra estado, responsable y participantes. Pulsá «Finalizar», abrí una articulación existente y elegí «Ver recorrido» para conocer su historial y seguimiento, sin modificarla.',
+          'En «Articulaciones registradas» aparecen las propuestas ya cargadas. Cada tarjeta identifica la articulación e informa su estado actual, responsable y cantidad de participantes. Para conocer el trabajo realizado, pulsá «Finalizar» y después abrí una tarjeta existente. En esa ficha seleccioná «Ver recorrido»: te mostrará dónde consultar los cambios de estado, las personas vinculadas y las novedades de seguimiento. No hace falta editar ni guardar nada para hacer esta prueba.',
       },
     ]
   }
@@ -295,10 +295,11 @@ export function PanelTour() {
         ) {
           return {
             left: clamp(
-              targetRect.left + targetRect.width / 2 - panelWidth / 2,
+              targetRect.left + targetRect.width / 2 - panelWidth / 2 + 45,
               margin,
               Math.max(margin, viewportWidth - panelWidth - margin),
             ),
+            // Shift the explanation slightly right while keeping it on-screen.
             // Position the compact horizontal guide at the top.
             // The form and directory remain below it and unobstructed.
             top: margin,

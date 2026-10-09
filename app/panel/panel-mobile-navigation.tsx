@@ -111,10 +111,12 @@ export function PanelMobileNavigation({
   displayName,
   roleName,
   scopeName,
+  canManageAccess,
 }: {
   displayName: string
   roleName: string
   scopeName: string
+  canManageAccess: boolean
 }) {
   const pathname = usePathname()
   const menuId = useId()
@@ -524,7 +526,7 @@ export function PanelMobileNavigation({
               aria-label="Navegación móvil"
             >
               <div className="space-y-1.5">
-                {navigationItems.map((item) => {
+                {(canManageAccess ? [...navigationItems, { href: '/panel/accesos', label: 'Administración de accesos', marker: 'AC' }] : navigationItems).map((item) => {
                   const active = isActivePath(
                     pathname,
                     item.href

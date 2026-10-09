@@ -25,7 +25,6 @@ set search_path = pg_catalog, mp25m, mp25m_private
 as $function$
 declare
   v_scope_type text;
-  v_role_active boolean;
   v_remaining integer;
 begin
   if old.access_role_code <> 'administrator'
@@ -51,9 +50,8 @@ begin
   from mp25m.access_scopes where id = old.access_scope_id;
   if v_scope_type <> 'global' then return coalesce(new, old); end if;
 
-  -- Serialize checks on the same global scope.
-  perform 1 from mp25m.access_scopes
-  where id = old.access_scope_id for update;
+  -- Serialize administrative privilege removals within this transaction.
+  perform pg_advisory_xact_lock(20261009, 1);
 
   select count(*) into v_remaining
   from mp25m.access_role_assignments a
@@ -82,5 +80,58 @@ create trigger protect_last_global_administrator
 before update or delete on mp25m.access_role_assignments
 for each row execute function mp25m_private.protect_last_global_administrator();
 
--- This invariant is not yet sufficient for disabling internal users,
--- deleting roles or expiring grants; these paths require separate controls.
+-- Prevent suspending, revoking or deleting the last active global administrator.
+create or replace function mp25m_private.protect_last_admin_user()
+returns trigger
+language plpgsql
+security invoker
+set search_path = pg_catalog, mp25m, mp25m_private
+as $function$
+declare
+  v_remaining integer;
+begin
+  if tg_op = 'UPDATE'
+     and new.status = 'active'
+     and new.deleted_at is null then
+    return new;
+  end if;
+
+  if old.status <> 'active' or old.deleted_at is not null then
+    return coalesce(new, old);
+  end if;
+
+  if not exists (
+    select 1 from mp25m.access_role_assignments a
+    join mp25m.access_scopes s on s.id = a.access_scope_id
+    where a.internal_user_id = old.id and a.access_role_code = 'administrator'
+      and s.scope_type = 'global' and s.is_active and s.deleted_at is null
+      and a.status = 'active' and a.revoked_at is null
+      and a.valid_from <= now()
+      and (a.valid_until is null or a.valid_until > now())
+  ) then return coalesce(new, old); end if;
+
+  perform pg_advisory_xact_lock(20261009, 1);
+  select count(distinct u.id) into v_remaining
+  from mp25m.internal_users u
+  join mp25m.access_role_assignments a on a.internal_user_id = u.id
+  join mp25m.access_scopes s on s.id = a.access_scope_id
+  where u.id <> old.id and u.status = 'active' and u.deleted_at is null
+    and a.access_role_code = 'administrator' and a.status = 'active'
+    and a.revoked_at is null and a.valid_from <= now()
+    and (a.valid_until is null or a.valid_until > now())
+    and s.scope_type = 'global' and s.is_active and s.deleted_at is null;
+
+  if v_remaining = 0 then
+    raise exception 'Cannot disable last active global administrator' using errcode = '42501';
+  end if;
+  return coalesce(new, old);
+end;
+$function$;
+
+drop trigger if exists protect_last_admin_user on mp25m.internal_users;
+create trigger protect_last_admin_user
+before update or delete on mp25m.internal_users
+for each row execute function mp25m_private.protect_last_admin_user();
+
+-- Remaining: safeguard role/catalog/scope deactivation and naturally expiring
+-- grants. No privilege management API is enabled until these are covered.

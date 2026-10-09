@@ -156,12 +156,12 @@ export function getReleaseModuleForPath(
 export function isReleaseModuleEnabled(
   key: ReleaseModuleKey,
 ) {
-  const module = getReleaseModuleByKey(key)
+  const releaseModule = getReleaseModuleByKey(key)
   return Boolean(
-    module &&
+    releaseModule &&
     isReleaseStageAvailable(
       getCurrentReleaseStage(),
-      module.availableFrom,
+      releaseModule.availableFrom,
     ),
   )
 }

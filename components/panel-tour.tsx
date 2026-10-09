@@ -204,9 +204,13 @@ export function PanelTour() {
       ).matches
 
       if (pathname === '/panel/articulaciones') {
-        // Keep the heading, form and cards in their natural page positions.
-        // Centering large targets pushed the guide on top of the form.
-        window.scrollTo({ top: 0, behavior: 'auto' })
+        if (activeStep?.key === 'articulation-directory') {
+          // Bring the directory directly below the compact guide.
+          const top = element.getBoundingClientRect().top + window.scrollY
+          window.scrollTo({ top: Math.max(0, top - 430), behavior: 'auto' })
+        } else {
+          window.scrollTo({ top: 0, behavior: 'auto' })
+        }
       } else {
         element.scrollIntoView({
           behavior: prefersReducedMotion ? 'auto' : 'smooth',
@@ -274,7 +278,7 @@ export function PanelTour() {
   const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
   const margin = 16
   const gap = 18
-  const panelWidth = Math.min(viewportWidth >= 720 ? 600 : 360, viewportWidth - margin * 2)
+  const panelWidth = Math.min(viewportWidth >= 1000 ? 780 : viewportWidth >= 720 ? 600 : 360, viewportWidth - margin * 2)
   const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 250 : 350, viewportHeight - margin * 2)
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(value, max))
@@ -289,17 +293,15 @@ export function PanelTour() {
             activeStep?.key === 'articulation-directory') &&
           viewportWidth >= 720
         ) {
-          const actualPanelHeight = 350
           return {
             left: clamp(
               targetRect.left + targetRect.width / 2 - panelWidth / 2,
               margin,
               Math.max(margin, viewportWidth - panelWidth - margin),
             ),
-            top: Math.max(
-              margin,
-              targetRect.top - actualPanelHeight - gap,
-            ),
+            // Position the compact horizontal guide at the top.
+            // The form and directory remain below it and unobstructed.
+            top: margin,
           }
         }
         const rightSpace = viewportWidth - targetRect.right
@@ -375,7 +377,7 @@ export function PanelTour() {
             style={popoverStyle}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(600px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >

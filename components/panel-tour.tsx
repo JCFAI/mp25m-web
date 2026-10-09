@@ -52,21 +52,21 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulations-intro',
         title: '¿Para qué sirve una articulación?',
         description:
-          'Una articulación permite coordinar personas, organizaciones y recursos para lograr un propósito común. Puede iniciarse directamente, sin una oportunidad previa; más adelante podés vincularle otros actores o proyectos.',
+          'Una articulación coordina personas, organizaciones y recursos para alcanzar un objetivo común. No requiere una oportunidad previa: podés crearla ahora y vincular otros actores o proyectos después.',
       },
       {
         key: 'articulation-create',
         target: 'articulation-create',
         title: 'Cómo registrar una articulación',
         description:
-          'Escribí un nombre que permita reconocerla y describí brevemente qué se quiere lograr. Si ya sabés quién la coordinará, elegí al responsable; de lo contrario, podés dejarlo sin asignar. «Crear articulación» guarda el registro y después podrás completarlo. No pulses ese botón durante esta práctica.',
+          'Completá el nombre y el propósito: qué se busca lograr. Podés elegir un responsable o dejarlo sin asignar. El botón «Crear articulación» guarda la propuesta; luego podrás agregar información. En este recorrido no lo pulses: estamos practicando sin guardar datos.',
       },
       {
         key: 'articulation-directory',
         target: 'articulation-directory',
         title: 'Abrí una articulación existente',
         description:
-          'Estas tarjetas resumen el estado, la persona responsable y los participantes. Pulsá «Finalizar» para cerrar esta guía; luego elegí una tarjeta existente y usá «Ver recorrido» en su ficha para aprender a consultar el historial y el seguimiento, sin modificar datos.',
+          'Cada tarjeta muestra estado, responsable y participantes. Pulsá «Finalizar», abrí una articulación existente y elegí «Ver recorrido» para conocer su historial y seguimiento, sin modificarla.',
       },
     ]
   }
@@ -268,8 +268,8 @@ export function PanelTour() {
   const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
   const margin = 16
   const gap = 18
-  const panelWidth = Math.min(360, viewportWidth - margin * 2)
-  const estimatedPanelHeight = Math.min(350, viewportHeight - margin * 2)
+  const panelWidth = Math.min(viewportWidth >= 720 ? 540 : 360, viewportWidth - margin * 2)
+  const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 250 : 350, viewportHeight - margin * 2)
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(value, max))
 
@@ -284,10 +284,12 @@ export function PanelTour() {
           margin,
           Math.max(margin, viewportHeight - estimatedPanelHeight - margin),
         )
-        if (rightSpace >= panelWidth + gap + margin) {
+        // Prefer a wide, horizontal guide above or below large content regions.
+        const isWideTarget = targetRect.width >= panelWidth
+        if (!isWideTarget && rightSpace >= panelWidth + gap + margin) {
           return { left: targetRect.right + gap, top: sideTop }
         }
-        if (leftSpace >= panelWidth + gap + margin) {
+        if (!isWideTarget && leftSpace >= panelWidth + gap + margin) {
           return { left: targetRect.left - panelWidth - gap, top: sideTop }
         }
         const left = clamp(
@@ -301,13 +303,8 @@ export function PanelTour() {
         if (aboveSpace >= estimatedPanelHeight + gap + margin) {
           return { left, top: targetRect.top - estimatedPanelHeight - gap }
         }
-        // Large targets may leave no empty side: keep the guide fully visible.
-        return {
-          left: targetRect.left + targetRect.width / 2 < viewportWidth / 2
-            ? Math.max(margin, viewportWidth - panelWidth - margin)
-            : margin,
-          top: margin,
-        }
+        // When the target fills the screen, keep controls on-screen.
+        return { left, top: margin }
       })()
     : undefined
 
@@ -351,7 +348,7 @@ export function PanelTour() {
             style={popoverStyle}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(360px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(540px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >

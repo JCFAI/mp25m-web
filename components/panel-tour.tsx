@@ -139,6 +139,7 @@ export function PanelTour() {
   const pathname = usePathname()
   const dialogRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  const [dialogHeight, setDialogHeight] = useState(320)
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] =
     useState<TourStep[]>([])
@@ -250,6 +251,28 @@ export function PanelTour() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    const measure = () => {
+      setDialogHeight(dialog.getBoundingClientRect().height)
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(dialog)
+    measure()
+
+    window.addEventListener('resize', measure)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [open, activeStep])
+
   function closeTour() {
     window.localStorage.setItem(storageKey, 'true')
     setOpen(false)
@@ -269,25 +292,29 @@ export function PanelTour() {
       ? 1024
       : window.innerWidth
 
+  const viewportHeight =
+    typeof window === 'undefined' ? 768 : window.innerHeight
+
+  const popoverTop = targetRect
+    ? Math.max(
+        16,
+        Math.min(
+          targetRect.bottom + 18,
+          viewportHeight - Math.min(dialogHeight, viewportHeight - 32) - 16,
+        ),
+      )
+    : 16
+
   const popoverStyle: CSSProperties | undefined =
     targetRect
       ? {
           left: Math.max(
             16,
-            Math.min(
-              targetRect.left,
-              viewportWidth - 336,
-            ),
+            Math.min(targetRect.left, viewportWidth - 336),
           ),
-          top: Math.max(
-            16,
-            Math.min(
-              targetRect.bottom + 18,
-              (typeof window === 'undefined'
-                ? 768
-                : window.innerHeight) - 232,
-            ),
-          ),
+          top: popoverTop,
+          maxHeight: `calc(100dvh - ${popoverTop + 16}px)`,
+          overflowY: 'auto',
         }
       : undefined
 

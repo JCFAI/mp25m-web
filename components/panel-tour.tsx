@@ -78,56 +78,56 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulation-summary',
         title: 'Ésta es la ficha de trabajo',
         description:
-          'Resume el propósito, estado y responsable de la articulación.',
+          'En la parte superior se identifica la articulación, su objetivo y el estado actual. Revisá primero estos datos para saber qué se busca lograr, quién coordina el trabajo y en qué situación se encuentra.',
       },
       {
         key: 'articulation-history',
         target: 'articulation-history',
         title: 'El historial conserva las decisiones',
         description:
-          'Cada cambio de estado deja responsable, fecha, motivo y la persona que lo registró.',
+          'El historial permite reconstruir las decisiones: cuándo cambió el estado, quién registró el cambio y por qué. Consultalo antes de tomar una nueva decisión para no perder el contexto del trabajo.',
       },
       {
         key: 'articulation-management',
         target: 'articulation-management',
         title: 'Gestioná la articulación',
         description:
-          'Según tus permisos, desde acá actualizás estado y responsable, incorporás participantes y registrás seguimiento.',
+          'Este sector reúne las acciones de gestión. Según los permisos de tu usuario, podés cambiar el estado, reasignar a la persona responsable, agregar participantes y registrar novedades. En este recorrido solo vamos a identificar las opciones, sin guardar cambios.',
       },
       {
         key: 'articulation-status',
         target: 'articulation-status',
         title: 'Estado y responsable',
         description:
-          'Dejá claro cómo sigue el proceso y quién queda a cargo del próximo paso.',
+          'El campo «Estado» describe la situación actual de la articulación. «Responsable» indica quién coordina el próximo paso. Al registrar un cambio, completá el motivo para que otras personas entiendan la decisión. El resumen de cierre corresponde cuando se finaliza el trabajo.',
       },
       {
         key: 'articulation-followup',
         target: 'articulation-followup',
         title: 'Registrá el seguimiento',
         description:
-          'Una novedad puede registrar un contacto, reunión, compromiso, resultado o información general.',
+          'Usá el seguimiento para registrar lo que ocurrió: por ejemplo, una llamada, una reunión o un compromiso. Elegí el tipo de novedad, describí el hecho y luego guardalo cuando estés operando realmente. Durante esta prueba no registres nada.',
       },
       {
         key: 'articulation-participant-action',
         target: 'articulation-participant-action',
         title: 'Sumá participantes sin duplicarlos',
         description:
-          'El selector utiliza Personas y Organizaciones canónicas ya registradas en MP25M.',
+          'Para sumar a alguien, pulsá «Elegir persona u organización» y buscá un registro existente. Así vinculás a la misma persona u organización sin crear duplicados. Podés explicar en «Motivo» por qué participa. No confirmes ningún agregado durante esta guía.',
       },
       {
         key: 'articulation-participants',
         target: 'articulation-participants',
         title: 'Participantes vinculados',
         description:
-          'La ficha mantiene visible quiénes participan y el motivo de cada incorporación.',
+          'En «Participantes» consultás las personas u organizaciones que intervienen y por qué fueron vinculadas. Este listado ayuda a saber con quién coordinar y a reconocer responsabilidades sin duplicar contactos.',
       },
       {
         key: 'articulation-followups',
         target: 'articulation-followups',
         title: 'Novedades y seguimiento',
         description:
-          'La trazabilidad permite comprender el proceso sin depender de la memoria de una sola persona.',
+          'En «Novedades y seguimiento» aparece la secuencia de acciones registradas, con su contenido y fecha. Leé esas entradas para retomar el trabajo, identificar compromisos pendientes y comprender cómo avanzó la articulación.',
       },
     ]
   }
@@ -211,6 +211,13 @@ export function PanelTour() {
         } else {
           window.scrollTo({ top: 0, behavior: 'auto' })
         }
+      } else if (pathname.startsWith('/panel/articulaciones/')) {
+        // Reserve a clear area above the highlighted section for the guide.
+        const pageTop = element.getBoundingClientRect().top + window.scrollY
+        window.scrollTo({
+          top: Math.max(0, pageTop - 430),
+          behavior: 'auto',
+        })
       } else {
         element.scrollIntoView({
           behavior: prefersReducedMotion ? 'auto' : 'smooth',
@@ -305,6 +312,20 @@ export function PanelTour() {
             top: margin,
           }
         }
+        if (pathname.startsWith('/panel/articulaciones/') && viewportWidth >= 720) {
+          const left = clamp(
+            targetRect.left + targetRect.width / 2 - panelWidth / 2,
+            margin,
+            Math.max(margin, viewportWidth - panelWidth - margin),
+          )
+          // Most targets are scrolled below this fixed guide. For the
+          // first section near the page top, place it just below instead.
+          const top = targetRect.top < 325 &&
+            targetRect.bottom + 310 + gap < viewportHeight
+              ? targetRect.bottom + gap
+              : margin
+          return { left, top }
+        }
         const rightSpace = viewportWidth - targetRect.right
         const leftSpace = targetRect.left
         const belowSpace = viewportHeight - targetRect.bottom
@@ -378,7 +399,7 @@ export function PanelTour() {
             style={popoverStyle}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >

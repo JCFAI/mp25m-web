@@ -1,3 +1,4 @@
+import { ApprovalForm } from './approval-form'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -40,6 +41,13 @@ export default async function SolicitudesAccesoPage() {
   const enabledIds = new Set((activeAccess ?? []).map(item => item.auth_user_id))
   const withoutAccess = users.filter(user => !enabledIds.has(user.id))
 
+  const approvalsEnabled = process.env.MP25M_ENABLE_ACCESS_APPROVALS === 'true'
+  const { data: scopeRows, error: scopeError } = approvalsEnabled
+    ? await admin.from('access_approval_scopes').select('id,scope_type,name').order('name')
+    : { data: [], error: null }
+  if (scopeError) throw new Error('No se pudieron consultar los ámbitos disponibles.')
+  const scopes = scopeRows ?? []
+
   return (
     <div className="space-y-6">
       <Link href="/panel/accesos" className="text-sm font-medium text-[#2F5D8C] underline">
@@ -52,7 +60,8 @@ export default async function SolicitudesAccesoPage() {
           Muestra las cuentas sin permisos activos dentro de las primeras 50 cuentas
           registradas en Supabase Auth. No todas son necesariamente solicitudes nuevas:
           también pueden incluir cuentas suspendidas o sin asignaciones vigentes.
-          La aprobación y asignación de roles todavía no están habilitadas.
+          La aprobación solo se habilita cuando el administrador activa expresamente
+          el circuito de aprobación y verifica cada cuenta.
         </p>
         <p className="mt-4 text-sm text-slate-600">
           {withoutAccess.length} cuenta(s) sin acceso vigente en esta página.
@@ -67,6 +76,13 @@ export default async function SolicitudesAccesoPage() {
                   {' · '}
                   {user.email_confirmed_at ? 'Correo confirmado' : 'Correo sin confirmar'}
                 </p>
+                {approvalsEnabled && user.email_confirmed_at ? (
+                  <ApprovalForm
+                    authUserId={user.id}
+                    displayName={typeof user.user_metadata?.display_name === 'string' ? user.user_metadata.display_name : ''}
+                    scopes={scopes}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

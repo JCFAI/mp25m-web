@@ -15,6 +15,7 @@ type TourStep = {
   target?: string
   title: string
   description: string
+  requirements?: string[]
 }
 
 const storageKey = 'mp25m-panel-contextual-tour-v1-seen'
@@ -60,7 +61,12 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulation-create',
         title: 'Cómo registrar una articulación',
         description:
-          'Para crear el registro son obligatorios «Nombre de la articulación» y «Objetivo o propósito inicial»: ambos deben tener al menos 3 caracteres. Escribí un nombre identificable, por ejemplo «Entrega de materiales a una escuela», y explicá qué se busca conseguir y para quién. «Responsable inicial» es opcional al crear: podés dejar «Sin responsable inicial». Más adelante, para activar o cerrar la articulación, sí necesitarás asignar un responsable. «Crear articulación» guarda el registro; no lo pulses durante este recorrido de aprendizaje.',
+          'En «Nombre de la articulación», escribí una frase breve que permita identificarla; por ejemplo, «Entrega de materiales a una escuela». En «Objetivo o propósito inicial», explicá qué se quiere conseguir y para quién. En el desplegable podés elegir a la persona responsable de coordinarla, si ya está definida, o mantener «Sin responsable inicial». El botón «Crear articulación» guarda el registro para completarlo y seguir su evolución más adelante. Durante este recorrido no lo pulses: solo estamos conociendo el formulario.',
+        requirements: [
+          'Nombre de la articulación — obligatorio (mínimo 3 caracteres)',
+          'Objetivo o propósito inicial — obligatorio (mínimo 3 caracteres)',
+          'Responsable inicial — opcional para crear',
+        ],
       },
       {
         key: 'articulation-directory',
@@ -93,14 +99,20 @@ function stepsForPath(pathname: string): TourStep[] {
         target: 'articulation-management',
         title: 'Gestioná la articulación',
         description:
-          'Este sector reúne las acciones de gestión. Según tus permisos, podés cambiar el estado, asignar o cambiar al responsable, vincular participantes y registrar seguimiento. Para activar una articulación necesitás responsable; para cerrarla también debés completar un motivo y un resumen de cierre. Estos requisitos permiten dejar claras las decisiones tomadas. En este recorrido solo vamos a identificar las opciones, sin guardar cambios.',
+          'Este sector reúne las acciones de gestión. Según los permisos de tu usuario, podés cambiar el estado, reasignar a la persona responsable, agregar participantes y registrar novedades. En este recorrido solo vamos a identificar las opciones, sin guardar cambios.',
       },
       {
         key: 'articulation-status',
         target: 'articulation-status',
         title: 'Estado y responsable',
         description:
-          'Para cambiar el estado son obligatorios «Estado» y «Motivo» (este último, con al menos 3 caracteres). «Responsable» puede quedar sin asignar mientras la articulación esté en borrador, pero es obligatorio para activarla y también para cerrarla. «Resumen de cierre» es opcional durante el seguimiento, pero obligatorio para cerrar, tanto «con resultado» como «sin resultado» (mínimo 3 caracteres). Elegí el estado correcto y explicá el motivo y, si corresponde, qué se logró o por qué se cerró. No guardes cambios durante esta práctica.',
+          'El campo «Estado» describe la situación actual de la articulación. «Responsable» indica quién coordina el próximo paso. Al registrar un cambio, completá el motivo para que otras personas entiendan la decisión. El resumen de cierre corresponde cuando se finaliza el trabajo. No guardes cambios durante esta práctica.',
+        requirements: [
+          'Estado — obligatorio',
+          'Motivo — obligatorio (de 3 a 10.000 caracteres)',
+          'Responsable — obligatorio al activar o cerrar; opcional en otros estados',
+          'Resumen de cierre — obligatorio al cerrar (de 3 a 10.000 caracteres); opcional en otros estados',
+        ],
       },
       {
         key: 'articulation-followup',
@@ -494,6 +506,19 @@ export function PanelTour() {
             <p className="mt-2 text-sm leading-6 text-slate-600">
               {activeStep.description}
             </p>
+
+            {activeStep.requirements?.length ? (
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  Campos y obligatoriedad
+                </p>
+                <ul className="mt-2 space-y-1 text-sm leading-5 text-slate-600">
+                  {activeStep.requirements.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <p className="mt-4 text-xs font-medium text-slate-500">
               Paso {stepIndex + 1} de {availableSteps.length}

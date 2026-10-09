@@ -22,11 +22,19 @@ export async function solicitarAcceso(formData: FormData) {
     redirect('/solicitar-acceso?error=datos')
   }
 
+  // Configured server-side only: do not derive callback origins from Host headers.
+  // The local integration run sets this to http://127.0.0.1:55430.
+  const appUrl = process.env.MP25M_ACCESS_PUBLIC_URL
+  if (!appUrl || !/^https?:\/\/[^/?#]+$/.test(appUrl)) {
+    redirect('/solicitar-acceso?error=registro')
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
     password,
     options: {
+      emailRedirectTo: `${appUrl}/auth/confirm?type=signup`,
       data: { display_name: name.trim() },
     },
   })

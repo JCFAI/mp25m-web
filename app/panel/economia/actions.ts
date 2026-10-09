@@ -18,6 +18,7 @@ import {
   type CollectionStatus,
   type EconomicSourceType,
 } from '../../../lib/economics/economics'
+import { isReleaseModuleEnabled } from '../../../lib/release-stage'
 import {
   createClient,
 } from '../../../lib/supabase/server'
@@ -244,6 +245,10 @@ export async function saveEconomicProfileAction(
   _state: EconomicActionState,
   data: FormData,
 ): Promise<EconomicActionState> {
+  if (!isReleaseModuleEnabled('economics')) {
+    return { status: 'error', message: 'Esta función no está habilitada en la etapa actual.' }
+  }
+
   if (
     !isSourceType(sourceType) ||
     !UUID_PATTERN.test(sourceId) ||

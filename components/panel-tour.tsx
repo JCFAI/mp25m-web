@@ -50,23 +50,23 @@ function stepsForPath(pathname: string): TourStep[] {
       {
         key: 'articulation-purpose',
         target: 'articulations-intro',
-        title: 'Una articulación puede empezar por sí misma',
+        title: '¿Para qué sirve una articulación?',
         description:
-          'No necesita nacer de una oportunidad. Después puede relacionarse con personas, organizaciones, proyectos y otros recursos.',
+          'Una articulación permite coordinar personas, organizaciones y recursos para lograr un propósito común. Puede iniciarse directamente, sin una oportunidad previa; más adelante podés vincularle otros actores o proyectos.',
       },
       {
         key: 'articulation-create',
         target: 'articulation-create',
-        title: 'Empezá por lo esencial',
+        title: 'Cómo registrar una articulación',
         description:
-          'Indicá nombre, propósito inicial y responsable si ya está definido. Se puede completar y actualizar más adelante.',
+          'Escribí un nombre que permita reconocerla y describí brevemente qué se quiere lograr. Si ya sabés quién la coordinará, elegí al responsable; de lo contrario, podés dejarlo sin asignar. «Crear articulación» guarda el registro y después podrás completarlo. No pulses ese botón durante esta práctica.',
       },
       {
         key: 'articulation-directory',
         target: 'articulation-directory',
-        title: 'Consultá las articulaciones registradas',
+        title: 'Abrí una articulación existente',
         description:
-          'Cada ficha muestra su estado, responsable y participantes. Abrí una para continuar el recorrido contextual.',
+          'Estas tarjetas resumen el estado, la persona responsable y los participantes. Pulsá «Finalizar» para cerrar esta guía; luego elegí una tarjeta existente y usá «Ver recorrido» en su ficha para aprender a consultar el historial y el seguimiento, sin modificar datos.',
       },
     ]
   }
@@ -264,23 +264,51 @@ export function PanelTour() {
     return null
   }
 
-  const viewportWidth =
-    typeof window === 'undefined'
-      ? 1024
-      : window.innerWidth
-
+  const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth
+  const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
   const margin = 16
+  const gap = 18
+  const panelWidth = Math.min(360, viewportWidth - margin * 2)
+  const estimatedPanelHeight = Math.min(350, viewportHeight - margin * 2)
+  const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(value, max))
 
   const popoverStyle: CSSProperties | undefined = targetRect
-    ? {
-        left: Math.max(
+    ? (() => {
+        const rightSpace = viewportWidth - targetRect.right
+        const leftSpace = targetRect.left
+        const belowSpace = viewportHeight - targetRect.bottom
+        const aboveSpace = targetRect.top
+        const sideTop = clamp(
+          targetRect.top + targetRect.height / 2 - estimatedPanelHeight / 2,
           margin,
-          Math.min(targetRect.left, viewportWidth - 336),
-        ),
-        top: margin,
-        maxHeight: 'calc(100dvh - 32px)',
-        overflowY: 'hidden',
-      }
+          Math.max(margin, viewportHeight - estimatedPanelHeight - margin),
+        )
+        if (rightSpace >= panelWidth + gap + margin) {
+          return { left: targetRect.right + gap, top: sideTop }
+        }
+        if (leftSpace >= panelWidth + gap + margin) {
+          return { left: targetRect.left - panelWidth - gap, top: sideTop }
+        }
+        const left = clamp(
+          targetRect.left + targetRect.width / 2 - panelWidth / 2,
+          margin,
+          Math.max(margin, viewportWidth - panelWidth - margin),
+        )
+        if (belowSpace >= estimatedPanelHeight + gap + margin) {
+          return { left, top: targetRect.bottom + gap }
+        }
+        if (aboveSpace >= estimatedPanelHeight + gap + margin) {
+          return { left, top: targetRect.top - estimatedPanelHeight - gap }
+        }
+        // Large targets may leave no empty side: keep the guide fully visible.
+        return {
+          left: targetRect.left + targetRect.width / 2 < viewportWidth / 2
+            ? Math.max(margin, viewportWidth - panelWidth - margin)
+            : margin,
+          top: margin,
+        }
+      })()
     : undefined
 
   return (
@@ -323,7 +351,7 @@ export function PanelTour() {
             style={popoverStyle}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(320px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(360px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >

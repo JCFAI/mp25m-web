@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
@@ -24,6 +25,10 @@ export default async function AccessGovernancePage() {
 
   const access = await getInternalAccess(authUserId)
   if (access.length === 0) redirect('/sin-acceso')
+
+  const isGlobalAdmin = access.some(item =>
+    item.access_role_code === 'administrator' && item.scope_type === 'global'
+  )
 
   const canManage = access.some(
     item =>
@@ -72,6 +77,19 @@ export default async function AccessGovernancePage() {
           ))}
         </ul>
       </section>
+
+      {isGlobalAdmin ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Cuentas sin acceso vigente</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Revisá las cuentas registradas que todavía no tienen permisos activos.
+            Esta vista es solo de consulta.
+          </p>
+          <Link href="/panel/accesos/solicitudes" className="mt-4 inline-block font-semibold text-[#2F5D8C] underline">
+            Consultar cuentas
+          </Link>
+        </section>
+      ) : null}
 
       {canManage ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -205,7 +205,7 @@ export function PanelTour() {
 
       if (pathname === '/panel/articulaciones' && activeStep?.key === 'articulation-purpose') {
         // Keep the introductory heading in its natural position: don't jump to the form.
-        element.scrollIntoView({ behavior: 'auto', block: 'start' })
+        window.scrollTo({ top: 0, behavior: 'auto' })
       } else {
         element.scrollIntoView({
           behavior: prefersReducedMotion ? 'auto' : 'smooth',

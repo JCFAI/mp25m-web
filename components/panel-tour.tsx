@@ -203,10 +203,15 @@ export function PanelTour() {
         '(prefers-reduced-motion: reduce)',
       ).matches
 
-      element.scrollIntoView({
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-        block: 'center',
-      })
+      if (pathname === '/panel/articulaciones' && activeStep?.key === 'articulation-purpose') {
+        // Keep the introductory heading in its natural position: don't jump to the form.
+        element.scrollIntoView({ behavior: 'auto', block: 'start' })
+      } else {
+        element.scrollIntoView({
+          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+          block: 'center',
+        })
+      }
 
       setTargetRect(element.getBoundingClientRect())
     })
@@ -268,13 +273,30 @@ export function PanelTour() {
   const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
   const margin = 16
   const gap = 18
-  const panelWidth = Math.min(viewportWidth >= 720 ? 540 : 360, viewportWidth - margin * 2)
+  const panelWidth = Math.min(viewportWidth >= 720 ? 600 : 360, viewportWidth - margin * 2)
   const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 250 : 350, viewportHeight - margin * 2)
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(value, max))
 
   const popoverStyle: CSSProperties | undefined = targetRect
     ? (() => {
+        // During articulation guidance, show the guide above the form/cards.
+        // This avoids obscuring the very controls the user is learning about.
+        if (
+          pathname === '/panel/articulaciones' &&
+          (activeStep?.key === 'articulation-create' ||
+            activeStep?.key === 'articulation-directory') &&
+          viewportWidth >= 720
+        ) {
+          return {
+            left: clamp(
+              targetRect.left + targetRect.width / 2 - panelWidth / 2,
+              margin,
+              Math.max(margin, viewportWidth - panelWidth - margin),
+            ),
+            top: margin,
+          }
+        }
         const rightSpace = viewportWidth - targetRect.right
         const leftSpace = targetRect.left
         const belowSpace = viewportHeight - targetRect.bottom
@@ -348,7 +370,7 @@ export function PanelTour() {
             style={popoverStyle}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(540px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(600px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
                 : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
             }
           >

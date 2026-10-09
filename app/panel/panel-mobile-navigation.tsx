@@ -214,8 +214,9 @@ export function PanelMobileNavigation({
     }
 
     if (mediaQuery.matches) {
-      closeNavigation()
-      return
+      // Close on the next animation frame, outside effect setup.
+      const frame = window.requestAnimationFrame(closeNavigation)
+      return () => window.cancelAnimationFrame(frame)
     }
 
     mediaQuery.addEventListener(
@@ -246,9 +247,9 @@ export function PanelMobileNavigation({
   }, [open])
 
   useEffect(() => {
-    if (drawerMounted) {
-      closeNavigation()
-    }
+    // Navigation changes close the drawer asynchronously after render.
+    const frame = window.requestAnimationFrame(closeNavigation)
+    return () => window.cancelAnimationFrame(frame)
   }, [pathname])
 
   function onHandlePointerDown(

@@ -1,3 +1,4 @@
+import { PasswordField } from './password-field'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { solicitarAcceso } from './actions'
@@ -33,11 +34,7 @@ export default async function SolicitarAccesoPage({ searchParams }: Props) {
             <input type="email" name="email" required autoComplete="email"
               className="mt-1 block w-full rounded-lg border border-slate-300 p-3" />
           </label>
-          <label className="block text-sm font-medium">Contraseña
-            <input type="password" name="password" required minLength={12} maxLength={128}
-              autoComplete="new-password"
-              className="mt-1 block w-full rounded-lg border border-slate-300 p-3" />
-          </label>
+          <PasswordField />
           <button type="submit"
             className="w-full rounded-lg bg-[#1E3A5F] px-4 py-3 font-semibold text-white">
             Enviar solicitud

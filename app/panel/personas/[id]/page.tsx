@@ -5,6 +5,7 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canReadPersonPrivateDetails } from '../../../../lib/people/authorize'
 import { getCanonicalPersonProfile } from '../../../../lib/people/profile'
 import { canManagePersonSkills } from '../../../../lib/skills/person-manage'
 import { createClient } from '../../../../lib/supabase/server'
@@ -144,6 +145,11 @@ export default async function PersonProfilePage({
 
   if (access.length === 0) {
     redirect('/sin-acceso')
+  }
+
+  // Verify territorial access before any privileged person-profile query.
+  if (!await canReadPersonPrivateDetails(access, id)) {
+    notFound()
   }
 
   const canManageSkills =

@@ -31,62 +31,114 @@ async function verifyTour(
   outputPath: (name: string) => string,
 ) {
   await page.goto(route)
-  await expect(page).toHaveURL(new RegExp(route.replaceAll('/', '\\/') + '$'))
+  await expect(page).toHaveURL(new RegExp(route.replaceAll('/', '\\\\/') + '$'))
 
+  const originalBodySpacing = await page.evaluate(() => ({
+    top: document.body.style.paddingTop,
+    bottom: document.body.style.paddingBottom,
+  }))
   const startButton = page.getByRole('button', { name: 'Ver recorrido' })
   const guide = page.getByRole('dialog', { name: 'Recorrido guiado de MP25M' })
 
-  // On the first visit, the guide may auto-open during hydration.
-  // Wait for either entry point rather than racing the client render.
   await expect.poll(async () =>
     (await guide.isVisible()) || (await startButton.isVisible()),
   { timeout: 20_000, message: `No se hidrató el tutorial en ${route}` }).toBe(true)
 
-  if (!(await guide.isVisible())) {
-    await startButton.click()
-  }
-  await expect(guide).toBeVisible({ timeout: 20_000 })
+  if (!(await guide.isVisible())) await startButton.click()
 
+  const visited = new Set<string>()
   let verified = 0
-  for (let i = 0; i < 40; i++) {
-    await expect(guide).toBeVisible()
-    const targetName = await guide.getAttribute('data-active-tour-target')
+  let finished = false
 
+  for (let i = 0; i < 40; i++) {
+    // A step is NOT finished simply because the title or target is present.
+    // The spotlight and dialog must belong to the same rendered step.
+    await expect(guide).toHaveAttribute('data-tour-ready', 'true', {
+      timeout: 15_000,
+    })
+    const stepKey = await guide.getAttribute('data-tour-step-key')
+    expect(stepKey).toBeTruthy()
+    expect(visited.has(stepKey!), `Paso duplicado en ${route}: ${stepKey}`).toBe(false)
+    visited.add(stepKey!)
+
+    const targetName = await guide.getAttribute('data-active-tour-target')
+    const spot = page.locator('[data-tour-spotlight]')
     if (targetName) {
       const target = page.locator(`[data-tour="${targetName}"]`)
       await expect(target).toHaveCount(1)
+      await expect(spot).toHaveAttribute('data-tour-spotlight', stepKey!)
 
       await expect.poll(async () => {
-        const g = await guide.boundingBox()
-        const t = await target.boundingBox()
-        if (!g || !t) return 'Elementos sin dimensiones'
-        const margin = Math.round(t.y - (g.y + g.height))
-        const visible = t.y < page.viewportSize()!.height - 56
-        return margin >= 10 && visible ? 'OK' : `Solapamiento: ${margin}px; visible: ${visible}`
-      }, { message: `${route} paso ${i + 1}, destino ${targetName}`, timeout: 6000 }).toBe('OK')
+        const [g, t, s] = await Promise.all([
+          guide.boundingBox(), target.boundingBox(), spot.boundingBox(),
+        ])
+        if (!g || !t || !s) return 'Faltan dimensiones'
+        const viewport = page.viewportSize()!
+        const intersectionWidth = Math.max(
+          0, Math.min(g.x + g.width, s.x + s.width) - Math.max(g.x, s.x),
+        )
+        const intersectionHeight = Math.max(
+          0, Math.min(g.y + g.height, s.y + s.height) - Math.max(g.y, s.y),
+        )
+        const overlap = intersectionWidth * intersectionHeight
+        const insideTarget =
+          s.x >= t.x - 7 && s.x + s.width <= t.x + t.width + 7 &&
+          s.y >= t.y - 7 && s.y + s.height <= t.y + t.height + 7
+        const visible =
+          s.y >= -4 && s.y + s.height <= viewport.height + 4 &&
+          s.height >= 30 && s.width >= 30
+        return overlap <= 0.5 && insideTarget && visible
+          ? 'OK'
+          : `Solapamiento=${overlap}; dentro=${insideTarget}; visible=${visible}`
+      }, {
+        message: `${route} paso ${i + 1} (${stepKey}), foco ${targetName}`,
+        timeout: 10_000,
+      }).toBe('OK')
       verified++
+    } else {
+      await expect(spot).toHaveCount(0)
     }
+
+    // Two animation frames make sure that screenshot and geometry reflect
+    // the settled current step, not a stale scroll/spotlight transition.
+    await page.evaluate(() => new Promise<void>(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    ))
+    await expect(guide).toHaveAttribute('data-tour-ready', 'true')
+    await expect(guide).toHaveAttribute('data-tour-step-key', stepKey!)
+
+    const bodySpacing = await page.evaluate(() => ({
+      top: document.body.style.paddingTop,
+      bottom: document.body.style.paddingBottom,
+    }))
+    expect(bodySpacing, `Padding artificial detectado en ${route}`)
+      .toEqual(originalBodySpacing)
 
     if (process.env.MP25M_E2E_TOUR_SCREENSHOTS === 'true') {
       await page.screenshot({
         path: outputPath(`${screenshotName}-paso-${String(i + 1).padStart(2, '0')}.png`),
         fullPage: false,
+        animations: 'disabled',
       })
     }
 
     const finish = guide.getByRole('button', { name: 'Finalizar' })
     if (await finish.isVisible()) {
       await finish.click()
+      finished = true
       break
     }
-
     await guide.getByRole('button', { name: 'Siguiente' }).click()
-
-    if (i === 39) throw new Error(`El recorrido en ${route} excede 40 pasos`)
   }
 
-  expect(verified, `La pantalla ${route} no resaltó ninguna región`).toBeGreaterThan(0)
+  expect(finished, `El recorrido de ${route} no terminó`).toBe(true)
+  expect(verified, `Sin zonas resaltadas en ${route}`).toBeGreaterThan(0)
   await expect(guide).toHaveCount(0)
+  const restored = await page.evaluate(() => ({
+    top: document.body.style.paddingTop,
+    bottom: document.body.style.paddingBottom,
+  }))
+  expect(restored).toEqual(originalBodySpacing)
 }
 
 test.describe('MP25M_S: el cuadro nunca cubre la zona explicada', () => {

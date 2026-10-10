@@ -11,6 +11,7 @@ import {
   type AgendaStatus,
 } from '../../../../lib/agenda/agenda'
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../lib/auth/basic-participant'
 import {
   parseReferenceLimit,
   ReferenceRequestError,
@@ -225,6 +226,13 @@ export async function GET(
     )
 
   if (!access.length) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
+
+  if (isBasicParticipantAccess(access)) {
     return NextResponse.json(
       { error: 'Forbidden' },
       { status: 403 }

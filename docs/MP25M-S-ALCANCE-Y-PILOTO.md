@@ -79,11 +79,10 @@ La autorización real deberá seguir validándose en servidor.
 
 No forman parte de MP25M_S:
 
-- Agenda e Informes, previstos para MP25M_M;
-- Comunicaciones, Oportunidades y Necesidades y Ofertas, previstos para
-  MP25M_L;
-- Economía operativa;
-- Radar externo, IA y automatizaciones;
+- Agenda, Informes, Comunicaciones, Oportunidades, Necesidades y Ofertas,
+  Actividades, Resultados y Economía operativa, previstos para MP25M_M;
+- Radar externo, IA, automatizaciones y otras ampliaciones futuras, reservadas
+  para etapas posteriores como MP25M_L y MP25M_XL;
 - integraciones con calendarios, mensajería u otros servicios externos;
 - cambios en reglas institucionales, económicas o de privacidad.
 
@@ -91,9 +90,9 @@ No forman parte de MP25M_S:
 
 Antes de habilitar la primera cohorte deberán existir:
 
-- una guía visual breve del sistema;
-- una práctica guiada con un caso simple;
-- una hoja rápida de consulta;
+- una guía visual breve del sistema (`MP25M-S-TUTORIAL-CONTEXTUAL.md`);
+- una práctica guiada con un caso simple (`MP25M-S-PRACTICA-GUIADA.md`);
+- una hoja rápida de consulta (`MP25M-S-HOJA-RAPIDA.md`);
 - una navegación y acciones de servidor limitadas al alcance S;
 - una matriz comprobable entre figuras funcionales, roles técnicos y alcance;
 - un mecanismo para recoger dificultades y sugerencias de la cohorte.

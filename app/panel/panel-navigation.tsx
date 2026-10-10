@@ -63,6 +63,10 @@ export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean 
     pathname === '/panel/informes' ||
     pathname.startsWith('/panel/informes/')
 
+  const pilotFeedbackActive =
+    pathname === '/panel/comentarios-piloto' ||
+    pathname.startsWith('/panel/comentarios-piloto/')
+
   return (
     <nav className="px-3 py-5">
       <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
@@ -239,6 +243,21 @@ export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean 
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
+
+        <div className="my-3 border-t border-white/10" />
+
+        <Link
+          href="/panel/comentarios-piloto"
+          aria-current={pilotFeedbackActive ? 'page' : undefined}
+          className={activeClass(pilotFeedbackActive)}
+        >
+          <span>Comentarios del piloto</span>
+
+          {pilotFeedbackActive ? (
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+          ) : null}
+        </Link>
+
         {canManageAccess ? (
           <Link href="/panel/accesos" aria-current={accessActive ? 'page' : undefined} className={activeClass(accessActive)}>
             <span>Administración de accesos</span>

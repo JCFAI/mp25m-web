@@ -5,8 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { usePathname } from 'next/navigation'
 import {
@@ -126,16 +124,6 @@ export function PanelTour({
 }: StageTourAudience) {
   const pathname = usePathname()
   const dialogRef = useRef<HTMLDivElement>(null)
-  const dragStartRef = useRef<{
-    x: number
-    y: number
-    left: number
-    top: number
-  } | null>(null)
-  const [floatingPosition, setFloatingPosition] = useState<{
-    left: number
-    top: number
-  } | null>(null)
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] =
@@ -160,8 +148,7 @@ export function PanelTour({
       )
 
       setStepIndex(0)
-      setFloatingPosition(null)
-      setAvailableSteps(nextSteps)
+        setAvailableSteps(nextSteps)
     })
 
     return () => window.cancelAnimationFrame(frame)
@@ -188,74 +175,97 @@ export function PanelTour({
     [availableSteps, stepIndex],
   )
 
+  // The explanatory panel is docked at the top. We measure its REAL rendered
+  // height before bringing each highlighted region just below it. A fixed
+  // estimate made the previous tour cover its own highlighted controls.
   useEffect(() => {
-    const element =
-      open && activeStep?.target
-        ? document.querySelector<HTMLElement>(
-            '[data-tour="' + activeStep.target + '"]',
-          )
-        : null
+    if (!open) {
+      setTargetRect(null)
+      return
+    }
 
-    const frame = window.requestAnimationFrame(() => {
-      if (!element) {
-        setTargetRect(null)
-        return
-      }
-
-      const prefersReducedMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)',
-      ).matches
-
-      if (pathname === '/panel' && activeStep?.key === 'modules') {
-        // Present the module overview below the guide, like the approved screenshot.
-        const sectionTop = element.getBoundingClientRect().top + window.scrollY
-        window.scrollTo({ top: Math.max(0, sectionTop - 225), behavior: 'auto' })
-      } else if (pathname === '/panel/articulaciones') {
-        if (activeStep?.key === 'articulation-directory') {
-          // Bring the directory directly below the compact guide.
-          const top = element.getBoundingClientRect().top + window.scrollY
-          window.scrollTo({ top: Math.max(0, top - 285), behavior: 'auto' })
-        } else {
-          window.scrollTo({ top: 0, behavior: 'auto' })
-        }
-      } else if (pathname.startsWith('/panel/articulaciones/')) {
-        // Reserve a clear area above the highlighted section for the guide.
-        const pageTop = element.getBoundingClientRect().top + window.scrollY
-        window.scrollTo({
-          top: Math.max(0, pageTop - 285),
-          behavior: 'auto',
-        })
-      } else {
-        element.scrollIntoView({
-          behavior: prefersReducedMotion ? 'auto' : 'smooth',
-          block: 'center',
-        })
-      }
-
-      setTargetRect(element.getBoundingClientRect())
-    })
+    const element = activeStep?.target
+      ? document.querySelector<HTMLElement>(
+          '[data-tour="' + activeStep.target + '"]',
+        )
+      : null
 
     if (!element) {
-      return () => window.cancelAnimationFrame(frame)
+      setTargetRect(null)
+      return
     }
 
-    const measure = () => {
+    const card = dialogRef.current
+    if (!card) return
+
+    let pendingFrame = 0
+    let lastGuideHeight = 0
+
+    const measureTarget = () => {
       setTargetRect(element.getBoundingClientRect())
     }
 
-    window.addEventListener('resize', measure)
-    window.addEventListener(
-      'scroll',
-      measure,
-      { capture: true, passive: true },
-    )
+    const placeTargetBelowGuide = () => {
+      const actualGuide = card.getBoundingClientRect()
+      const desiredTop = actualGuide.bottom + 20
+      const currentTarget = element.getBoundingClientRect()
+      const absoluteTop = currentTarget.top + window.scrollY
+
+      window.scrollTo({
+        top: Math.max(0, absoluteTop - desiredTop),
+        behavior: 'instant',
+      })
+
+      window.cancelAnimationFrame(pendingFrame)
+      pendingFrame = window.requestAnimationFrame(measureTarget)
+    }
+
+    // At each step, and whenever the guide resizes because of text wrapping,
+    // re-align the REAL target rather than relying on an estimated height.
+    const observer = new ResizeObserver(() => {
+      const height = card.getBoundingClientRect().height
+      if (Math.abs(height - lastGuideHeight) < 1) return
+      lastGuideHeight = height
+      window.cancelAnimationFrame(pendingFrame)
+      pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
+    })
+
+    observer.observe(card)
+    pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
+
+    const onViewportChange = () => {
+      window.cancelAnimationFrame(pendingFrame)
+      pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
+    }
+
+    let scrollFrame = 0
+    const onScroll = () => {
+      window.cancelAnimationFrame(scrollFrame)
+      scrollFrame = window.requestAnimationFrame(measureTarget)
+    }
+
+    window.addEventListener('resize', onViewportChange)
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true })
 
     return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('resize', measure)
-      window.removeEventListener('scroll', measure, true)
+      observer.disconnect()
+      window.cancelAnimationFrame(pendingFrame)
+      window.cancelAnimationFrame(scrollFrame)
+      window.removeEventListener('resize', onViewportChange)
+      window.removeEventListener('scroll', onScroll, true)
     }
   }, [activeStep, open, pathname])
+
+  // Give the bottom-most items enough scroll room to appear BELOW the docked
+  // guide as well. This spacing only exists while the tour is open.
+  useEffect(() => {
+    if (!open) return
+    const oldPadding = document.body.style.paddingBottom
+    document.body.style.paddingBottom = `${window.innerHeight}px`
+    return () => {
+      document.body.style.paddingBottom = oldPadding
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -281,158 +291,12 @@ export function PanelTour({
 
   function startTour() {
     setStepIndex(0)
-    setFloatingPosition(null)
-    setOpen(true)
-  }
-
-  function startDragging(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return
-    const rect = dialogRef.current?.getBoundingClientRect()
-    if (!rect) return
-    dragStartRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-      left: rect.left,
-      top: rect.top,
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-    event.preventDefault()
-  }
-
-  function dragDialog(event: ReactPointerEvent<HTMLDivElement>) {
-    const start = dragStartRef.current
-    if (!start) return
-    const rect = dialogRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const margin = 8
-    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin)
-    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin)
-    setFloatingPosition({
-      left: Math.max(margin, Math.min(maxLeft, start.left + event.clientX - start.x)),
-      top: Math.max(margin, Math.min(maxTop, start.top + event.clientY - start.y)),
-    })
-  }
-
-  function stopDragging(event: ReactPointerEvent<HTMLDivElement>) {
-    dragStartRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
+        setOpen(true)
   }
 
   if (availableSteps.length === 0) {
     return null
   }
-
-  const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth
-  const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight
-  const margin = 16
-  const gap = 18
-  const panelWidth = Math.min(viewportWidth >= 1000 ? 780 : viewportWidth >= 720 ? 600 : 360, viewportWidth - margin * 2)
-  const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 175 : 220, viewportHeight - margin * 2)
-  const clamp = (value: number, min: number, max: number) =>
-    Math.max(min, Math.min(value, max))
-
-  const popoverStyle: CSSProperties | undefined = targetRect
-    ? (() => {
-        // During articulation guidance, show the guide above the form/cards.
-        // This avoids obscuring the very controls the user is learning about.
-        if (pathname === '/panel' && activeStep?.key === 'modules') {
-          return {
-            left: clamp(
-              (viewportWidth - panelWidth) / 2,
-              margin,
-              Math.max(margin, viewportWidth - panelWidth - margin),
-            ),
-            top: margin,
-          }
-        }
-        if (
-          pathname === '/panel/articulaciones' &&
-          (activeStep?.key === 'articulation-create' ||
-            activeStep?.key === 'articulation-directory') &&
-          viewportWidth >= 720
-        ) {
-          return {
-            left: clamp(
-              targetRect.left + targetRect.width / 2 - panelWidth / 2 + 45,
-              margin,
-              Math.max(margin, viewportWidth - panelWidth - margin),
-            ),
-            // Shift the explanation slightly right while keeping it on-screen.
-            // Position the compact horizontal guide at the top.
-            // The form and directory remain below it and unobstructed.
-            top: margin,
-          }
-        }
-        if (pathname.startsWith('/panel/articulaciones/') && viewportWidth >= 900) {
-          // Starting positions selected from the validated desktop walkthrough.
-          // Users can still drag the guide elsewhere at any moment.
-          const detailPositions: Record<string, { horizontal: number; vertical: number }> = {
-            'articulation-management': { horizontal: 0.66, vertical: 0 },
-            'articulation-status': { horizontal: 0.98, vertical: 0 },
-            'articulation-followup': { horizontal: 0.30, vertical: 0 },
-            'articulation-participant-action': { horizontal: 0.98, vertical: 0 },
-            'articulation-followups': { horizontal: 0.64, vertical: 0.21 },
-          }
-          const preferred = detailPositions[activeStep?.key ?? '']
-          if (preferred) {
-            const horizontalRoom = Math.max(0, viewportWidth - panelWidth - margin * 2)
-            return {
-              left: margin + horizontalRoom * preferred.horizontal,
-              top: Math.min(
-                Math.max(margin, viewportHeight - 230),
-                margin + viewportHeight * preferred.vertical,
-              ),
-            }
-          }
-        }
-        if (pathname.startsWith('/panel/articulaciones/') && viewportWidth >= 720) {
-          const left = clamp(
-            targetRect.left + targetRect.width / 2 - panelWidth / 2,
-            margin,
-            Math.max(margin, viewportWidth - panelWidth - margin),
-          )
-          // Most targets are scrolled below this fixed guide. For the
-          // first section near the page top, place it just below instead.
-          const top = targetRect.top < 325 &&
-            targetRect.bottom + 225 + gap < viewportHeight
-              ? targetRect.bottom + gap
-              : margin
-          return { left, top }
-        }
-        const rightSpace = viewportWidth - targetRect.right
-        const leftSpace = targetRect.left
-        const belowSpace = viewportHeight - targetRect.bottom
-        const aboveSpace = targetRect.top
-        const sideTop = clamp(
-          targetRect.top + targetRect.height / 2 - estimatedPanelHeight / 2,
-          margin,
-          Math.max(margin, viewportHeight - estimatedPanelHeight - margin),
-        )
-        // Prefer a wide, horizontal guide above or below large content regions.
-        const isWideTarget = targetRect.width >= panelWidth
-        if (!isWideTarget && rightSpace >= panelWidth + gap + margin) {
-          return { left: targetRect.right + gap, top: sideTop }
-        }
-        if (!isWideTarget && leftSpace >= panelWidth + gap + margin) {
-          return { left: targetRect.left - panelWidth - gap, top: sideTop }
-        }
-        const left = clamp(
-          targetRect.left + targetRect.width / 2 - panelWidth / 2,
-          margin,
-          Math.max(margin, viewportWidth - panelWidth - margin),
-        )
-        if (belowSpace >= estimatedPanelHeight + gap + margin) {
-          return { left, top: targetRect.bottom + gap }
-        }
-        if (aboveSpace >= estimatedPanelHeight + gap + margin) {
-          return { left, top: targetRect.top - estimatedPanelHeight - gap }
-        }
-        // When the target fills the screen, keep controls on-screen.
-        return { left, top: margin }
-      })()
-    : undefined
 
   return (
     <>
@@ -471,25 +335,15 @@ export function PanelTour({
             role="dialog"
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
-            style={{ ...popoverStyle, ...floatingPosition }}
-            className={
-              targetRect
-                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-3 sm:p-4 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none'
-                : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-3 sm:p-4 text-slate-950 shadow-2xl outline-none'
-            }
+            className="fixed inset-x-3 top-3 z-10 mx-auto flex w-[min(760px,calc(100vw-1.5rem))] max-h-[min(44dvh,340px)] flex-col rounded-2xl bg-white p-3 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none sm:p-4"
           >
-            <div
-              onPointerDown={startDragging}
-              onPointerMove={dragDialog}
-              onPointerUp={stopDragging}
-              onPointerCancel={stopDragging}
-              className="mb-2 flex cursor-grab touch-none select-none items-center justify-between gap-2 border-b border-slate-100 pb-2 active:cursor-grabbing"
-              title="Arrastrá esta barra para mover la explicación"
-            >
+            <div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 pb-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2F5D8C]">
                 Recorrido MP25M_S
               </p>
-              <span className="text-[11px] text-slate-500">↕ Arrastrar</span>
+              <span className="text-[11px] text-slate-500">
+                Guía contextual
+              </span>
             </div>
             <div className="min-h-0 overflow-y-auto">
               <h2 className="text-base font-semibold leading-5 sm:text-lg sm:leading-6">
@@ -500,12 +354,12 @@ export function PanelTour({
               </p>
             </div>
 
-            <div className="mt-2 flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 pt-2">
+            <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-1 border-t border-slate-200 pt-2 sm:flex-nowrap sm:gap-2">
               <p className="shrink-0 text-[11px] font-medium text-slate-500 sm:text-xs">
                 Paso {stepIndex + 1} de {availableSteps.length}
               </p>
 
-              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={closeTour}
@@ -518,8 +372,7 @@ export function PanelTour({
                   <button
                     type="button"
                     onClick={() => {
-                      setFloatingPosition(null)
-                      setStepIndex((index) => index - 1)
+                                            setStepIndex((index) => index - 1)
                     }}
                     className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                   >
@@ -534,8 +387,7 @@ export function PanelTour({
                       return
                     }
 
-                    setFloatingPosition(null)
-                    setStepIndex((index) => index + 1)
+                                        setStepIndex((index) => index + 1)
                   }}
                   className="min-h-8 rounded-lg bg-[#1E3A5F] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none sm:text-sm"
                 >

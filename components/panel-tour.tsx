@@ -2,11 +2,17 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import { usePathname } from 'next/navigation'
+import {
+  getTourLayout,
+  getTourScrollAdjustment,
+  type TourLayout,
+} from '../lib/tour/placement'
 import {
   contextualStageSTourSteps,
   homeStageSTourSteps,
@@ -126,219 +132,219 @@ export function PanelTour({
   const dialogRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
-  const [availableSteps, setAvailableSteps] =
-    useState<TourStep[]>([])
-  const [targetRect, setTargetRect] =
-    useState<DOMRect | null>(null)
+  const [availableSteps, setAvailableSteps] = useState<TourStep[]>([])
+  const [layoutState, setLayoutState] = useState<{
+    stepId: string
+    layout: TourLayout
+  } | null>(null)
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const nextSteps = stepsForPath(pathname, {
+      const steps = stepsForPath(pathname, {
         isBasicParticipant,
         canManageAccess,
         canReviewArticulations,
       }).filter(
-        (step) =>
-          !step.target ||
-          Boolean(
-            document.querySelector(
-              '[data-tour="' + step.target + '"]',
-            ),
-          ),
+        step => !step.target || Boolean(
+          document.querySelector('[data-tour="' + step.target + '"]'),
+        ),
       )
-
       setStepIndex(0)
-      setAvailableSteps(nextSteps)
+      setLayoutState(null)
+      setAvailableSteps(steps)
     })
-
     return () => window.cancelAnimationFrame(frame)
   }, [pathname, isBasicParticipant, canManageAccess, canReviewArticulations])
 
   useEffect(() => {
-    if (
-      pathname !== '/panel' ||
-      window.localStorage.getItem(storageKey) === 'true'
-    ) {
-      return
-    }
+    if (pathname !== '/panel' ||
+        window.localStorage.getItem(storageKey) === 'true') return
 
-    const timeout = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setStepIndex(0)
+      setLayoutState(null)
       setOpen(true)
     }, 300)
-
-    return () => window.clearTimeout(timeout)
+    return () => window.clearTimeout(timer)
   }, [pathname])
 
   const activeStep = useMemo(
     () => availableSteps[stepIndex],
     [availableSteps, stepIndex],
   )
+  const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
+  const isReady = open && layoutState?.stepId === stepId
+  const side = isReady ? layoutState.layout.side : 'top'
+  const spotlight = isReady ? layoutState.layout.spotlight : null
 
-  // The explanatory panel is docked at the top. We measure its REAL rendered
-  // height before bringing each highlighted region just below it. A fixed
-  // estimate made the previous tour cover its own highlighted controls.
-  useEffect(() => {
-    if (!open) {
-      setTargetRect(null)
+  // The two-layer UI (dialog + spotlight) only becomes visible after both
+  // have been measured for the SAME step. No document padding is ever used.
+  useLayoutEffect(() => {
+    if (!open || !activeStep) {
+      setLayoutState(null)
       return
     }
 
-    const element = activeStep?.target
+    const guide = dialogRef.current
+    const target = activeStep.target
       ? document.querySelector<HTMLElement>(
           '[data-tour="' + activeStep.target + '"]',
         )
       : null
 
-    if (!element) {
-      setTargetRect(null)
-      return
-    }
+    if (!guide) return
+    let frame = 0
+    let disposed = false
 
-    const card = dialogRef.current
-    if (!card) return
-
-    let pendingFrame = 0
-    let lastGuideHeight = 0
-
-    const measureTarget = () => {
-      setTargetRect(element.getBoundingClientRect())
-    }
-
-    const placeTargetBelowGuide = () => {
-      const actualGuide = card.getBoundingClientRect()
-      const desiredTop = actualGuide.bottom + 20
-      let absoluteTop = element.getBoundingClientRect().top + window.scrollY
-
-      // At the top of a short page, scrolling alone cannot move the target
-      // below a fixed guide. Add only the missing headroom, temporarily.
-      if (absoluteTop < desiredTop) {
-        const existing = Number.parseFloat(
-          window.getComputedStyle(document.body).paddingTop,
-        ) || 0
-        document.body.style.paddingTop =
-          `${existing + desiredTop - absoluteTop}px`
-        absoluteTop = element.getBoundingClientRect().top + window.scrollY
+    const measure = (initial: boolean) => {
+      if (disposed) return
+      const dialogHeight = guide.getBoundingClientRect().height
+      const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
       }
 
-      window.scrollTo({
-        top: Math.max(0, absoluteTop - desiredTop),
-        behavior: 'instant',
+      if (target && initial) {
+        let rect = target.getBoundingClientRect()
+        const available = viewport.height - dialogHeight - 40
+        // Preserve the existing scroll position whenever the target already
+        // fits. Large sections are focused at their beginning if off-screen.
+        if (rect.bottom < 32 || rect.top > viewport.height - 48 ||
+            (rect.height > available && rect.top < 0)) {
+          target.scrollIntoView({
+            behavior: 'instant',
+            block: rect.height > available ? 'start' : 'nearest',
+          })
+          rect = target.getBoundingClientRect()
+        }
+
+        const delta = getTourScrollAdjustment(
+          rect,
+          viewport.height,
+          dialogHeight,
+        )
+        if (delta !== 0) {
+          window.scrollBy({ top: delta, behavior: 'instant' })
+        }
+      }
+
+      const rect = target?.getBoundingClientRect()
+      const result = rect
+        ? getTourLayout(rect, viewport, dialogHeight)
+        : {
+            side: 'top' as const,
+            spotlight: null,
+            visibleHeight: 0,
+            freeHeight: viewport.height - dialogHeight - 40,
+          }
+
+      setLayoutState(previous => {
+        const next = { stepId, layout: result }
+        const a = previous?.layout.spotlight
+        const b = result.spotlight
+        if (
+          previous?.stepId === stepId &&
+          previous.layout.side === result.side &&
+          ((!a && !b) || (
+            a && b &&
+            Math.abs(a.top - b.top) < 0.75 &&
+            Math.abs(a.left - b.left) < 0.75 &&
+            Math.abs(a.width - b.width) < 0.75 &&
+            Math.abs(a.height - b.height) < 0.75
+          ))
+        ) return previous
+        return next
       })
-
-      window.cancelAnimationFrame(pendingFrame)
-      pendingFrame = window.requestAnimationFrame(measureTarget)
     }
 
-    // At each step, and whenever the guide resizes because of text wrapping,
-    // re-align the REAL target rather than relying on an estimated height.
-    const observer = new ResizeObserver(() => {
-      const height = card.getBoundingClientRect().height
-      if (Math.abs(height - lastGuideHeight) < 1) return
-      lastGuideHeight = height
-      window.cancelAnimationFrame(pendingFrame)
-      pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
-    })
-
-    observer.observe(card)
-    pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
-
-    const onViewportChange = () => {
-      window.cancelAnimationFrame(pendingFrame)
-      pendingFrame = window.requestAnimationFrame(placeTargetBelowGuide)
+    const schedule = (initial = false) => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => measure(initial))
     }
 
-    let scrollFrame = 0
-    const onScroll = () => {
-      window.cancelAnimationFrame(scrollFrame)
-      scrollFrame = window.requestAnimationFrame(measureTarget)
-    }
+    // Cancel the previous step's highlighted area before the next layout.
+    setLayoutState(null)
+    schedule(true)
 
-    window.addEventListener('resize', onViewportChange)
-    window.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    const observer = new ResizeObserver(() => schedule(false))
+    observer.observe(guide)
+    if (target) observer.observe(target)
+
+    const scroll = () => schedule(false)
+    const resize = () => schedule(true)
+    window.addEventListener('scroll', scroll, { capture: true, passive: true })
+    window.addEventListener('resize', resize)
 
     return () => {
+      disposed = true
       observer.disconnect()
-      window.cancelAnimationFrame(pendingFrame)
-      window.cancelAnimationFrame(scrollFrame)
-      window.removeEventListener('resize', onViewportChange)
-      window.removeEventListener('scroll', onScroll, true)
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', scroll, true)
+      window.removeEventListener('resize', resize)
     }
-  }, [activeStep, open, pathname])
-
-  // A temporary scroll buffer lets the very last cards/fiches reach the
-  // visible area below the guide; nothing persists when it closes.
-  useEffect(() => {
-    if (!open) return
-    const oldPadding = document.body.style.paddingBottom
-    const oldTopPadding = document.body.style.paddingTop
-    const syncSpace = () => {
-      document.body.style.paddingBottom = `${window.innerHeight}px`
-    }
-    syncSpace()
-    window.addEventListener('resize', syncSpace)
-    return () => {
-      window.removeEventListener('resize', syncSpace)
-      document.body.style.paddingBottom = oldPadding
-      document.body.style.paddingTop = oldTopPadding
-    }
-  }, [open])
+  }, [open, stepId, activeStep])
 
   useEffect(() => {
-    if (!open) return
-
+    if (!isReady) return
     dialogRef.current?.focus()
+  }, [isReady, stepId])
 
+  useEffect(() => {
+    if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         window.localStorage.setItem(storageKey, 'true')
         setOpen(false)
       }
     }
-
     window.addEventListener('keydown', onKeyDown)
-
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
   function closeTour() {
     window.localStorage.setItem(storageKey, 'true')
+    setLayoutState(null)
     setOpen(false)
   }
 
   function startTour() {
     setStepIndex(0)
-    setTargetRect(null)
+    setLayoutState(null)
     setOpen(true)
   }
 
-  if (availableSteps.length === 0) {
-    return null
+  function goToStep(index: number) {
+    setLayoutState(null)
+    setStepIndex(index)
   }
+
+  if (!availableSteps.length) return null
 
   return (
     <>
-      {!open ? <button
-        type="button"
-        onClick={startTour}
-        className="fixed bottom-5 right-5 z-40 rounded-full bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
-      >
-        Ver recorrido
-      </button> : null}
+      {!open && (
+        <button
+          type="button"
+          onClick={startTour}
+          className="fixed bottom-5 right-5 z-40 rounded-full bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
+        >
+          Ver recorrido
+        </button>
+      )}
 
-      {open && activeStep ? (
+      {open && activeStep && (
         <div className="fixed inset-0 z-50">
-          {targetRect ? (
+          {spotlight ? (
             <div
+              data-tour-spotlight={activeStep.key}
               aria-hidden="true"
-              className="pointer-events-none fixed rounded-2xl border-2 border-sky-300 transition-all duration-200 motion-reduce:transition-none"
+              className="pointer-events-none fixed rounded-xl border-2 border-sky-300 motion-reduce:transition-none"
               style={{
-                left: targetRect.left - 6,
-                top: targetRect.top - 6,
-                width: targetRect.width + 12,
-                height: targetRect.height + 12,
-                boxShadow:
-                  '0 0 0 9999px rgba(15, 23, 42, 0.58)',
+                left: spotlight.left - 4,
+                top: spotlight.top - 4,
+                width: spotlight.width + 8,
+                height: spotlight.height + 8,
+                boxShadow: '0 0 0 9999px rgba(15,23,42,0.58)',
               }}
             />
           ) : (
@@ -350,11 +356,15 @@ export function PanelTour({
 
           <div
             ref={dialogRef}
-            data-active-tour-target={activeStep.target ?? ''}
+            data-tour-ready={isReady ? 'true' : 'false'}
+            data-tour-step-key={activeStep.key}
+            data-active-tour-target={isReady ? activeStep.target ?? '' : ''}
             role="dialog"
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
-            className="fixed inset-x-3 top-3 z-10 mx-auto flex w-[min(760px,calc(100vw-1.5rem))] max-h-[min(44dvh,340px)] flex-col rounded-2xl bg-white p-3 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none sm:p-4"
+            aria-hidden={!isReady}
+            style={{ visibility: isReady ? 'visible' : 'hidden' }}
+            className={`fixed inset-x-3 ${side === 'top' ? 'top-3' : 'bottom-3'} z-10 mx-auto flex w-[min(760px,calc(100vw-1.5rem))] max-h-[min(44dvh,340px)] flex-col rounded-2xl bg-white p-3 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none sm:p-4`}
           >
             <div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 pb-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2F5D8C]">
@@ -364,6 +374,7 @@ export function PanelTour({
                 Guía contextual
               </span>
             </div>
+
             <div className="min-h-0 overflow-y-auto">
               <h2 className="text-base font-semibold leading-5 sm:text-lg sm:leading-6">
                 {activeStep.title}
@@ -377,22 +388,20 @@ export function PanelTour({
               <p className="shrink-0 text-[11px] font-medium text-slate-500 sm:text-xs">
                 Paso {stepIndex + 1} de {availableSteps.length}
               </p>
-
               <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
                 <button
                   type="button"
+                  disabled={!isReady}
                   onClick={closeTour}
                   className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                 >
                   Salir
                 </button>
-
                 {stepIndex > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                                            setStepIndex((index) => index - 1)
-                    }}
+                    disabled={!isReady}
+                    onClick={() => goToStep(stepIndex - 1)}
                     className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                   >
                     Anterior
@@ -400,14 +409,12 @@ export function PanelTour({
                 )}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (stepIndex + 1 >= availableSteps.length) {
-                      closeTour()
-                      return
-                    }
-
-                                        setStepIndex((index) => index + 1)
-                  }}
+                  disabled={!isReady}
+                  onClick={() =>
+                    stepIndex + 1 >= availableSteps.length
+                      ? closeTour()
+                      : goToStep(stepIndex + 1)
+                  }
                   className="min-h-8 rounded-lg bg-[#1E3A5F] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none sm:text-sm"
                 >
                   {stepIndex + 1 >= availableSteps.length
@@ -418,7 +425,7 @@ export function PanelTour({
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   )
 }

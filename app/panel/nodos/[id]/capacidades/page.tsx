@@ -1,3 +1,4 @@
+import { canReadNodePrivateDetails } from '../../../../../lib/nodes/authorize'
 import Link from 'next/link'
 import {
   notFound,
@@ -146,6 +147,10 @@ export default async function NodeCapabilitiesPage({
 
   if (access.length === 0) {
     redirect('/sin-acceso')
+  }
+
+  if (!canReadNodePrivateDetails(access, id)) {
+    notFound()
   }
 
   const capabilityMap =

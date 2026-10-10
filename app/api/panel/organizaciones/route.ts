@@ -48,7 +48,23 @@ export async function GET(request: NextRequest) {
       organizationTypeCode,
     })
 
-  return NextResponse.json(results, {
+  const isGlobalReviewer = access.some(grant =>
+    grant.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(grant.access_role_code)
+  )
+
+  // The canonical directory is shared, but cross-node aggregate counts are not.
+  const visibleResults = isGlobalReviewer
+    ? results
+    : results.map(item => ({
+        id: item.id,
+        display_name: item.display_name,
+        organization_type_code: item.organization_type_code,
+        organization_type_name: item.organization_type_name,
+        record_status: item.record_status,
+      }))
+
+  return NextResponse.json(visibleResults, {
     headers: {
       'Cache-Control': 'no-store',
     },

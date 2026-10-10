@@ -111,10 +111,12 @@ export function PanelMobileNavigation({
   displayName,
   roleName,
   scopeName,
+  canManageAccess,
 }: {
   displayName: string
   roleName: string
   scopeName: string
+  canManageAccess: boolean
 }) {
   const pathname = usePathname()
   const menuId = useId()
@@ -212,8 +214,9 @@ export function PanelMobileNavigation({
     }
 
     if (mediaQuery.matches) {
-      closeNavigation()
-      return
+      // Close on the next animation frame, outside effect setup.
+      const frame = window.requestAnimationFrame(closeNavigation)
+      return () => window.cancelAnimationFrame(frame)
     }
 
     mediaQuery.addEventListener(
@@ -244,9 +247,9 @@ export function PanelMobileNavigation({
   }, [open])
 
   useEffect(() => {
-    if (drawerMounted) {
-      closeNavigation()
-    }
+    // Navigation changes close the drawer asynchronously after render.
+    const frame = window.requestAnimationFrame(closeNavigation)
+    return () => window.cancelAnimationFrame(frame)
   }, [pathname])
 
   function onHandlePointerDown(
@@ -524,7 +527,7 @@ export function PanelMobileNavigation({
               aria-label="Navegación móvil"
             >
               <div className="space-y-1.5">
-                {navigationItems.map((item) => {
+                {(canManageAccess ? [...navigationItems, { href: '/panel/accesos', label: 'Administración de accesos', marker: 'AC' }] : navigationItems).map((item) => {
                   const active = isActivePath(
                     pathname,
                     item.href

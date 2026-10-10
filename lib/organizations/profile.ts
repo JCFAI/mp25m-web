@@ -140,9 +140,16 @@ export type CanonicalOrganizationProfile = {
 }
 
 export async function getCanonicalOrganizationProfile(
-  organizationId: string
+  organizationId: string,
+  options: { allowedNodeIds?: string[] } = {}
 ): Promise<CanonicalOrganizationProfile | null> {
   const supabase = createAdminClient()
+  const scoped = options.allowedNodeIds !== undefined
+  const nodeQuery = supabase.from('organization_node_list')
+    .select('*').eq('organization_id', organizationId)
+  const permittedNodeQuery = scoped
+    ? nodeQuery.in('node_id', options.allowedNodeIds ?? [])
+    : nodeQuery
 
   const [
     organizationResult,
@@ -159,18 +166,13 @@ export async function getCanonicalOrganizationProfile(
       .eq('id', organizationId)
       .maybeSingle(),
 
-    supabase
-      .from('organization_node_list')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('node_name', {
-        ascending: true,
-      }),
+    permittedNodeQuery.order('node_name', { ascending: true }),
 
     supabase
       .from('organization_activity_list')
       .select('*')
       .eq('organization_id', organizationId)
+      .limit(scoped ? 0 : 1000)
       .order('activity_name', {
         ascending: true,
       }),
@@ -179,6 +181,7 @@ export async function getCanonicalOrganizationProfile(
       .from('organization_activity_proposal_list')
       .select('*')
       .eq('organization_id', organizationId)
+      .limit(scoped ? 0 : 1000)
       .order('created_at', {
         ascending: false,
       }),
@@ -187,6 +190,7 @@ export async function getCanonicalOrganizationProfile(
       .from('organization_capability_list')
       .select('*')
       .eq('organization_id', organizationId)
+      .limit(scoped ? 0 : 1000)
       .order('capability_name', {
         ascending: true,
       }),
@@ -195,6 +199,7 @@ export async function getCanonicalOrganizationProfile(
       .from('organization_articulation_list')
       .select('*')
       .eq('organization_id', organizationId)
+      .limit(scoped ? 0 : 1000)
       .order('created_at', {
         ascending: false,
       }),
@@ -203,6 +208,7 @@ export async function getCanonicalOrganizationProfile(
       .from('organization_type_proposal_list')
       .select('*')
       .eq('organization_id', organizationId)
+      .limit(scoped ? 0 : 1000)
       .order('created_at', {
         ascending: false,
       }),
@@ -297,8 +303,16 @@ export async function getCanonicalOrganizationProfile(
   }
 
   return {
-    organization:
-      organizationResult.data as OrganizationProfile,
+    organization: scoped
+      ? {
+          ...(organizationResult.data as OrganizationProfile),
+          confirmed_node_count: ((nodesResult.data ?? []) as OrganizationNode[])
+            .filter(node => node.verification_status === 'confirmed').length,
+          capability_count: 0,
+          confirmed_capability_count: 0,
+          articulation_count: 0,
+        }
+      : organizationResult.data as OrganizationProfile,
 
     nodes:
       (nodesResult.data ?? []) as OrganizationNode[],

@@ -5,6 +5,7 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canReadPersonPrivateDetails } from '../../../../lib/people/authorize'
 import { getCanonicalPersonProfile } from '../../../../lib/people/profile'
 import { canManagePersonSkills } from '../../../../lib/skills/person-manage'
 import { createClient } from '../../../../lib/supabase/server'
@@ -146,32 +147,34 @@ export default async function PersonProfilePage({
     redirect('/sin-acceso')
   }
 
+  // Verify territorial access before any privileged person-profile query.
+  if (!await canReadPersonPrivateDetails(access, id)) {
+    notFound()
+  }
+
   const canManageSkills =
     canManagePersonSkills(access)
   const canViewPrivateContacts = access.some(
-    (item) =>
-      item.is_administrative &&
-      item.scope_type === 'global'
+    (item) => item.is_administrative && item.scope_type === 'global'
   )
+  const canReadAcrossNodes = access.some(
+    (grant) => grant.scope_type === 'global' &&
+      ['administrator', 'validator'].includes(grant.access_role_code)
+  )
+  const authorizedNodeIds = [...new Set(access
+    .filter((grant) => grant.scope_type === 'node' && grant.scope_entity_id)
+    .map((grant) => grant.scope_entity_id as string))]
 
-  const profile =
-    await getCanonicalPersonProfile(id, {
-      includePrivateContacts:
-        canViewPrivateContacts,
-    })
+  const profile = await getCanonicalPersonProfile(id, {
+    includePrivateContacts: canViewPrivateContacts,
+    ...(!canReadAcrossNodes ? { allowedNodeIds: authorizedNodeIds } : {}),
+  })
 
   if (!profile) {
     notFound()
   }
 
-  const {
-    person,
-    territories,
-    opportunities,
-    aliases,
-    skills,
-    contacts,
-  } = profile
+  const { person, territories, opportunities, aliases, skills, contacts } = profile
 
   return (
     <div className="space-y-7">

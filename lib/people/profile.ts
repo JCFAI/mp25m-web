@@ -105,6 +105,7 @@ export type CanonicalPersonProfile = {
 
 type PersonProfileOptions = {
   includePrivateContacts: boolean
+  allowedNodeIds?: string[]
 }
 
 export async function getCanonicalPersonProfile(
@@ -112,9 +113,19 @@ export async function getCanonicalPersonProfile(
   options: PersonProfileOptions
 ): Promise<CanonicalPersonProfile | null> {
   const supabase = createAdminClient()
+  const scoped = options.allowedNodeIds !== undefined
   const visibleContactTypes = options.includePrivateContacts
     ? ['public', 'internal', 'private']
     : ['public', 'internal']
+
+  const territoriesQuery = supabase
+    .from('person_territorial_profile')
+    .select('*')
+    .eq('person_id', personId)
+    .eq('participation_status', 'active')
+  const scopedTerritoriesQuery = scoped
+    ? territoriesQuery.in('node_id', options.allowedNodeIds ?? [])
+    : territoriesQuery
 
   const [
     personResult,
@@ -130,30 +141,23 @@ export async function getCanonicalPersonProfile(
       .eq('id', personId)
       .maybeSingle(),
 
-    supabase
-      .from('person_territorial_profile')
-      .select('*')
-      .eq('person_id', personId)
-      .eq('participation_status', 'active')
-      .order('node_name', {
-        ascending: true,
-      }),
+    scopedTerritoriesQuery.order('node_name', { ascending: true }),
 
     supabase
       .from('person_articulation_list')
       .select('*')
       .eq('person_id', personId)
-      .order('created_at', {
-        ascending: false,
-      }),
+      .order('created_at', { ascending: false })
+      .limit(scoped ? 0 : 1000),
 
     supabase
       .from('person_identity_aliases')
       .select('*')
       .eq('person_id', personId)
-      .order('created_at', {
-        ascending: false,
-      }),
+      .order('created_at', { ascending: false })
+      .limit(scoped ? 0 : 1000),
+
+
 
     supabase
       .from('person_skill_list')

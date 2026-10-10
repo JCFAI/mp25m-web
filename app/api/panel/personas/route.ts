@@ -56,7 +56,20 @@ export async function GET(request: NextRequest) {
       ),
     })
 
-    return NextResponse.json(page, {
+    const canSeeTerritorialMetadata = access.some(grant =>
+      grant.scope_type === 'global' &&
+      ['administrator', 'validator'].includes(grant.access_role_code)
+    )
+    const safePage = canSeeTerritorialMetadata ? page : {
+      ...page,
+      items: page.items.map(person => ({
+        ...person,
+        node_names: [],
+        role_names: [],
+      })),
+    }
+
+    return NextResponse.json(safePage, {
       headers: {
         'Cache-Control': 'no-store',
       },

@@ -487,6 +487,8 @@ test('result actions validate canonical actors and source ownership', async () =
         },
       },
 
+      '../../../lib/release-stage': { isReleaseModuleEnabled: () => true },
+
       '../../../lib/auth/internal-access': {
         getInternalAccess:
           async () => access,

@@ -9,10 +9,11 @@ function activeClass(isActive: boolean) {
     : 'flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium text-slate-50/80 transition hover:bg-white/8 hover:text-white'
 }
 
-export function PanelNavigation() {
+export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean }) {
   const pathname = usePathname()
 
   const homeActive = pathname === '/panel'
+  const accessActive = pathname === '/panel/accesos' || pathname.startsWith('/panel/accesos/')
 
   const opportunitiesActive =
     pathname === '/panel/oportunidades' ||
@@ -238,6 +239,12 @@ export function PanelNavigation() {
             <span className="h-2 w-2 rounded-full bg-sky-300" />
           ) : null}
         </Link>
+        {canManageAccess ? (
+          <Link href="/panel/accesos" aria-current={accessActive ? 'page' : undefined} className={activeClass(accessActive)}>
+            <span>Administración de accesos</span>
+            {accessActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+        ) : null}
       </div>
     </nav>
   )

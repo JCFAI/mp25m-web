@@ -38,6 +38,10 @@ export default async function PanelLayout({
   const profile =
     await getInternalUserProfile(access)
 
+  const canManageAccess = access.some((item) =>
+    ['administrator', 'local_administrator', 'founder_access'].includes(item.access_role_code)
+  )
+
   const primaryAccess = access[0]
 
   const roleName = primaryAccess.access_role_name
@@ -57,6 +61,7 @@ export default async function PanelLayout({
         displayName={displayName}
         roleName={roleName}
         scopeName={scopeName}
+        canManageAccess={canManageAccess}
       />
 
       <PanelTour />
@@ -79,7 +84,7 @@ export default async function PanelLayout({
             </div>
           </div>
 
-          <PanelNavigation />
+          <PanelNavigation canManageAccess={canManageAccess} />
 
           <div className="border-t border-white/10 px-5 py-5 md:mt-auto">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">

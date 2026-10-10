@@ -25,7 +25,7 @@ function load(path, mocks = {}) {
 }
 const id = '00000000-0000-4000-8000-000000000001'
 const otherId = '00000000-0000-4000-8000-000000000002'
-const access = [{ internal_user_id: id }]
+const access = [{ internal_user_id: id, scope_type: 'global', access_role_code: 'administrator' }]
 const auth = { createClient: async () => ({ auth: { getClaims: async () => ({ data: { claims: { sub: id } } }) } }) }
 const pagination = load('lib/reference-pagination.ts')
 
@@ -40,7 +40,8 @@ test('standalone and N:M detail render without reading the legacy opportunity', 
     const list = (name, items) => async (value) => { reads.push([name, value]); return items }
     const { default: Page } = load('app/panel/articulaciones/[id]/page.tsx', {
       'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
-      'next/navigation': { notFound: () => { throw new Error('Not found') } },
+      'next/navigation': { notFound: () => { throw new Error('Not found') }, redirect: () => { throw new Error('Unexpected redirect') } },
+      '../../../../lib/release-stage': { isReleaseModuleEnabled: () => true },
       '../../../../lib/opportunities/articulations': {
         getArticulation: async () => articulation,
         canManageArticulation: async () => true,

@@ -36,12 +36,16 @@ async function verifyTour(
   const startButton = page.getByRole('button', { name: 'Ver recorrido' })
   const guide = page.getByRole('dialog', { name: 'Recorrido guiado de MP25M' })
 
-  // On first login, S opens its onboarding tour automatically.
+  // On the first visit, the guide may auto-open during hydration.
+  // Wait for either entry point rather than racing the client render.
+  await expect.poll(async () =>
+    (await guide.isVisible()) || (await startButton.isVisible()),
+  { timeout: 20_000, message: `No se hidrató el tutorial en ${route}` }).toBe(true)
+
   if (!(await guide.isVisible())) {
-    await expect(startButton).toBeVisible()
     await startButton.click()
   }
-  await expect(guide).toBeVisible()
+  await expect(guide).toBeVisible({ timeout: 20_000 })
 
   let verified = 0
   for (let i = 0; i < 40; i++) {

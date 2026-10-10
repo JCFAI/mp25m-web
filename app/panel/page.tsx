@@ -16,9 +16,66 @@ type PanelModule = {
   status: 'active' | 'next' | 'planned'
   href?: string
   availableFrom?: ReleaseStage
+  tourKey?: string
 }
 
 const modules: PanelModule[] = [
+  {
+    name: 'Personas',
+    tourKey: 'module-people',
+    description:
+      'Directorio de personas, sus participaciones territoriales, habilidades y oportunidades.',
+    status: 'active',
+    href: '/panel/personas',
+  },
+  {
+    name: 'Nodos',
+    tourKey: 'module-nodes',
+    description:
+      'Composici\u00f3n territorial, participantes y actividad de cada nodo.',
+    status: 'active',
+    href: '/panel/nodos',
+  },
+  {
+    name: 'Organizaciones',
+    tourKey: 'module-organizations',
+    description:
+      'Informaci\u00f3n de empresas, instituciones y fuerzas productivas vinculadas.',
+    status: 'active',
+    href: '/panel/organizaciones',
+  },
+  {
+    name: 'Habilidades',
+    tourKey: 'module-skills',
+    description:
+      'Directorio de habilidades personales y capacidades productivas u organizacionales relevadas.',
+    status: 'active',
+    href: '/panel/habilidades',
+  },
+  {
+    name: 'Articulaciones',
+    tourKey: 'module-articulations',
+    description:
+      'Proceso de conexión operativa de actores y recursos para concretar oportunidades.',
+    status: 'active',
+    href: '/panel/articulaciones',
+  },
+  {
+    name: 'Proyectos',
+    tourKey: 'module-projects',
+    description:
+      'Ejecuciones acordadas, responsables, avances y resultados de articulaciones cerradas.',
+    status: 'active',
+    href: '/panel/proyectos',
+  },
+  {
+    name: 'Temas',
+    tourKey: 'module-themes',
+    description:
+      'Asuntos transversales, responsables, estados y seguimientos sostenidos por el Movimiento.',
+    status: 'active',
+    href: '/panel/temas',
+  },
   {
     name: 'Oportunidades',
     description:
@@ -34,55 +91,6 @@ const modules: PanelModule[] = [
     status: 'active',
     href: '/panel/necesidades-ofertas',
     availableFrom: 'M',
-  },
-  {
-    name: 'Personas',
-    description:
-      'Directorio de personas, sus participaciones territoriales, habilidades y oportunidades.',
-    status: 'active',
-    href: '/panel/personas',
-  },
-  {
-    name: 'Nodos',
-    description:
-      'Composici\u00f3n territorial, participantes y actividad de cada nodo.',
-    status: 'active',
-    href: '/panel/nodos',
-  },
-  {
-    name: 'Organizaciones',
-    description:
-      'Informaci\u00f3n de empresas, instituciones y fuerzas productivas vinculadas.',
-    status: 'active',
-    href: '/panel/organizaciones',
-  },
-  {
-    name: 'Habilidades',
-    description:
-      'Directorio de habilidades personales y capacidades productivas u organizacionales relevadas.',
-    status: 'active',
-    href: '/panel/habilidades',
-  },
-  {
-    name: 'Articulaciones',
-    description:
-      'Proceso de conexión operativa de actores y recursos para concretar oportunidades.',
-    status: 'active',
-    href: '/panel/articulaciones',
-  },
-  {
-    name: 'Proyectos',
-    description:
-      'Ejecuciones acordadas, responsables, avances y resultados de articulaciones cerradas.',
-    status: 'active',
-    href: '/panel/proyectos',
-  },
-  {
-    name: 'Temas',
-    description:
-      'Asuntos transversales, responsables, estados y seguimientos sostenidos por el Movimiento.',
-    status: 'active',
-    href: '/panel/temas',
   },
   {
     name: 'Informes',
@@ -193,11 +201,7 @@ function ModuleCard({
     return (
       <Link
         href={module.href}
-        data-tour={
-          module.name === 'Articulaciones'
-            ? 'module-articulations'
-            : undefined
-        }
+        data-tour={module.tourKey}
         className={moduleCardClass(true)}
       >
         {content}
@@ -238,6 +242,10 @@ export default async function PanelPage({
   const isBasicParticipant =
     access.length > 0 &&
     access.every(item => item.access_role_code === 'participant')
+
+  const canManageAccess = access.some(item =>
+    ['administrator', 'local_administrator', 'founder_access'].includes(item.access_role_code)
+  )
 
   const visibleModules = isBasicParticipant
     ? modules.filter(module =>
@@ -389,6 +397,52 @@ export default async function PanelPage({
               currentStage={currentStage}
             />
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 md:rounded-3xl md:p-7">
+        <h2 className="text-xl font-semibold text-slate-950">
+          Tu cuenta y ayuda
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Revisá tus datos de acceso o compartí una dificultad o sugerencia para seguir mejorando MP25M.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link
+            data-tour="home-profile"
+            href="/panel/perfil"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
+          >
+            <h3 className="font-semibold text-[#1E3A5F]">Mi perfil</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Consultá tu identidad, rol y ámbito dentro del sistema.
+            </p>
+            <span className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C]">Abrir perfil →</span>
+          </Link>
+          <Link
+            data-tour="home-feedback"
+            href="/panel/comentarios-piloto"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white"
+          >
+            <h3 className="font-semibold text-[#1E3A5F]">Sugerencias para este Programa</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Compartí dudas, dificultades o propuestas de mejora.
+            </p>
+            <span className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C]">Dejar un comentario →</span>
+          </Link>
+          {canManageAccess ? (
+            <Link
+              data-tour="home-access"
+              href="/panel/accesos"
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2F5D8C]/40 hover:bg-white sm:col-span-2"
+            >
+              <h3 className="font-semibold text-[#1E3A5F]">Administración de accesos</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Revisá roles, ámbitos y cuentas pendientes si tu perfil tiene autorización.
+              </p>
+              <span className="mt-3 inline-flex text-sm font-semibold text-[#2F5D8C]">Revisar accesos →</span>
+            </Link>
+          ) : null}
         </div>
       </section>
     </div>

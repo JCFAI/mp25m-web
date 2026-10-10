@@ -27,6 +27,12 @@ export default async function SinAccesoPage({ searchParams }: Props) {
       ? userData.user.user_metadata.access_message
       : ''
 
+  const displayName =
+    typeof userData.user?.user_metadata?.display_name === 'string'
+      ? userData.user.user_metadata.display_name.trim()
+      : ''
+  const email = userData.user?.email ?? ''
+
   const params = await searchParams
 
   return (
@@ -63,6 +69,20 @@ export default async function SinAccesoPage({ searchParams }: Props) {
                     No necesitás volver a registrarte. Los permisos adicionales
                     se incorporarán sobre esta misma cuenta.
                   </p>
+
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-white/70 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800/70">
+                      Sesión iniciada como
+                    </p>
+                    <p className="mt-1 font-semibold text-emerald-950">
+                      {displayName || 'Usuario MP25M'}
+                    </p>
+                    {email ? (
+                      <p className="mt-0.5 text-sm text-emerald-900/80">
+                        {email}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </section>
@@ -150,6 +170,11 @@ export default async function SinAccesoPage({ searchParams }: Props) {
               >
                 Volver al inicio
               </Link>
+
+              <div className="flex flex-col justify-center text-xs leading-5 text-slate-500">
+                <span>Sesión: {displayName || 'Usuario MP25M'}</span>
+                {email ? <span>{email}</span> : null}
+              </div>
 
               <form action="/auth/signout" method="post">
                 <button

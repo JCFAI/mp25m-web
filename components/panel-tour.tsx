@@ -208,8 +208,18 @@ export function PanelTour({
     const placeTargetBelowGuide = () => {
       const actualGuide = card.getBoundingClientRect()
       const desiredTop = actualGuide.bottom + 20
-      const currentTarget = element.getBoundingClientRect()
-      const absoluteTop = currentTarget.top + window.scrollY
+      let absoluteTop = element.getBoundingClientRect().top + window.scrollY
+
+      // At the top of a short page, scrolling alone cannot move the target
+      // below a fixed guide. Add only the missing headroom, temporarily.
+      if (absoluteTop < desiredTop) {
+        const existing = Number.parseFloat(
+          window.getComputedStyle(document.body).paddingTop,
+        ) || 0
+        document.body.style.paddingTop =
+          `${existing + desiredTop - absoluteTop}px`
+        absoluteTop = element.getBoundingClientRect().top + window.scrollY
+      }
 
       window.scrollTo({
         top: Math.max(0, absoluteTop - desiredTop),
@@ -261,6 +271,7 @@ export function PanelTour({
   useEffect(() => {
     if (!open) return
     const oldPadding = document.body.style.paddingBottom
+    const oldTopPadding = document.body.style.paddingTop
     const syncSpace = () => {
       document.body.style.paddingBottom = `${window.innerHeight}px`
     }
@@ -269,6 +280,7 @@ export function PanelTour({
     return () => {
       window.removeEventListener('resize', syncSpace)
       document.body.style.paddingBottom = oldPadding
+      document.body.style.paddingTop = oldTopPadding
     }
   }, [open])
 

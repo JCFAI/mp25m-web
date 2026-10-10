@@ -35,9 +35,9 @@ test('mobile: oversized content is clipped to the visible side', () => {
   const layout = getTourLayout(target, { width: 390, height: 844 }, 220)
   assert.equal(layout.side, 'bottom')
   assert.ok(layout.spotlight)
-  assert.ok(layout.spotlight!.height > 300)
-  assert.ok(layout.spotlight!.top >= 12)
-  assert.ok(layout.spotlight!.top + layout.spotlight!.height < 620)
+  assert.ok(layout.spotlight?.height > 300)
+  assert.ok(layout.spotlight?.top >= 12)
+  assert.ok(layout.spotlight?.top + layout.spotlight?.height < 620)
 })
 
 test('scroll only when a small highlighted region is partly concealed', () => {
@@ -56,7 +56,7 @@ test('spotlight never uses offscreen or negative dimensions', () => {
     260,
   )
   assert.ok(layout.spotlight)
-  assert.ok(layout.spotlight!.left >= 12)
-  assert.ok(layout.spotlight!.width <= 366)
-  assert.ok(layout.spotlight!.height <= 844 - 12 - 260 - 16)
+  assert.ok(layout.spotlight?.left >= 12)
+  assert.ok(layout.spotlight?.width <= 366)
+  assert.ok(layout.spotlight?.height <= 844 - 12 - 260 - 16)
 })

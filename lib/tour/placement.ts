@@ -42,9 +42,16 @@ export function getTourLayout(
   const bottomVisible = visibleBetween(inset, bottomSafeEnd)
 
   const mid = (target.top + target.bottom) / 2
-  const side: TourSide = Math.abs(topVisible - bottomVisible) < 1
-    ? (mid <= viewport.height / 2 ? 'bottom' : 'top')
-    : (bottomVisible > topVisible ? 'bottom' : 'top')
+  const targetHeight = target.bottom - target.top
+  // A giant region starts at the top: keep its heading visible and dock the
+  // guide at the bottom, rather than illuminating an arbitrary middle slice.
+  const beginsAtViewportTop = targetHeight > bottomSafeEnd - inset &&
+    target.top < 48 && target.bottom > bottomSafeEnd
+  const side: TourSide = beginsAtViewportTop
+    ? 'bottom'
+    : Math.abs(topVisible - bottomVisible) < 1
+      ? (mid <= viewport.height / 2 ? 'bottom' : 'top')
+      : (bottomVisible > topVisible ? 'bottom' : 'top')
 
   const start = side === 'top' ? topSafeStart : inset
   const end = side === 'top' ? viewport.height - inset : bottomSafeEnd

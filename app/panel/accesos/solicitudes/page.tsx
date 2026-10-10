@@ -17,7 +17,7 @@ export default async function SolicitudesAccesoPage() {
   const access = await getInternalAccess(authUserId)
   if (!access.some(item =>
     item.access_role_code === 'administrator' && item.scope_type === 'global'
-  )) redirect('/panel')
+  )) redirect('/panel?access=denied')
 
   // Server-only: list Auth users only after a fresh global-admin check.
   // Listing does not create internal users or grant privileges.

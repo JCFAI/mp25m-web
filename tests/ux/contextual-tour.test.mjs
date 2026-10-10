@@ -61,3 +61,28 @@ test('contextual MP25M_S tour only highlights available panel surfaces', () => {
     /articulation-followup/,
   )
 })
+
+test('tour focuses the first module and uses explicit empty-directory guidance', () => {
+  const tour = source('components/panel-tour.tsx')
+  const steps = source('lib/tour/stage-s-steps.ts')
+
+  assert.match(tour, /activeStep\.key === 'modules'/)
+  assert.match(tour, /focusModules/)
+  assert.match(tour, /MutationObserver/)
+  assert.match(tour, /data-tour-empty-state/)
+  assert.match(tour, /Articulaciones: todavía sin registros/)
+
+  assert.match(steps, /Proyectos: todavía sin registros/)
+  assert.match(steps, /Temas: sin resultados en el directorio/)
+  assert.match(steps, /key: 'skills-review'/)
+  assert.match(steps, /s-skills-search/)
+  assert.match(steps, /s-skills-review/)
+
+  const skills = source('app/panel/habilidades/page.tsx')
+  assert.match(skills, /data-tour="s-skills-search"/)
+  assert.match(skills, /data-tour="s-skills-review"/)
+  assert.match(source('app/panel/articulaciones/page.tsx'), /data-tour-empty=/)
+  assert.match(source('app/panel/proyectos/page.tsx'), /data-tour-empty=/)
+  assert.match(source('app/panel/temas/theme-directory.tsx'), /data-tour-empty=/)
+  assert.match(steps, /Identidad en el panel/)
+})

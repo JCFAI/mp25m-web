@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import {
   getInternalAccess,
 } from '../../../../../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../../../../../lib/auth/basic-participant'
 import {
   searchOpportunityRequirementMatchCandidates,
 } from '../../../../../../../../lib/opportunities/analysis'
@@ -52,6 +53,13 @@ export async function GET(
     )
 
   if (access.length === 0) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
+
+  if (isBasicParticipantAccess(access)) {
     return NextResponse.json(
       { error: 'Forbidden' },
       { status: 403 }

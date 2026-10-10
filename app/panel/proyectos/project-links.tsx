@@ -117,7 +117,7 @@ function OpportunityUnlinkForm({
           minLength={3}
           maxLength={10000}
           rows={2}
-          placeholder="Motivo de la desvinculación..."
+          placeholder="Motivo de la desvinculación (Obligatorio)..."
           className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
         />
 
@@ -167,7 +167,7 @@ function ArticulationUnlinkForm({
           minLength={3}
           maxLength={10000}
           rows={2}
-          placeholder="Motivo de la desvinculación..."
+          placeholder="Motivo de la desvinculación (Obligatorio)..."
           className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
         />
 
@@ -340,7 +340,7 @@ export function ProjectLinks({
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
             >
               <option value="" disabled>
-                Elegir oportunidad...
+                Elegir oportunidad (Obligatorio)...
               </option>
 
               {availableOpportunities.map(
@@ -490,7 +490,7 @@ export function ProjectLinks({
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
             >
               <option value="" disabled>
-                Elegir articulación...
+                Elegir articulación (Obligatorio)...
               </option>
 
               {availableArticulations.map(

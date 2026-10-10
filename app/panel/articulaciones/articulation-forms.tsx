@@ -71,7 +71,7 @@ export function ArticulationCreationForm({
           required
           minLength={3}
           maxLength={200}
-          placeholder="Nombre de la articulación"
+          placeholder="Nombre de la articulación (Obligatorio)"
           className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
         />
 
@@ -81,7 +81,7 @@ export function ArticulationCreationForm({
           minLength={3}
           maxLength={10000}
           rows={3}
-          placeholder="Objetivo o propósito inicial..."
+          placeholder="Objetivo o propósito inicial (Obligatorio)..."
           className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
         />
 

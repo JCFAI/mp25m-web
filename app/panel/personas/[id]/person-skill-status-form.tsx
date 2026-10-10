@@ -43,7 +43,7 @@ const ACTION_COPY: Record<
   confirm: {
     buttonLabel: 'Confirmar',
     heading: 'Confirmar habilidad',
-    fieldLabel: 'Justificación de confirmación',
+    fieldLabel: 'Justificación de confirmación (Obligatorio)',
     placeholder:
       'Motivo breve de la validación de esta habilidad.',
     submitLabel: 'Confirmar habilidad',
@@ -55,7 +55,7 @@ const ACTION_COPY: Record<
   reject: {
     buttonLabel: 'Rechazar',
     heading: 'Rechazar habilidad',
-    fieldLabel: 'Motivo de rechazo',
+    fieldLabel: 'Motivo de rechazo (Obligatorio)',
     placeholder:
       'Motivo breve. El registro se conserva para trazabilidad, pero deja de figurar como habilidad activa.',
     submitLabel: 'Rechazar habilidad',
@@ -67,7 +67,7 @@ const ACTION_COPY: Record<
   deactivate: {
     buttonLabel: 'Desactivar',
     heading: 'Desactivar habilidad',
-    fieldLabel: 'Motivo de desactivación',
+    fieldLabel: 'Motivo de desactivación (Obligatorio)',
     placeholder:
       'Motivo breve. La habilidad deja de representar la situación actual, sin borrar el registro ni cambiar su estado de validación.',
     submitLabel: 'Desactivar habilidad',

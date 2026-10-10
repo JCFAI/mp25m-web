@@ -284,7 +284,7 @@ export function OrganizationTypeProposalResolutionForm({
       {resolutionAction === 'mapped' ? (
         <label className="mt-4 block sm:max-w-xl">
           <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Tipo canónico existente
+            Tipo canónico existente (Obligatorio)
           </span>
 
           <select
@@ -354,7 +354,7 @@ export function OrganizationTypeProposalResolutionForm({
 
       <label className="mt-4 block">
         <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-          Justificación
+          Justificación (Obligatorio)
         </span>
 
         <textarea

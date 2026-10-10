@@ -76,7 +76,7 @@ export function homeStageSTourSteps(audience: StageTourAudience): StageTourStep[
           target: 'module-themes',
           title: 'Temas: seguir asuntos transversales',
           description:
-            'Los Temas reúnen asuntos sostenidos por el Movimiento aunque no pertenezcan a un único proyecto o articulación. Permitén consultar su estado, responsables y seguimientos.',
+            'Los Temas reúnen asuntos sostenidos por el Movimiento aunque no pertenezcan a un único proyecto o articulación. Permiten consultar su estado, responsables y seguimientos.',
         },
       ]
 

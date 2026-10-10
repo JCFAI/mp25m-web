@@ -212,6 +212,7 @@ type PanelPageProps = {
   searchParams: Promise<{
     release?: string
     module?: string
+    access?: string
   }>
 }
 
@@ -225,6 +226,8 @@ export default async function PanelPage({
     query.release === 'unavailable'
       ? getReleaseModuleByKey(query.module)
       : undefined
+  const accessDenied =
+    query.access === 'denied'
 
   return (
     <div className="space-y-5 sm:space-y-7">
@@ -255,6 +258,20 @@ export default async function PanelPage({
           </h2>
           <p className="mt-1 text-sm leading-6">
             Se incorporará en MP25M_{unavailableModule.availableFrom}. Actualmente estás recorriendo MP25M_{currentStage}.
+          </p>
+        </section>
+      ) : null}
+
+      {accessDenied ? (
+        <section
+          role="alert"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm"
+        >
+          <h2 className="text-base font-semibold">
+            Acceso restringido
+          </h2>
+          <p className="mt-1 text-sm leading-6">
+            No tenés permisos para acceder a esa sección.
           </p>
         </section>
       ) : null}

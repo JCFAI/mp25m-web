@@ -79,6 +79,11 @@ const navigationItems = [
     label: 'Necesidades y ofertas',
     marker: 'N/O',
   },
+  {
+    href: '/panel/comentarios-piloto',
+    label: 'Comentarios del piloto',
+    marker: 'CP',
+  },
 ]
 
 const HANDLE_OPEN_THRESHOLD = 38

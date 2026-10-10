@@ -105,7 +105,7 @@ test('MP25M_S redirects future pages and rejects their APIs', async () => {
       status: 403,
       body: {
         error:
-          'Oportunidades estará disponible en MP25M_L.',
+          'Oportunidades estará disponible en MP25M_M.',
       },
     })
 

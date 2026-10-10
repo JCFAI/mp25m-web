@@ -48,7 +48,7 @@ export const RELEASE_MODULES = [
   {
     key: 'communications',
     label: 'Comunicaciones',
-    availableFrom: 'L',
+    availableFrom: 'M',
     pathPrefixes: [
       '/panel/comunicaciones',
       '/api/panel/comunicaciones',
@@ -57,7 +57,7 @@ export const RELEASE_MODULES = [
   {
     key: 'opportunities',
     label: 'Oportunidades',
-    availableFrom: 'L',
+    availableFrom: 'M',
     pathPrefixes: [
       '/panel/oportunidades',
       '/api/panel/oportunidades',
@@ -66,7 +66,7 @@ export const RELEASE_MODULES = [
   {
     key: 'needs_offers',
     label: 'Necesidades y ofertas',
-    availableFrom: 'L',
+    availableFrom: 'M',
     pathPrefixes: [
       '/panel/necesidades-ofertas',
       '/api/panel/necesidades-ofertas',
@@ -75,7 +75,7 @@ export const RELEASE_MODULES = [
   {
     key: 'activities',
     label: 'Actividades',
-    availableFrom: 'XL',
+    availableFrom: 'M',
     pathPrefixes: [
       '/panel/actividades',
       '/api/panel/actividades',
@@ -85,13 +85,13 @@ export const RELEASE_MODULES = [
   {
     key: 'results',
     label: 'Resultados',
-    availableFrom: 'XL',
+    availableFrom: 'M',
     pathPrefixes: ['/api/panel/resultados'],
   },
   {
     key: 'economics',
     label: 'Economía operativa',
-    availableFrom: 'XL',
+    availableFrom: 'M',
     pathPrefixes: [],
   },
 ] as const satisfies readonly ReleaseGateModule[]

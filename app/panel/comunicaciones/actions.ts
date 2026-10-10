@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import {
   addManualPerson,
   confirmRecipients,
@@ -25,6 +26,7 @@ async function access() {
   if (!data?.claims?.sub) redirect('/login')
   const current = await getInternalAccess(data.claims.sub)
   if (!current.length) redirect('/sin-acceso')
+  assertElevatedPanelAccess(current)
   return current
 }
 function errorState(message: string): CommunicationActionState { return { status: 'error', message } }

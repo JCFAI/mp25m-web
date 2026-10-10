@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import { createClient } from '../../../lib/supabase/server'
 import { isIsoInstant } from '../../../lib/themes/date-time'
 import {
@@ -27,6 +28,7 @@ async function currentAccess() {
   if (!data?.claims?.sub) redirect('/login')
   const access = await getInternalAccess(data.claims.sub)
   if (!access.length) redirect('/sin-acceso')
+  assertElevatedPanelAccess(access)
   return access
 }
 

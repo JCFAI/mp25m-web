@@ -117,13 +117,29 @@ export function PanelMobileNavigation({
   roleName,
   scopeName,
   canManageAccess,
+  isBasicParticipant,
 }: {
   displayName: string
   roleName: string
   scopeName: string
   canManageAccess: boolean
+  isBasicParticipant: boolean
 }) {
   const pathname = usePathname()
+
+  const basicParticipantHrefs = new Set([
+    '/panel',
+    '/panel/personas',
+    '/panel/nodos',
+    '/panel/organizaciones',
+    '/panel/habilidades',
+    '/panel/comentarios-piloto',
+  ])
+
+  const visibleNavigationItems = isBasicParticipant
+    ? navigationItems.filter(item => basicParticipantHrefs.has(item.href))
+    : navigationItems
+
   const menuId = useId()
   const closeButtonRef =
     useRef<HTMLButtonElement>(null)
@@ -532,7 +548,10 @@ export function PanelMobileNavigation({
               aria-label="Navegación móvil"
             >
               <div className="space-y-1.5">
-                {(canManageAccess ? [...navigationItems, { href: '/panel/accesos', label: 'Administración de accesos', marker: 'AC' }] : navigationItems).map((item) => {
+                {(canManageAccess
+                  ? [...visibleNavigationItems, { href: '/panel/accesos', label: 'Administración de accesos', marker: 'AC' }]
+                  : visibleNavigationItems
+                ).map((item) => {
                   const active = isActivePath(
                     pathname,
                     item.href

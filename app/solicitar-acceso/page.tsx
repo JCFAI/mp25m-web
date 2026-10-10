@@ -12,11 +12,10 @@ export default async function SolicitarAccesoPage({ searchParams }: Props) {
     <main className="min-h-screen bg-slate-100 px-5 py-12 text-slate-900">
       <section className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
         <p className="text-sm text-slate-500">Movimiento Productivo 25 de Mayo</p>
-        <h1 className="mt-2 text-2xl font-semibold">Solicitar acceso</h1>
+        <h1 className="mt-2 text-2xl font-semibold">Crear una cuenta</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Registrá tu cuenta para solicitar autorización. El registro no habilita
-          el acceso a la información del sistema: un administrador deberá aprobar
-          y asignar un rol y su ámbito.
+          Registrate para ingresar a MP25M. Tu cuenta comenzará con un acceso
+          básico y luego podrá incorporar las funciones que correspondan.
         </p>
         {params.error ? (
           <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
@@ -37,7 +36,7 @@ export default async function SolicitarAccesoPage({ searchParams }: Props) {
           <PasswordField />
           <button type="submit"
             className="w-full rounded-lg bg-[#1E3A5F] px-4 py-3 font-semibold text-white">
-            Enviar solicitud
+            Crear cuenta
           </button>
         </form>
         <Link href="/login" className="mt-6 inline-block text-sm text-[#2F5D8C] underline">

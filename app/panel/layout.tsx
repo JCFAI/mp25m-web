@@ -42,6 +42,10 @@ export default async function PanelLayout({
     ['administrator', 'local_administrator', 'founder_access'].includes(item.access_role_code)
   )
 
+  const isBasicParticipant =
+    access.length > 0 &&
+    access.every(item => item.access_role_code === 'participant')
+
   const primaryAccess = access[0]
 
   const roleName = primaryAccess.access_role_name
@@ -62,6 +66,7 @@ export default async function PanelLayout({
         roleName={roleName}
         scopeName={scopeName}
         canManageAccess={canManageAccess}
+        isBasicParticipant={isBasicParticipant}
       />
 
       <PanelTour />
@@ -84,7 +89,10 @@ export default async function PanelLayout({
             </div>
           </div>
 
-          <PanelNavigation canManageAccess={canManageAccess} />
+          <PanelNavigation
+            canManageAccess={canManageAccess}
+            isBasicParticipant={isBasicParticipant}
+          />
 
           <div className="border-t border-white/10 px-5 py-5 md:mt-auto">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">

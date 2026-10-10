@@ -14,6 +14,7 @@ import {
   type AgendaTerminalStatus,
 } from '../../../lib/agenda/agenda'
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import { createClient } from '../../../lib/supabase/server'
 
 export type AgendaActionState = {
@@ -78,6 +79,8 @@ async function currentAccess() {
   if (!access.length) {
     redirect('/sin-acceso')
   }
+
+  assertElevatedPanelAccess(access)
 
   return access
 }

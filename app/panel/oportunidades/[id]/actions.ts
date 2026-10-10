@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../../lib/auth/require-elevated-panel-access'
 import {
   createOpportunityFollowup,
   updateOpportunityAssignee,
@@ -50,7 +51,9 @@ export async function updateOpportunityStatusAction(
     redirect('/sin-acceso')
   }
 
-  const newStatus = String(
+
+  assertElevatedPanelAccess(access)
+const newStatus = String(
     formData.get('status') ?? ''
   )
 
@@ -151,7 +154,9 @@ export async function createOpportunityFollowupAction(
     redirect('/sin-acceso')
   }
 
-  const kind = String(
+
+  assertElevatedPanelAccess(access)
+const kind = String(
     formData.get('kind') ?? ''
   ) as OpportunityFollowupKind
 
@@ -243,7 +248,9 @@ export async function updateOpportunityAssigneeAction(
     redirect('/sin-acceso')
   }
 
-  const rawAssigneeId = String(
+
+  assertElevatedPanelAccess(access)
+const rawAssigneeId = String(
     formData.get('assignee_id') ?? ''
   )
 

@@ -7,6 +7,7 @@ import {
   getInternalAccess,
   type InternalAccess,
 } from '../../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../../lib/auth/require-elevated-panel-access'
 import {
   acceptOpportunityRequirementMatchCandidate,
   assessOpportunityRequirementMatch,
@@ -89,7 +90,9 @@ async function resolveCurrentAccess(): Promise<InternalAccess[]> {
 
   const access = await getInternalAccess(authUserId)
   if (access.length === 0) redirect('/sin-acceso')
-  return access
+
+  assertElevatedPanelAccess(access)
+return access
 }
 
 function requiredRationale(formData: FormData) {

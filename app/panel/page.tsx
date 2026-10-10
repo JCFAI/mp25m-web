@@ -1,4 +1,8 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+
+import { getInternalAccess } from '../../lib/auth/internal-access'
+import { createClient } from '../../lib/supabase/server'
 import {
   getCurrentReleaseStage,
   getReleaseModuleByKey,
@@ -219,6 +223,28 @@ type PanelPageProps = {
 export default async function PanelPage({
   searchParams,
 }: PanelPageProps) {
+  const supabase = await createClient()
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims()
+
+  const authUserId = claimsData?.claims?.sub
+
+  if (claimsError || !authUserId) {
+    redirect('/login')
+  }
+
+  const access = await getInternalAccess(authUserId)
+
+  const isBasicParticipant =
+    access.length > 0 &&
+    access.every(item => item.access_role_code === 'participant')
+
+  const visibleModules = isBasicParticipant
+    ? modules.filter(module =>
+        ['Personas', 'Nodos', 'Organizaciones', 'Habilidades'].includes(module.name)
+      )
+    : modules
+
   const currentStage =
     getCurrentReleaseStage()
   const query = await searchParams
@@ -356,7 +382,7 @@ export default async function PanelPage({
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-          {modules.map((module) => (
+          {visibleModules.map((module) => (
             <ModuleCard
               key={module.name}
               module={module}

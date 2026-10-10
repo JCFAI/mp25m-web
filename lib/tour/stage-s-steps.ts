@@ -5,6 +5,8 @@ export type StageTourStep = {
   target?: string
   title: string
   description: string
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
 export type StageTourAudience = {
@@ -171,7 +173,13 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         key: 'skills-search',
         target: 's-skills-search',
         title: 'Explorá el catálogo',
-        description: 'Usá el buscador y sus filtros para reconocer habilidades ya incorporadas. Si tenés permisos de gestión, verás opciones adicionales.',
+        description: 'Usá el buscador y los filtros para reconocer habilidades y capacidades. La revisión administrativa de propuestas se explica en otro paso, únicamente si tu perfil tiene ese permiso.',
+      },
+      {
+        key: 'skills-review',
+        target: 's-skills-review',
+        title: 'Revisión administrativa de propuestas',
+        description: 'Esta sección muestra las propuestas pendientes de revisión y permite acceder a su evaluación. Sólo aparece para roles autorizados. No es parte del buscador del catálogo.',
       },
     ],
     '/panel/proyectos': [
@@ -192,6 +200,8 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         target: 's-projects-list',
         title: 'Proyectos registrados',
         description: 'Abrí un proyecto existente para revisar su estado, avances y participantes. No es necesario crear uno de prueba.',
+        emptyTitle: 'Proyectos: todavía sin registros',
+        emptyDescription: 'Aquí aparecerán los Proyectos registrados. Como no hay registros para abrir, revisá dónde se mostrarán el objetivo y los responsables cuando se incorpore una iniciativa. No crees datos ficticios para completar la guía.',
       },
     ],
     '/panel/temas': [
@@ -206,6 +216,8 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         target: 's-themes-directory',
         title: 'Consultá los Temas existentes',
         description: 'Explorá el directorio para conocer estados, prioridades, responsables y seguimientos. La creación depende del rol.',
+        emptyTitle: 'Temas: sin resultados en el directorio',
+        emptyDescription: 'El directorio todavía no muestra Temas que coincidan con los filtros. Podés reconocer los campos de búsqueda, estado y prioridad sin crear un registro. Cuando existan Temas, se podrán consultar sus responsables y seguimientos.',
       },
     ],
     '/panel/perfil': [
@@ -213,13 +225,13 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         key: 'profile-purpose',
         target: 's-profile-intro',
         title: 'Tu identidad dentro de MP25M',
-        description: 'Verificá cómo se muestra tu nombre y qué función cumplís dentro del programa.',
+        description: 'Esta es la pantalla Mi perfil, desde la que administrás cómo se identifica tu cuenta interna. Los datos concretos están en la tarjeta «Identidad en el panel», que veremos a continuación.',
       },
       {
         key: 'profile-details',
         target: 's-profile-details',
         title: 'Datos de tu perfil',
-        description: 'Revisá tus datos y modificá sólo lo que necesites. Este recorrido no guarda cambios.',
+        description: 'En «Identidad en el panel» consultás tu rol y el nombre que identifica tu cuenta. El formulario permite editar el nombre visible, pero durante el recorrido no hace falta modificar ni guardar nada.',
       },
     ],
     '/panel/comentarios-piloto': [

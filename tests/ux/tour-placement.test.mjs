@@ -60,3 +60,15 @@ test('spotlight never uses offscreen or negative dimensions', () => {
   assert.ok(layout.spotlight?.width <= 366)
   assert.ok(layout.spotlight?.height <= 844 - 12 - 260 - 16)
 })
+
+test('DOMRect properties may be getters rather than own enumerable keys', () => {
+  const rect = {}
+  for (const [key, value] of Object.entries({
+    top: 160, bottom: 800, left: 20, right: 800,
+  })) {
+    Object.defineProperty(rect, key, { get: () => value })
+  }
+
+  assert.equal(Object.keys(rect).length, 0)
+  assert.equal(getTourScrollAdjustment(rect, 900, 180), -48)
+})

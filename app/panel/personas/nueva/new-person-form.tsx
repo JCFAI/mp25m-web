@@ -102,7 +102,7 @@ export function NewPersonForm() {
   >
     {state.status === 'error' && state.message ? <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{state.message}</div> : null}
     <label className="block">
-      <span className="text-sm font-semibold text-slate-700">Nombre canónico</span>
+      <span className="text-sm font-semibold text-slate-700">Nombre canónico (Obligatorio)</span>
       <input
         name="display_name"
         required

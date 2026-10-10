@@ -88,7 +88,7 @@ export function NewOrganizationForm({
 
       <label className="block">
         <span className="text-sm font-semibold text-slate-700">
-          Nombre
+          Nombre (Obligatorio)
         </span>
 
         <input
@@ -113,7 +113,7 @@ export function NewOrganizationForm({
 
       <label className="block">
         <span className="text-sm font-semibold text-slate-700">
-          Tipo de organización
+          Tipo de organización (Obligatorio)
         </span>
 
         <select
@@ -165,7 +165,7 @@ export function NewOrganizationForm({
       {isTypeProposal ? (
         <label className="block">
           <span className="text-sm font-semibold text-slate-700">
-            Nuevo tipo propuesto
+            Nuevo tipo propuesto (Obligatorio)
           </span>
 
           <input

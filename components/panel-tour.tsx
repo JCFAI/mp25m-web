@@ -15,7 +15,6 @@ type TourStep = {
   target?: string
   title: string
   description: string
-  requirements?: string[]
 }
 
 const storageKey = 'mp25m-panel-contextual-tour-v1-seen'
@@ -62,11 +61,6 @@ function stepsForPath(pathname: string): TourStep[] {
         title: 'Cómo registrar una articulación',
         description:
           'En «Nombre de la articulación», escribí una frase breve que permita identificarla; por ejemplo, «Entrega de materiales a una escuela». En «Objetivo o propósito inicial», explicá qué se quiere conseguir y para quién. En el desplegable podés elegir a la persona responsable de coordinarla, si ya está definida, o mantener «Sin responsable inicial». El botón «Crear articulación» guarda el registro para completarlo y seguir su evolución más adelante. Durante este recorrido no lo pulses: solo estamos conociendo el formulario.',
-        requirements: [
-          'Nombre de la articulación — obligatorio (mínimo 3 caracteres)',
-          'Objetivo o propósito inicial — obligatorio (mínimo 3 caracteres)',
-          'Responsable inicial — opcional para crear',
-        ],
       },
       {
         key: 'articulation-directory',
@@ -107,12 +101,6 @@ function stepsForPath(pathname: string): TourStep[] {
         title: 'Estado y responsable',
         description:
           'El campo «Estado» describe la situación actual de la articulación. «Responsable» indica quién coordina el próximo paso. Al registrar un cambio, completá el motivo para que otras personas entiendan la decisión. El resumen de cierre corresponde cuando se finaliza el trabajo. No guardes cambios durante esta práctica.',
-        requirements: [
-          'Estado — obligatorio',
-          'Motivo — obligatorio (de 3 a 10.000 caracteres)',
-          'Responsable — obligatorio al activar o cerrar; opcional en otros estados',
-          'Resumen de cierre — obligatorio al cerrar (de 3 a 10.000 caracteres); opcional en otros estados',
-        ],
       },
       {
         key: 'articulation-followup',
@@ -506,19 +494,6 @@ export function PanelTour() {
             <p className="mt-2 text-sm leading-6 text-slate-600">
               {activeStep.description}
             </p>
-
-            {activeStep.requirements?.length ? (
-              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  Campos y obligatoriedad
-                </p>
-                <ul className="mt-2 space-y-1 text-sm leading-5 text-slate-600">
-                  {activeStep.requirements.map((item) => (
-                    <li key={item}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
 
             <p className="mt-4 text-xs font-medium text-slate-500">
               Paso {stepIndex + 1} de {availableSteps.length}

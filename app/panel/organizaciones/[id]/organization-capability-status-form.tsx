@@ -43,7 +43,7 @@ const ACTION_COPY: Record<
   confirm: {
     buttonLabel: 'Confirmar',
     heading: 'Confirmar capacidad',
-    fieldLabel: 'Justificación de confirmación',
+    fieldLabel: 'Justificación de confirmación (Obligatorio)',
     placeholder:
       'Motivo breve de la validación de esta capacidad.',
     submitLabel: 'Confirmar capacidad',
@@ -55,7 +55,7 @@ const ACTION_COPY: Record<
   reject: {
     buttonLabel: 'Rechazar',
     heading: 'Rechazar capacidad',
-    fieldLabel: 'Motivo de rechazo',
+    fieldLabel: 'Motivo de rechazo (Obligatorio)',
     placeholder:
       'Motivo breve. El registro se conserva para trazabilidad, pero deja de figurar como capacidad activa.',
     submitLabel: 'Rechazar capacidad',
@@ -67,7 +67,7 @@ const ACTION_COPY: Record<
   deactivate: {
     buttonLabel: 'Desactivar',
     heading: 'Desactivar capacidad',
-    fieldLabel: 'Motivo de desactivación',
+    fieldLabel: 'Motivo de desactivación (Obligatorio)',
     placeholder:
       'Motivo breve. La capacidad deja de representar la situación actual, sin borrar el registro ni cambiar su estado de validación.',
     submitLabel: 'Desactivar capacidad',

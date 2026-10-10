@@ -64,7 +64,7 @@ export function OrganizationNodeConfirmationForm({
 
       <label className="block">
         <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-          Justificación de confirmación
+          Justificación de confirmación (Obligatorio)
         </span>
 
         <textarea

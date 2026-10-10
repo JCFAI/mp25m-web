@@ -37,7 +37,7 @@ function ActionForm({ action, label, children, tourId }: { action: Action; label
 }
 
 function Reason() {
-  return <label className="block text-sm">Motivo
+  return <label className="block text-sm">Motivo (Obligatorio)
     <textarea name="rationale" required minLength={3} maxLength={10000} rows={2} className={inputClass} />
   </label>
 }
@@ -74,7 +74,7 @@ export function AutonomousArticulationControls({ articulation, participants, opp
         <label className="block text-sm">Tipo<select name="followup_type" className={inputClass}>
           {Object.entries(followupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></label>
-        <label className="block text-sm">Detalle<textarea name="detail" required minLength={3} maxLength={10000} rows={4} className={inputClass} /></label>
+        <label className="block text-sm">Detalle (Obligatorio)<textarea name="detail" required minLength={3} maxLength={10000} rows={4} className={inputClass} /></label>
       </ActionForm>
       <ActionForm action={addArticulationParticipantAction.bind(null, id)} tourId="articulation-participant-action" label="Agregar participante">
         <ArticulationReferencePicker key={participants.map((item) => item.participant_id).join(',')} kind="actor" />

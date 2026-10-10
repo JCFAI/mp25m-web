@@ -2,6 +2,7 @@ import 'server-only'
 
 import { notFound, redirect } from 'next/navigation'
 
+import { isBasicParticipantAccess } from './basic-participant'
 import { getInternalAccess } from './internal-access'
 import { createClient } from '../supabase/server'
 
@@ -10,13 +11,7 @@ export function assertElevatedPanelAccess(
     access_role_code: string
   }[]
 ) {
-  const isBasicParticipant =
-    access.length > 0 &&
-    access.every(
-      item => item.access_role_code === 'participant'
-    )
-
-  if (isBasicParticipant) {
+  if (isBasicParticipantAccess(access)) {
     throw new Error(
       'Elevated panel access is required'
     )

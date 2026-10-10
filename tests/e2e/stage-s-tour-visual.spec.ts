@@ -34,10 +34,13 @@ async function verifyTour(
   await expect(page).toHaveURL(new RegExp(route.replaceAll('/', '\\/') + '$'))
 
   const startButton = page.getByRole('button', { name: 'Ver recorrido' })
-  await expect(startButton).toBeVisible()
-  await startButton.click()
-
   const guide = page.getByRole('dialog', { name: 'Recorrido guiado de MP25M' })
+
+  // On first login, S opens its onboarding tour automatically.
+  if (!(await guide.isVisible())) {
+    await expect(startButton).toBeVisible()
+    await startButton.click()
+  }
   await expect(guide).toBeVisible()
 
   let verified = 0

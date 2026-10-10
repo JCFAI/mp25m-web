@@ -67,9 +67,16 @@ un módulo y vuelve a iniciar «Ver recorrido» allí.
 
 - Botones «Anterior», «Siguiente», «Finalizar» y «Salir».
 - «Escape» cierra el cuadro.
-- El cuadro puede arrastrarse para dejar visible la zona explicada.
-- Las áreas resaltadas permanecen visibles, pero no se interactúa con ellas
-  hasta salir del recorrido.
+- El cuadro queda acoplado en la zona superior, sin arrastre, para evitar que
+  se coloque encima del elemento destacado.
+- Cada paso mide la altura real de la guía y desplaza el elemento resaltado
+  inmediatamente debajo, con margen visible.
+- Para elementos cercanos al principio o al final de la página se agrega
+  espacio temporal de desplazamiento, que se restaura al cerrar la guía.
+- Si la explicación es larga, el texto del cuadro puede desplazarse dentro
+  de un alto máximo; el área destacada sigue libre debajo de la guía.
+- Las áreas resaltadas se muestran para observación, pero no se interactúa
+  con ellas hasta salir del recorrido.
 - El desplazamiento respeta la preferencia de movimiento reducido.
 - La bienvenida automática se muestra una vez por navegador en la versión v2;
   «Ver recorrido» la reinicia en cualquier momento.
@@ -82,7 +89,8 @@ Antes de cerrar el piloto S, verificar en escritorio y móvil:
 2. Orden completo de funciones S sin terminar en Articulaciones.
 3. Ausencia de pasos inaccesibles para el Participante básico.
 4. Claridad del texto, etiquetas de botones y significado de cada función.
-5. Que el cuadro no oculte formularios o controles que está explicando.
+5. Que el cuadro no oculte formularios o controles que está explicando,
+   probando cada paso en escritorio, portátil y móvil.
 6. Que los recorridos internos destaquen las áreas esperadas.
 7. Que la experiencia pueda completarse sin guardar datos.
 8. Identificar y acordar ajustes de UI reutilizables en los incrementos siguientes.
@@ -95,3 +103,19 @@ Antes de cerrar el piloto S, verificar en escritorio y móvil:
 
 La aprobación funcional final depende de revisar este recorrido con usuarios
 reales; el deploy por sí solo no constituye aceptación del piloto.
+
+## Verificación geométrica
+
+Se añadió `tests/e2e/stage-s-tour-visual.spec.ts` para iniciar sesión con un
+usuario de pruebas autorizado y recorrer automáticamente las pantallas de S
+en escritorio (1440×900), portátil (1024×768) y móvil (390×844).
+
+En cada paso identifica el destino resaltado, mide los rectángulos reales
+del navegador y verifica que comiencen por debajo del cuadro explicativo
+con margen suficiente. Puede generar capturas con
+`MP25M_E2E_TOUR_SCREENSHOTS=true`.
+
+Este test requiere credenciales del entorno de pruebas
+(`MP25M_E2E_EMAIL` y `MP25M_E2E_PASSWORD`). Si no están disponibles,
+se omite. Un deploy en estado READY no reemplaza la ejecución real de esta
+prueba ni la aprobación visual del piloto.

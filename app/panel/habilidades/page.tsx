@@ -47,7 +47,7 @@ export default async function SkillsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-7">
-      <section className="rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#12648d] md:via-[#124f75] md:to-[#14263D] md:px-7 md:py-7 md:text-white">
+      <section data-tour="s-skills-intro" className="rounded-2xl border border-sky-100 bg-white px-4 py-5 text-slate-950 shadow-sm md:rounded-3xl md:border-0 md:bg-gradient-to-br md:from-[#12648d] md:via-[#124f75] md:to-[#14263D] md:px-7 md:py-7 md:text-white">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C] md:text-blue-100">
           Habilidades
         </p>
@@ -63,7 +63,7 @@ export default async function SkillsPage() {
         </p>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <section data-tour="s-skills-search" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         {canManageCatalog ? (
           <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

@@ -146,7 +146,7 @@ export default async function PilotFeedbackPage() {
         </p>
 
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-          Comentarios del piloto
+          Sugerencias para este Programa
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-slate-600">

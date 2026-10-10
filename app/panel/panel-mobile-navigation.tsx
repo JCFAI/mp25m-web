@@ -81,7 +81,7 @@ const navigationItems = [
   },
   {
     href: '/panel/comentarios-piloto',
-    label: 'Comentarios del piloto',
+    label: 'Sugerencias para este Programa',
     marker: 'CP',
   },
 ]

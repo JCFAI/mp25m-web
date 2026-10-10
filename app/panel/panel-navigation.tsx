@@ -251,7 +251,7 @@ export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean 
           aria-current={pilotFeedbackActive ? 'page' : undefined}
           className={activeClass(pilotFeedbackActive)}
         >
-          <span>Comentarios del piloto</span>
+          <span>Sugerencias para este Programa</span>
 
           {pilotFeedbackActive ? (
             <span className="h-2 w-2 rounded-full bg-sky-300" />

@@ -45,3 +45,13 @@ modifican datos remotos.
    controles que no puede utilizar.
 4. Confirmar que `Ver recorrido` reinicia la guía de la pantalla actual.
 5. Probar `Escape`, teclado, escritorio y móvil.
+
+## Materiales complementarios del piloto
+
+El tutorial contextual se complementa con:
+
+- `MP25M-S-PRACTICA-GUIADA.md`: recorrido breve con un caso real;
+- `MP25M-S-HOJA-RAPIDA.md`: referencia operativa para consulta durante el uso.
+
+El tutorial orienta dentro de la pantalla; estos documentos acompañan la
+práctica inicial y la consulta posterior.

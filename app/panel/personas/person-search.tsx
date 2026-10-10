@@ -35,7 +35,7 @@ function personMetadata(
 
   return parts.length > 0
     ? parts.join(' · ')
-    : 'Sin participación territorial confirmada'
+    : 'Registro canónico · Datos territoriales restringidos'
 }
 
 export function PersonSearch() {

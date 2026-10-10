@@ -85,7 +85,7 @@ export function getTourScrollAdjustment(
   )
   const height = target.bottom - target.top
 
-  if (height <= 0 || height > layout.freeHeight) return 0
+  if (height <= 0 || height > layout.freeHeight || layout.visibleHeight >= height - 1) return 0
 
   const gap = 28
   const desiredTop = layout.side === 'top'

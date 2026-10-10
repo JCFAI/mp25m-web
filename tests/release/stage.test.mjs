@@ -136,12 +136,12 @@ test('registered modules retain their agreed release stage', () => {
   assert.equal(
     releaseStage.getReleaseModuleByKey('opportunities')
       ?.availableFrom,
-    'L',
+    'M',
   )
   assert.equal(
     releaseStage.getReleaseModuleByKey('economics')
       ?.availableFrom,
-    'XL',
+    'M',
   )
   assert.equal(
     releaseStage.getReleaseModuleByKey('unknown'),
@@ -149,17 +149,18 @@ test('registered modules retain their agreed release stage', () => {
   )
 })
 
-test('embedded economics and results are available only from XL', () => {
-  for (const stage of ['S', 'M', 'L']) {
+test('embedded economics and results are available from M', () => {
+  withReleaseStage('S', () => {
+    assert.equal(releaseStage.isReleaseModuleEnabled('economics'), false)
+    assert.equal(releaseStage.isReleaseModuleEnabled('results'), false)
+  })
+
+  for (const stage of ['M', 'L', 'XL']) {
     withReleaseStage(stage, () => {
-      assert.equal(releaseStage.isReleaseModuleEnabled('economics'), false)
-      assert.equal(releaseStage.isReleaseModuleEnabled('results'), false)
+      assert.equal(releaseStage.isReleaseModuleEnabled('economics'), true)
+      assert.equal(releaseStage.isReleaseModuleEnabled('results'), true)
     })
   }
-  withReleaseStage('XL', () => {
-    assert.equal(releaseStage.isReleaseModuleEnabled('economics'), true)
-    assert.equal(releaseStage.isReleaseModuleEnabled('results'), true)
-  })
 })
 
 test('embedded UI and all seven server writes retain release checks', () => {

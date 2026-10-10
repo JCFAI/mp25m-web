@@ -21,7 +21,7 @@ const modules: PanelModule[] = [
       'Registro y seguimiento de oportunidades productivas como base para su análisis.',
     status: 'active',
     href: '/panel/oportunidades',
-    availableFrom: 'L',
+    availableFrom: 'M',
   },
   {
     name: 'Necesidades y ofertas',
@@ -29,7 +29,7 @@ const modules: PanelModule[] = [
       'Registro independiente de necesidades y ofertas, con responsables, estados, seguimiento e historial.',
     status: 'active',
     href: '/panel/necesidades-ofertas',
-    availableFrom: 'L',
+    availableFrom: 'M',
   },
   {
     name: 'Personas',

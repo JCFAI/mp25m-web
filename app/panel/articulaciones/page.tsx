@@ -1,3 +1,6 @@
+import { notFound, redirect } from 'next/navigation'
+import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { createClient } from '../../../lib/supabase/server'
 import Link from 'next/link'
 
 import { listOpportunityAssigneeOptions } from '../../../lib/opportunities/detail'
@@ -18,6 +21,14 @@ const statusLabels = {
 }
 
 export default async function ArticulationsPage() {
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) redirect('/login')
+  const access = await getInternalAccess(userId)
+  if (!access.some(grant => grant.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(grant.access_role_code))) notFound()
+
   const [articulations, assigneeOptions] =
     await Promise.all([
       listArticulations(),

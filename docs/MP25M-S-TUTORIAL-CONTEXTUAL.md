@@ -119,6 +119,30 @@ Antes de cerrar el piloto S, verificar en escritorio y móvil:
 7. Que la experiencia pueda completarse sin guardar datos.
 8. Identificar y acordar ajustes de UI reutilizables en los incrementos siguientes.
 
+## Prueba funcional aislada de Supabase local
+
+Los recorridos automáticos de roles y Articulaciones se preparan con
+`scripts/seed-local-stage-s-functional.mjs` y se comprueban con
+`tests/e2e/stage-s-functional-local.spec.ts`.
+
+**Aislamiento obligatorio:** el preparador exige `API_URL=http://127.0.0.1:54321`
+y `DB_URL` de PostgreSQL en `localhost:54322/postgres`. Reutiliza la
+cuenta de administrador E2E local y crea una cuenta de Participante básico
+con rol `participant`, sin permisos elevados.
+
+Los datos sintéticos incluyen una persona, una Articulación autónoma,
+un responsable, tres entradas de historial de estado, un participante y
+dos novedades. Todos los nombres llevan el prefijo `E2E LOCAL S`.
+No se incluyen credenciales reales y el comando no usa ningún proyecto
+remoto ni invoca `supabase db reset`.
+
+La prueba comprueba el recorrido autorizado para Participante básico,
+el acceso directo a rutas restringidas, la ficha poblada y su tutorial
+en escritorio y móvil. La ejecución es sólo una verificación: **no
+equivale a aceptar el piloto**. Los registros sintéticos se conservan
+en la base local para inspección y no se limpian mediante borrados
+automáticos, ya que existe trazabilidad de auditoría.
+
 ## Materiales de apoyo
 
 - `MP25M-S-ALCANCE-Y-PILOTO.md`

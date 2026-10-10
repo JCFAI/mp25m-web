@@ -479,8 +479,18 @@ export default async function OrganizationProfilePage({
     notFound()
   }
 
-  const profile =
-    await getCanonicalOrganizationProfile(id)
+  const hasGlobalReadAccess = access.some(grant =>
+    grant.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(grant.access_role_code)
+  )
+  const authorizedNodeIds = [...new Set(access
+    .filter(grant => grant.scope_type === 'node' && grant.scope_entity_id)
+    .map(grant => grant.scope_entity_id as string))]
+
+  const profile = await getCanonicalOrganizationProfile(
+    id,
+    hasGlobalReadAccess ? {} : { allowedNodeIds: authorizedNodeIds }
+  )
 
   if (!profile) {
     notFound()

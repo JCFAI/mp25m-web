@@ -98,6 +98,31 @@ try {
     [participant.id, scope.id],
   )
 
+  // Reuse a previous synthetic Articulation when retrying a failed E2E run.
+  // This prevents creating duplicate fixtures after a local schema repair.
+  const reusableId = process.env.MP25M_E2E_ARTICULATION_ID
+  if (reusableId) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reusableId)) {
+      throw Error('Identificador de Articulación de prueba inválido.')
+    }
+    const [fixture] = await query(
+      "select a.id, a.title, " +
+      "(select count(*)::int from mp25m.opportunity_articulation_status_history h " +
+      " where h.articulation_id=a.id) as history, " +
+      "(select count(*)::int from mp25m.opportunity_articulation_participants p " +
+      " where p.articulation_id=a.id) as people, " +
+      "(select count(*)::int from mp25m.opportunity_articulation_followups f " +
+      " where f.articulation_id=a.id) as followups " +
+      "from mp25m.opportunity_articulations a where a.id=$1::uuid",
+      [reusableId],
+    )
+    if (!fixture?.title?.startsWith('E2E LOCAL S - Materiales ') ||
+        fixture.history < 3 || fixture.people < 1 || fixture.followups < 2) {
+      throw Error('No se reutiliza la Articulación: no es una fixture local S válida.')
+    }
+    console.error('PASS: reutilizada Articulación sintética local y cuenta participante actualizada.')
+    process.stdout.write(fixture.id + '\n')
+  } else {
   const code = Math.random().toString(36).slice(2, 10)
   const title = 'E2E LOCAL S - Materiales ' + code
   const [person] = await query(
@@ -158,6 +183,7 @@ try {
   console.error('PASS: Participante básico con rol participant exclusivamente local.')
   console.error('PASS: Articulación local con responsable, tres estados, participante y dos novedades.')
   process.stdout.write(id + '\n')
+  }
 } finally {
   await db.end({ timeout: 3 })
 }

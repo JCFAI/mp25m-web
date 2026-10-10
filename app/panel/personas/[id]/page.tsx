@@ -172,12 +172,25 @@ export default async function PersonProfilePage({
 
   const {
     person,
-    territories,
-    opportunities,
-    aliases,
     skills,
     contacts,
   } = profile
+
+  const canReadAcrossNodes = access.some(
+    (grant) => grant.scope_type === 'global' &&
+      ['administrator', 'validator'].includes(grant.access_role_code)
+  )
+  const authorizedNodeIds = new Set(access
+    .filter((grant) => grant.scope_type === 'node' && grant.scope_entity_id)
+    .map((grant) => grant.scope_entity_id))
+  const territories = canReadAcrossNodes
+    ? profile.territories
+    : profile.territories.filter((territory) =>
+        authorizedNodeIds.has(territory.node_id))
+  // Cross-territorial opportunity and alias context has no reliable node
+  // provenance on every row; hide it until an authorized query exists.
+  const opportunities = canReadAcrossNodes ? profile.opportunities : []
+  const aliases = canReadAcrossNodes ? profile.aliases : []
 
   return (
     <div className="space-y-7">

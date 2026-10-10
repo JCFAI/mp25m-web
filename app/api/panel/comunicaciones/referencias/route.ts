@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getInternalAccess } from '../../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../../lib/auth/basic-participant'
 import { listAgendaPage } from '../../../../../lib/agenda/agenda'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { createClient } from '../../../../../lib/supabase/server'
 const kinds = new Set(['articulation', 'project', 'theme', 'need_offer', 'agenda_entry', 'skill'])
 export async function GET(request: NextRequest) {
   const supabase = await createClient(); const { data } = await supabase.auth.getClaims(); if (!data?.claims?.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); const access = await getInternalAccess(data.claims.sub); if (!access.length) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (isBasicParticipantAccess(access)) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
   const kind = request.nextUrl.searchParams.get('kind') ?? ''; const query = request.nextUrl.searchParams.get('q')?.trim() ?? ''; if (!kinds.has(kind)) return NextResponse.json({ error: 'Referencia inválida.' }, { status: 400 })
   try {
     if (kind === 'agenda_entry') { const page = await listAgendaPage({ query, itemKinds: ['manual'], limit: 50 }); return NextResponse.json({ items: page.items.map((item) => ({ agenda_entry_id: item.agenda_entry_id, title: item.title, detail: item.scheduled_date })), nextCursor: null }, { headers: { 'Cache-Control': 'no-store' } }) }

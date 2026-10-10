@@ -32,7 +32,7 @@ export default async function InternalProfilePage() {
 
   return (
     <div className="space-y-7">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
+      <section data-tour="s-profile-intro" className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F5D8C] to-[#14263D] p-7 text-white shadow-sm sm:p-9">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-100/70">
           Cuenta interna
         </p>
@@ -47,7 +47,7 @@ export default async function InternalProfilePage() {
         </p>
       </section>
 
-      <section className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section data-tour="s-profile-details" className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">
           Identidad en el panel
         </h2>

@@ -29,6 +29,12 @@ async function getCurrentAccess() {
 
   if (!access.length) redirect('/sin-acceso')
 
+  // Pilot S: articulation details are global-only; server actions must match.
+  if (!access.some(grant => grant.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(grant.access_role_code))) {
+    throw new Error('Articulation operation is not available for this access scope')
+  }
+
   return access
 }
 

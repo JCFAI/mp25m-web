@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getInternalAccess } from '../../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../../lib/auth/basic-participant'
 import { listOpportunityReferencePage } from '../../../../../lib/opportunities/reference'
 import { parseReferenceLimit, ReferenceRequestError } from '../../../../../lib/reference-pagination'
 import { createClient } from '../../../../../lib/supabase/server'
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
   if (error || !data?.claims?.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const access = await getInternalAccess(data.claims.sub)
   if (!access.length) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (isBasicParticipantAccess(access)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   try {
     const params = request.nextUrl.searchParams
     const page = await listOpportunityReferencePage({

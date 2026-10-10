@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 import {
   canManageEconomicSource,
@@ -39,6 +39,15 @@ function formatDateTime(value: string) {
 
 export default async function ArticulationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  // Do not load privileged articulation details before checking the current user.
+  const authClient = await createClient()
+  const { data: initialClaims } = await authClient.auth.getClaims()
+  const initialUserId = initialClaims?.claims?.sub
+  if (!initialUserId) redirect('/login')
+  const initialAccess = await getInternalAccess(initialUserId)
+  if (!initialAccess.some(grant => grant.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(grant.access_role_code))) notFound()
+
   const articulation = await getArticulation(id)
   if (!articulation) notFound()
 

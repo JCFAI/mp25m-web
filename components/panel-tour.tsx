@@ -24,6 +24,8 @@ type TourStep = {
   target?: string
   title: string
   description: string
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
 const storageKey = 'mp25m-panel-contextual-tour-v2-seen'
@@ -55,6 +57,9 @@ function stepsForPath(pathname: string, audience: StageTourAudience): TourStep[]
         title: 'Abrí una articulación existente',
         description:
           'En «Articulaciones registradas» aparecen las propuestas ya cargadas. Cada tarjeta identifica la articulación e informa su estado actual, responsable y cantidad de participantes. Para conocer el trabajo realizado, pulsá «Finalizar» y después abrí una tarjeta existente. En esa ficha seleccioná «Ver recorrido»: te mostrará dónde consultar los cambios de estado, las personas vinculadas y las novedades de seguimiento. No hace falta editar ni guardar nada para hacer esta prueba.',
+        emptyTitle: 'Articulaciones: todavía sin registros',
+        emptyDescription:
+          'Este es el directorio donde aparecerán las articulaciones cuando se registren. Ahora está vacío, por lo que no hay una ficha para abrir. En cuanto existan propuestas, podrás entrar a una y consultar sus estados, participantes e historial desde su propio recorrido. No crees ninguna articulación ficticia.',
       },
     ]
   }
@@ -134,6 +139,10 @@ export function PanelTour({
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] = useState<TourStep[]>([])
+  const [emptyTarget, setEmptyTarget] = useState<{
+    stepId: string
+    isEmpty: boolean
+  } | null>(null)
   const [layoutState, setLayoutState] = useState<{
     stepId: string
     layout: TourLayout
@@ -185,8 +194,40 @@ export function PanelTour({
   )
   const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
   const isReady = open && layoutState?.stepId === stepId
+  const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const side = isReady ? layoutState.layout.side : 'top'
   const spotlight = isReady ? layoutState.layout.spotlight : null
+
+  // Directory counts may change after the page hydrates (e.g. Temas).
+  // Match the guidance to what is actually available, without inventing data.
+  useLayoutEffect(() => {
+    if (!open || !activeStep?.target) {
+      setEmptyTarget(null)
+      return
+    }
+    const root = document.querySelector<HTMLElement>(
+      '[data-tour="' + activeStep.target + '"]',
+    )
+    if (!root) return
+
+    const readEmpty = () => {
+      const source = root.hasAttribute('data-tour-empty')
+        ? root
+        : root.querySelector<HTMLElement>('[data-tour-empty]')
+      const isEmptyNow = source?.getAttribute('data-tour-empty') === 'true'
+      setEmptyTarget(prev => prev?.stepId === stepId &&
+        prev.isEmpty === isEmptyNow ? prev : { stepId, isEmpty: isEmptyNow })
+    }
+
+    readEmpty()
+    const observer = new MutationObserver(readEmpty)
+    observer.observe(root, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-tour-empty'],
+    })
+    return () => observer.disconnect()
+  }, [open, stepId, activeStep?.target])
 
   // The two-layer UI (dialog + spotlight) only becomes visible after both
   // have been measured for the SAME step. No document padding is ever used.
@@ -218,9 +259,13 @@ export function PanelTour({
       if (target && initial) {
         let rect = target.getBoundingClientRect()
         const available = viewport.height - dialogHeight - 40
-        // Preserve the existing scroll position whenever the target already
-        // fits. Large sections are focused at their beginning if off-screen.
-        if (rect.bottom < 32 || rect.top > viewport.height - 48 ||
+        // The first module directory is tall on mobile and laptops.
+        // Focus its heading and first card, not a mostly empty viewport
+        // where the directory only begins near the bottom of the screen.
+        const focusModules = pathname === '/panel' &&
+          activeStep.key === 'modules' && viewport.width <= 1100
+        if (focusModules ||
+            rect.bottom < 32 || rect.top > viewport.height - 48 ||
             (rect.height > available && rect.top < 0)) {
           target.scrollIntoView({
             behavior: 'instant',
@@ -374,6 +419,7 @@ export function PanelTour({
           <div
             ref={dialogRef}
             data-tour-ready={isReady ? 'true' : 'false'}
+            data-tour-empty-state={isEmpty ? 'true' : 'false'}
             data-tour-step-key={activeStep.key}
             data-active-tour-target={isReady ? activeStep.target ?? '' : ''}
             role="dialog"
@@ -394,10 +440,10 @@ export function PanelTour({
 
             <div className="min-h-0 overflow-y-auto">
               <h2 className="text-base font-semibold leading-5 sm:text-lg sm:leading-6">
-                {activeStep.title}
+                {isEmpty && activeStep.emptyTitle ? activeStep.emptyTitle : activeStep.title}
               </h2>
               <p className="mt-1.5 text-[13px] leading-5 text-slate-600 sm:text-sm">
-                {activeStep.description}
+                {isEmpty && activeStep.emptyDescription ? activeStep.emptyDescription : activeStep.description}
               </p>
             </div>
 

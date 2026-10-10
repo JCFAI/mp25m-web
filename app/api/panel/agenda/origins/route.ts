@@ -7,6 +7,7 @@ import type {
   AgendaSourceType,
 } from '../../../../../lib/agenda/agenda'
 import { getInternalAccess } from '../../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../../lib/auth/basic-participant'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { createClient } from '../../../../../lib/supabase/server'
 
@@ -75,6 +76,13 @@ export async function GET(
     )
 
   if (!access.length) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
+
+  if (isBasicParticipantAccess(access)) {
     return NextResponse.json(
       { error: 'Forbidden' },
       { status: 403 }

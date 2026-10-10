@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../lib/auth/basic-participant'
 import { parseReferenceLimit, ReferenceRequestError } from '../../../../lib/reference-pagination'
 import { createClient } from '../../../../lib/supabase/server'
 import { listThemePage, type ThemePriority, type ThemeStatus } from '../../../../lib/themes/themes'
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
   if (error || !authUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const access = await getInternalAccess(authUserId)
   if (!access.length) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (isBasicParticipantAccess(access)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
     const page = await listThemePage({

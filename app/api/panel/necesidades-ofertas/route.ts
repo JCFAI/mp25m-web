@@ -4,6 +4,7 @@ import {
 } from 'next/server'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../lib/auth/basic-participant'
 import {
   listNeedOfferPage,
   type NeedOfferRecordType,
@@ -100,6 +101,13 @@ export async function GET(
     await getInternalAccess(authUserId)
 
   if (!access.length) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
+
+  if (isBasicParticipantAccess(access)) {
     return NextResponse.json(
       { error: 'Forbidden' },
       { status: 403 }

@@ -46,7 +46,7 @@ export default async function ProjectsPage() {
         />
       </div>
 
-      <section data-tour="s-projects-list" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="s-projects-list" data-tour-empty={projects.length === 0 ? 'true' : 'false'} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">
             Proyectos registrados

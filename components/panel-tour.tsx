@@ -148,7 +148,7 @@ export function PanelTour({
       )
 
       setStepIndex(0)
-        setAvailableSteps(nextSteps)
+      setAvailableSteps(nextSteps)
     })
 
     return () => window.cancelAnimationFrame(frame)
@@ -256,13 +256,18 @@ export function PanelTour({
     }
   }, [activeStep, open, pathname])
 
-  // Give the bottom-most items enough scroll room to appear BELOW the docked
-  // guide as well. This spacing only exists while the tour is open.
+  // A temporary scroll buffer lets the very last cards/fiches reach the
+  // visible area below the guide; nothing persists when it closes.
   useEffect(() => {
     if (!open) return
     const oldPadding = document.body.style.paddingBottom
-    document.body.style.paddingBottom = `${window.innerHeight}px`
+    const syncSpace = () => {
+      document.body.style.paddingBottom = `${window.innerHeight}px`
+    }
+    syncSpace()
+    window.addEventListener('resize', syncSpace)
     return () => {
+      window.removeEventListener('resize', syncSpace)
       document.body.style.paddingBottom = oldPadding
     }
   }, [open])
@@ -291,7 +296,8 @@ export function PanelTour({
 
   function startTour() {
     setStepIndex(0)
-        setOpen(true)
+    setTargetRect(null)
+    setOpen(true)
   }
 
   if (availableSteps.length === 0) {
@@ -300,13 +306,13 @@ export function PanelTour({
 
   return (
     <>
-      <button
+      {!open ? <button
         type="button"
         onClick={startTour}
         className="fixed bottom-5 right-5 z-40 rounded-full bg-[#1E3A5F] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
       >
         Ver recorrido
-      </button>
+      </button> : null}
 
       {open && activeStep ? (
         <div className="fixed inset-0 z-50">
@@ -332,6 +338,7 @@ export function PanelTour({
 
           <div
             ref={dialogRef}
+            data-active-tour-target={activeStep.target ?? ''}
             role="dialog"
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}

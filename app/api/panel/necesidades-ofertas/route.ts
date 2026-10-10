@@ -107,7 +107,7 @@ export async function GET(
   }
 
   try {
-    const page = await listNeedOfferPage({
+    const page = await listNeedOfferPage(access, {
       query:
         request.nextUrl.searchParams.get('q') ?? '',
 

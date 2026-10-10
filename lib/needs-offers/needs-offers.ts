@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { InternalAccess } from '../auth/internal-access'
+import { canChangeNeedOfferNode } from './authorize'
 import {
   createReferenceContext,
   decodeReferenceCursor,
@@ -168,7 +169,9 @@ export function canFollowupNeedOffer(
   return canManageNeedOffer(access, needOffer)
 }
 
-export async function listNeedOfferPage(input: {
+export async function listNeedOfferPage(
+  access: InternalAccess[],
+  input: {
   query: string
   types?: NeedOfferRecordType[]
   statuses?: NeedOfferStatus[]
@@ -200,6 +203,8 @@ export async function listNeedOfferPage(input: {
     await createAdminClient().rpc(
       'need_offer_page',
       {
+        p_actor_internal_user_id:
+          actorId(access),
         p_query: query,
         p_types:
           input.types?.length
@@ -434,6 +439,25 @@ export async function updateNeedOffer(
     rationale: string
   }
 ) {
+  const current =
+    await getNeedOffer(input.needOfferId)
+
+  if (!current) {
+    throw new Error('Need or offer not found')
+  }
+
+  if (
+    !canChangeNeedOfferNode(
+      access,
+      current.node_id,
+      input.nodeId
+    )
+  ) {
+    throw new Error(
+      'Internal user cannot move this need or offer outside the authorized territorial scope'
+    )
+  }
+
   const { error } =
     await createAdminClient().rpc(
       'update_need_offer',

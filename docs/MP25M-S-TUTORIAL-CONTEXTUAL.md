@@ -84,6 +84,27 @@ un módulo y vuelve a iniciar «Ver recorrido» allí.
 - La bienvenida automática se muestra una vez por navegador en la versión v2;
   «Ver recorrido» la reinicia en cualquier momento.
 
+## Ajustes UX de la revisión V3
+
+- En Inicio, el primer paso desplaza el directorio de módulos hacia el inicio
+  del área visible en móvil y portátil, procurando mostrar su encabezado y
+  la primera tarjeta sin alterar los márgenes ni la altura de la página.
+- Si los directorios de Articulaciones, Proyectos o Temas están vacíos,
+  la guía lo reconoce y explica para qué servirán las fichas cuando existan,
+  sin invitar a abrir registros inexistentes ni crear datos ficticios.
+- En Habilidades el buscador y los filtros se destacan por separado de la
+  revisión administrativa de propuestas; esta última sólo aparece en cuentas
+  con autorización.
+- En Mi perfil la introducción señala el encabezado de la pantalla y el
+  segundo paso explica los campos de la tarjeta «Identidad en el panel».
+- La auditoría automatizada verifica adicionalmente que en móvil/portátil
+  la primera tarjeta sea visible, y que las áreas de ayuda correspondan a
+  los controles y estados efectivamente presentes.
+
+La revisión visual con capturas y la prueba de participantes básicos y fichas
+con registros reales continúan pendientes. Ningún resultado técnico por sí
+solo equivale a la aceptación funcional del piloto.
+
 ## Revisión UX/UI pendiente de aprobación
 
 Antes de cerrar el piloto S, verificar en escritorio y móvil:

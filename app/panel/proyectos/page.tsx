@@ -1,4 +1,9 @@
 import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+
+import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../lib/auth/basic-participant'
+import { createClient } from '../../../lib/supabase/server'
 
 import { listOpportunityAssigneeOptions } from '../../../lib/opportunities/detail'
 import { listProjects } from '../../../lib/projects/projects'
@@ -15,6 +20,12 @@ const statusLabels = {
 }
 
 export default async function ProjectsPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (!data?.claims?.sub) redirect('/login')
+  const access = await getInternalAccess(data.claims.sub)
+  if (isBasicParticipantAccess(access)) notFound()
+
   const [projects, assigneeOptions] =
     await Promise.all([
       listProjects(),

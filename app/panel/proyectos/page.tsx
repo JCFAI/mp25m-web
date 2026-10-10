@@ -23,7 +23,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <section>
+      <section data-tour="s-projects-intro">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
           Proyectos
         </p>
@@ -40,11 +40,13 @@ export default async function ProjectsPage() {
         </p>
       </section>
 
-      <ProjectCreationForm
-        assigneeOptions={assigneeOptions}
-      />
+      <div data-tour="s-projects-create">
+        <ProjectCreationForm
+          assigneeOptions={assigneeOptions}
+        />
+      </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="s-projects-list" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">
             Proyectos registrados

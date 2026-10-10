@@ -86,7 +86,7 @@ export function getTourScrollAdjustment(
   dialogHeight: number,
 ): number {
   const layout = getTourLayout(
-    { ...target, left: 0, right: 1 },
+    { top: target.top, bottom: target.bottom, left: 0, right: 1 },
     { width: 100, height: viewportHeight },
     dialogHeight,
   )

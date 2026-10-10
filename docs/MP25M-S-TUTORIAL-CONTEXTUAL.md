@@ -10,9 +10,10 @@ qué opciones son visibles según los permisos y dónde pedir ayuda.
 
 ## Recorrido de Inicio
 
-Al ingresar por primera vez, el recorrido muestra directamente el bloque
-«Módulos del sistema», dejando el cuadro de explicación por encima del área
-resaltada. Se puede abrir nuevamente con «Ver recorrido».
+Al ingresar por primera vez, el recorrido presenta «Módulos del sistema».
+La explicación se ubica arriba o abajo según el espacio realmente visible,
+sin tapar la zona resaltada ni crear grandes franjas vacías. Se puede abrir
+nuevamente con «Ver recorrido».
 
 El orden del recorrido refleja el uso de MP25M_S:
 
@@ -67,14 +68,16 @@ un módulo y vuelve a iniciar «Ver recorrido» allí.
 
 - Botones «Anterior», «Siguiente», «Finalizar» y «Salir».
 - «Escape» cierra el cuadro.
-- El cuadro queda acoplado en la zona superior, sin arrastre, para evitar que
-  se coloque encima del elemento destacado.
-- Cada paso mide la altura real de la guía y desplaza el elemento resaltado
-  inmediatamente debajo, con margen visible.
-- Para elementos cercanos al principio o al final de la página se agrega
-  espacio temporal de desplazamiento, que se restaura al cerrar la guía.
+- El cuadro se acopla arriba o abajo, según cuál posición deja visible
+  el elemento señalado; no requiere arrastre manual.
+- Cada paso mide la altura real de la guía y calcula el área visible antes
+  de presentar el cuadro y el resaltado juntos.
+- No se modifica el `padding` ni el alto artificialmente del documento.
+  Se desplaza sólo lo necesario cuando un destino no entra en el área libre.
+- Para secciones muy grandes se ilumina únicamente la parte visible que no
+  está cubierta por el cuadro; se procura conservar su encabezado a la vista.
 - Si la explicación es larga, el texto del cuadro puede desplazarse dentro
-  de un alto máximo; el área destacada sigue libre debajo de la guía.
+  de un alto máximo, sin deformar el resto de la página.
 - Las áreas resaltadas se muestran para observación, pero no se interactúa
   con ellas hasta salir del recorrido.
 - El desplazamiento respeta la preferencia de movimiento reducido.
@@ -110,9 +113,11 @@ Se añadió `tests/e2e/stage-s-tour-visual.spec.ts` para iniciar sesión con un
 usuario de pruebas autorizado y recorrer automáticamente las pantallas de S
 en escritorio (1440×900), portátil (1024×768) y móvil (390×844).
 
-En cada paso identifica el destino resaltado, mide los rectángulos reales
-del navegador y verifica que comiencen por debajo del cuadro explicativo
-con margen suficiente. Puede generar capturas con
+En cada paso espera a que la guía confirme `data-tour-ready=true`;
+compara la identidad del paso y la del resaltado, mide los rectángulos reales
+del navegador y comprueba que **la zona iluminada no intersecte el cuadro**,
+que pertenezca al elemento correcto y sea visible. También verifica que no
+se modifiquen los márgenes del documento y que se capture un paso estable. Puede generar capturas con
 `MP25M_E2E_TOUR_SCREENSHOTS=true`.
 
 Este test requiere credenciales del entorno de pruebas

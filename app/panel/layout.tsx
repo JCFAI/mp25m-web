@@ -46,6 +46,11 @@ export default async function PanelLayout({
     access.length > 0 &&
     access.every(item => item.access_role_code === 'participant')
 
+  const canReviewArticulations = access.some(item =>
+    item.scope_type === 'global' &&
+    ['administrator', 'validator'].includes(item.access_role_code)
+  )
+
   const primaryAccess = access[0]
 
   const roleName = primaryAccess.access_role_name
@@ -69,7 +74,11 @@ export default async function PanelLayout({
         isBasicParticipant={isBasicParticipant}
       />
 
-      <PanelTour />
+      <PanelTour
+        isBasicParticipant={isBasicParticipant}
+        canManageAccess={canManageAccess}
+        canReviewArticulations={canReviewArticulations}
+      />
 
       <div className="mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[270px_1fr]">
         <aside className="hidden bg-[#1E3A5F] text-white md:sticky md:top-0 md:flex md:h-dvh md:self-start md:flex-col md:overflow-x-hidden md:overflow-y-auto">

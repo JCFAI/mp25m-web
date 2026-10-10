@@ -130,6 +130,7 @@ export function PanelTour({
 }: StageTourAudience) {
   const pathname = usePathname()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const autoOpenTimerRef = useRef<number | null>(null)
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] = useState<TourStep[]>([])
@@ -160,12 +161,22 @@ export function PanelTour({
     if (pathname !== '/panel' ||
         window.localStorage.getItem(storageKey) === 'true') return
 
-    const timer = window.setTimeout(() => {
+    autoOpenTimerRef.current = window.setTimeout(() => {
+      autoOpenTimerRef.current = null
+      // The user may have pressed "Ver recorrido" before this timeout.
+      // In that case, never rewind the active walkthrough to step one.
+      if (window.localStorage.getItem(storageKey) === 'true') return
       setStepIndex(0)
       setLayoutState(null)
       setOpen(true)
     }, 300)
-    return () => window.clearTimeout(timer)
+
+    return () => {
+      if (autoOpenTimerRef.current !== null) {
+        window.clearTimeout(autoOpenTimerRef.current)
+        autoOpenTimerRef.current = null
+      }
+    }
   }, [pathname])
 
   const activeStep = useMemo(
@@ -308,6 +319,12 @@ export function PanelTour({
   }
 
   function startTour() {
+    // A manual start wins over the delayed automatic welcome.
+    if (autoOpenTimerRef.current !== null) {
+      window.clearTimeout(autoOpenTimerRef.current)
+      autoOpenTimerRef.current = null
+    }
+    window.localStorage.setItem(storageKey, 'true')
     setStepIndex(0)
     setLayoutState(null)
     setOpen(true)

@@ -9,6 +9,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { usePathname } from 'next/navigation'
+import {
+  contextualStageSTourSteps,
+  homeStageSTourSteps,
+  type StageTourAudience,
+} from '../lib/tour/stage-s-steps'
 
 type TourStep = {
   key: string
@@ -17,33 +22,11 @@ type TourStep = {
   description: string
 }
 
-const storageKey = 'mp25m-panel-contextual-tour-v1-seen'
+const storageKey = 'mp25m-panel-contextual-tour-v2-seen'
 
-function stepsForPath(pathname: string): TourStep[] {
+function stepsForPath(pathname: string, audience: StageTourAudience): TourStep[] {
   if (pathname === '/panel') {
-    return [
-      {
-        key: 'welcome',
-        target: 'panel-hero',
-        title: 'Bienvenida a MP25M',
-        description:
-          'Este recorrido ubica las funciones disponibles hoy y muestra cómo empezar a trabajar sin crear datos de práctica.',
-      },
-      {
-        key: 'modules',
-        target: 'panel-modules',
-        title: 'El sistema crece por etapas',
-        description:
-          'Los módulos disponibles se usan desde ahora. Los que muestran una etapa futura permanecen visibles como hoja de ruta.',
-      },
-      {
-        key: 'articulations',
-        target: 'module-articulations',
-        title: 'Las articulaciones organizan el trabajo',
-        description:
-          'Desde aquí podés registrar una coordinación entre actores, definir responsable y dejar su seguimiento.',
-      },
-    ]
+    return homeStageSTourSteps(audience)
   }
 
   if (pathname === '/panel/articulaciones') {
@@ -133,10 +116,14 @@ function stepsForPath(pathname: string): TourStep[] {
     ]
   }
 
-  return []
+  return contextualStageSTourSteps(pathname)
 }
 
-export function PanelTour() {
+export function PanelTour({
+  isBasicParticipant,
+  canManageAccess,
+  canReviewArticulations,
+}: StageTourAudience) {
   const pathname = usePathname()
   const dialogRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<{
@@ -158,7 +145,11 @@ export function PanelTour() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const nextSteps = stepsForPath(pathname).filter(
+      const nextSteps = stepsForPath(pathname, {
+        isBasicParticipant,
+        canManageAccess,
+        canReviewArticulations,
+      }).filter(
         (step) =>
           !step.target ||
           Boolean(
@@ -174,7 +165,7 @@ export function PanelTour() {
     })
 
     return () => window.cancelAnimationFrame(frame)
-  }, [pathname])
+  }, [pathname, isBasicParticipant, canManageAccess, canReviewArticulations])
 
   useEffect(() => {
     if (
@@ -215,7 +206,11 @@ export function PanelTour() {
         '(prefers-reduced-motion: reduce)',
       ).matches
 
-      if (pathname === '/panel/articulaciones') {
+      if (pathname === '/panel' && activeStep?.key === 'modules') {
+        // Present the module overview below the guide, like the approved screenshot.
+        const sectionTop = element.getBoundingClientRect().top + window.scrollY
+        window.scrollTo({ top: Math.max(0, sectionTop - 340), behavior: 'auto' })
+      } else if (pathname === '/panel/articulaciones') {
         if (activeStep?.key === 'articulation-directory') {
           // Bring the directory directly below the compact guide.
           const top = element.getBoundingClientRect().top + window.scrollY
@@ -342,6 +337,16 @@ export function PanelTour() {
     ? (() => {
         // During articulation guidance, show the guide above the form/cards.
         // This avoids obscuring the very controls the user is learning about.
+        if (pathname === '/panel' && activeStep?.key === 'modules') {
+          return {
+            left: clamp(
+              (viewportWidth - panelWidth) / 2,
+              margin,
+              Math.max(margin, viewportWidth - panelWidth - margin),
+            ),
+            top: margin,
+          }
+        }
         if (
           pathname === '/panel/articulaciones' &&
           (activeStep?.key === 'articulation-create' ||
@@ -482,7 +487,7 @@ export function PanelTour() {
               title="Arrastrá esta barra para mover la explicación"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
-                Recorrido MP25M
+                Recorrido MP25M_S
               </p>
               <span className="text-xs text-slate-500">↕ Arrastrar</span>
             </div>

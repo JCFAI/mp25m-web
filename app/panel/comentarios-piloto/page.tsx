@@ -140,7 +140,7 @@ export default async function PilotFeedbackPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <section data-tour="s-feedback-intro" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
           Piloto MP25M_S
         </p>
@@ -155,7 +155,7 @@ export default async function PilotFeedbackPage() {
           respuesta del equipo.
         </p>
 
-        <PilotFeedbackForm />
+        <div data-tour="s-feedback-form"><PilotFeedbackForm /></div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

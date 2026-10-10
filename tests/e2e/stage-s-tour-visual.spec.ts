@@ -107,6 +107,54 @@ async function verifyTour(
       await expect(spot).toHaveCount(0)
     }
 
+    // Regression: the first mobile/laptop screen must show the first card,
+    // not just a section title sitting at the bottom of the viewport.
+    if (route === '/panel' && i === 0 &&
+        page.viewportSize()!.width <= 1100) {
+      const firstCard = page.locator('[data-tour="module-people"]')
+      await expect(firstCard).toHaveCount(1)
+      await expect.poll(async () => {
+        const [g, card] = await Promise.all([
+          guide.boundingBox(),
+          firstCard.boundingBox(),
+        ])
+        return Boolean(g && card &&
+          g.y > page.viewportSize()!.height / 2 &&
+          card.y >= -4 &&
+          card.y + card.height > 80 &&
+          card.y < g.y - 24)
+      }, { message: 'El primer módulo debe verse antes del cuadro explicativo' })
+        .toBe(true)
+    }
+
+    if (targetName === 's-skills-search') {
+      // Review controls must never be part of the search spotlight.
+      await expect(
+        page.locator('[data-tour="s-skills-search"]')
+          .locator('[data-tour="s-skills-review"]'),
+      ).toHaveCount(0)
+    }
+
+    if (targetName === 's-profile-details') {
+      await expect(
+        page.locator('[data-tour="s-profile-details"]')
+          .getByRole('heading', { name: 'Identidad en el panel' }),
+      ).toBeVisible()
+    }
+
+    if (targetName &&
+        ['articulation-directory', 's-projects-list', 's-themes-directory']
+          .includes(targetName)) {
+      const root = page.locator(`[data-tour="${targetName}"]`)
+      const reportedEmpty = await root.evaluate(node =>
+        node.getAttribute('data-tour-empty') === 'true' ||
+        node.querySelector('[data-tour-empty="true"]') !== null,
+      )
+      if (reportedEmpty) {
+        await expect(guide).toHaveAttribute('data-tour-empty-state', 'true')
+      }
+    }
+
     // Two animation frames make sure that screenshot and geometry reflect
     // the settled current step, not a stale scroll/spotlight transition.
     await page.evaluate(() => new Promise<void>(resolve =>

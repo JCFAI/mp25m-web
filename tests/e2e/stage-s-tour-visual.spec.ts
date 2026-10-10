@@ -49,10 +49,18 @@ async function verifyTour(
   const visited = new Set<string>()
   let verified = 0
   let finished = false
+  let precedingStep: string | null = null
 
   for (let i = 0; i < 40; i++) {
-    // A step is NOT finished simply because the title or target is present.
-    // The spotlight and dialog must belong to the same rendered step.
+    // After Next, the old dialog can remain "ready" for a brief moment.
+    // Require the NEXT step identity before reading its geometry.
+    if (precedingStep !== null) {
+      await expect.poll(
+        () => page.locator('[data-tour-step-key]').getAttribute('data-tour-step-key'),
+        { timeout: 15_000, message: `No avanzó el recorrido de ${route} desde ${precedingStep}` },
+      ).not.toBe(precedingStep)
+    }
+
     await expect(guide).toHaveAttribute('data-tour-ready', 'true', {
       timeout: 15_000,
     })
@@ -129,6 +137,7 @@ async function verifyTour(
       break
     }
     await guide.getByRole('button', { name: 'Siguiente' }).click()
+    precedingStep = stepKey
   }
 
   expect(finished, `El recorrido de ${route} no terminó`).toBe(true)

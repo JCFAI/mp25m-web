@@ -5,6 +5,7 @@ import {
 } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { canReadOrganizationPrivateDetails } from '../../../../lib/organizations/authorize'
 import { canManageOrganizationActivities } from '../../../../lib/organizations/activities-manage'
 import { canManageOrganizationCapabilities } from '../../../../lib/organizations/capabilities-manage'
 import {
@@ -472,6 +473,10 @@ export default async function OrganizationProfilePage({
 
   if (access.length === 0) {
     redirect('/sin-acceso')
+  }
+
+  if (!await canReadOrganizationPrivateDetails(access, id)) {
+    notFound()
   }
 
   const profile =

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import {
   createNeedOffer,
   createNeedOfferFollowup,
@@ -65,6 +66,8 @@ async function currentAccess() {
   if (!access.length) {
     redirect('/sin-acceso')
   }
+
+  assertElevatedPanelAccess(access)
 
   return access
 }

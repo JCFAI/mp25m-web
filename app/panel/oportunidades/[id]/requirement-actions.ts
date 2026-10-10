@@ -7,6 +7,7 @@ import {
   getInternalAccess,
   type InternalAccess,
 } from '../../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../../lib/auth/require-elevated-panel-access'
 
 import {
   createOpportunityRequirement,
@@ -102,7 +103,9 @@ Promise<InternalAccess[]> {
     redirect('/sin-acceso')
   }
 
-  return access
+
+  assertElevatedPanelAccess(access)
+return access
 }
 
 function parseFormulationInput(

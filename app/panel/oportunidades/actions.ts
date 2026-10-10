@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import {
   createOpportunity,
   type NewActorCandidateInput,
@@ -175,7 +176,9 @@ export async function createOpportunityAction(
     redirect('/sin-acceso')
   }
 
-  const title = String(
+
+  assertElevatedPanelAccess(access)
+const title = String(
     formData.get('title') ?? ''
   ).trim()
 

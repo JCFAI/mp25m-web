@@ -56,18 +56,27 @@ export default async function LoginPage({
 
           <LoginForm />
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 space-y-4 text-center">
             <a
               href="/recuperar-clave"
-              className="text-sm font-medium text-[#2F5D8C] underline underline-offset-4 hover:text-[#1E3A5F]"
+              className="block text-sm font-medium text-[#2F5D8C] underline underline-offset-4 hover:text-[#1E3A5F]"
             >
               ¿Olvidaste tu contraseña?
             </a>
-          </div>
 
-          <p className="mt-6 text-center text-xs leading-5 text-slate-500">
-            El acceso es únicamente para usuarios habilitados.
-          </p>
+            <div className="border-t border-slate-200 pt-5">
+              <p className="text-sm text-slate-600">
+                ¿Es tu primera vez en MP25M?
+              </p>
+
+              <a
+                href="/solicitar-acceso"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-[#2F5D8C] px-4 py-3 text-sm font-semibold text-[#1E3A5F] hover:bg-[#F4F7FA]"
+              >
+                Crear una cuenta
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </main>

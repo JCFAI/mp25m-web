@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../lib/auth/require-elevated-panel-access'
 import {
   addProjectParticipant,
   createProject,
@@ -30,6 +31,7 @@ async function getCurrentAccess() {
   if (!data?.claims?.sub) redirect('/login')
   const access = await getInternalAccess(data.claims.sub)
   if (!access.length) redirect('/sin-acceso')
+  assertElevatedPanelAccess(access)
   return access
 }
 

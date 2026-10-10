@@ -9,7 +9,13 @@ function activeClass(isActive: boolean) {
     : 'flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium text-slate-50/80 transition hover:bg-white/8 hover:text-white'
 }
 
-export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean }) {
+export function PanelNavigation({
+  canManageAccess,
+  isBasicParticipant,
+}: {
+  canManageAccess: boolean
+  isBasicParticipant: boolean
+}) {
   const pathname = usePathname()
 
   const homeActive = pathname === '/panel'
@@ -66,6 +72,50 @@ export function PanelNavigation({ canManageAccess }: { canManageAccess: boolean 
   const pilotFeedbackActive =
     pathname === '/panel/comentarios-piloto' ||
     pathname.startsWith('/panel/comentarios-piloto/')
+
+  if (isBasicParticipant) {
+    return (
+      <nav className="px-3 py-5">
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-100/50">
+          Navegación
+        </p>
+
+        <div className="space-y-1">
+          <Link href="/panel" aria-current={homeActive ? 'page' : undefined} className={activeClass(homeActive)}>
+            <span>Inicio</span>
+            {homeActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+
+          <Link href="/panel/personas" aria-current={peopleActive ? 'page' : undefined} className={activeClass(peopleActive)}>
+            <span>Personas</span>
+            {peopleActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+
+          <Link href="/panel/nodos" aria-current={nodesActive ? 'page' : undefined} className={activeClass(nodesActive)}>
+            <span>Nodos</span>
+            {nodesActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+
+          <Link href="/panel/organizaciones" aria-current={organizationsActive ? 'page' : undefined} className={activeClass(organizationsActive)}>
+            <span>Organizaciones</span>
+            {organizationsActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+
+          <Link href="/panel/habilidades" aria-current={skillsActive ? 'page' : undefined} className={activeClass(skillsActive)}>
+            <span>Habilidades</span>
+            {skillsActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+
+          <div className="my-3 border-t border-white/10" />
+
+          <Link href="/panel/comentarios-piloto" aria-current={pilotFeedbackActive ? 'page' : undefined} className={activeClass(pilotFeedbackActive)}>
+            <span>Sugerencias para este Programa</span>
+            {pilotFeedbackActive ? <span className="h-2 w-2 rounded-full bg-sky-300" /> : null}
+          </Link>
+        </div>
+      </nav>
+    )
+  }
 
   return (
     <nav className="px-3 py-5">

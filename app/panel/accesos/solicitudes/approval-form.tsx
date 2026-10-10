@@ -23,9 +23,17 @@ export function ApprovalForm({ authUserId, displayName, scopes }: Props) {
   const [result, setResult] = useState('')
   const [pending, startTransition] = useTransition()
 
-  const allowedScopes = scopes.filter(s =>
-    roleCode === 'administrator' ? s.scope_type === 'global' : s.scope_type === 'node'
-  )
+  const allowedScopes = scopes.filter(scope => {
+    if (roleCode === 'administrator') {
+      return scope.scope_type === 'global'
+    }
+
+    if (roleCode === 'participant') {
+      return scope.scope_type === 'global' || scope.scope_type === 'node'
+    }
+
+    return scope.scope_type === 'node'
+  })
   const effectiveScopeId = allowedScopes.some(s => s.id === scopeId)
     ? scopeId : (allowedScopes[0]?.id ?? '')
   const canSubmit = !!effectiveScopeId && acknowledged &&

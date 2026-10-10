@@ -14,12 +14,21 @@ export default function HomePage() {
         <div className="home-note">
           Los formularios de actualización se abren mediante un enlace personal enviado por el MP25M.
         </div>
-        <Link
-          href="/login"
-          className="mt-6 inline-flex rounded-lg bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white hover:bg-[#14263D]"
-        >
-          Ingresar al sistema
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/login"
+            className="inline-flex rounded-lg bg-[#1E3A5F] px-5 py-3 text-sm font-semibold text-white hover:bg-[#14263D]"
+          >
+            Ingresar al sistema
+          </Link>
+
+          <Link
+            href="/solicitar-acceso"
+            className="inline-flex rounded-lg border border-[#1E3A5F] bg-white px-5 py-3 text-sm font-semibold text-[#1E3A5F] hover:bg-slate-50"
+          >
+            Crear una cuenta
+          </Link>
+        </div>
       </section>
     </main>
   );

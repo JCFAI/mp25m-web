@@ -76,6 +76,18 @@ export default async function SolicitudesAccesoPage() {
                   {' · '}
                   {user.email_confirmed_at ? 'Correo confirmado' : 'Correo sin confirmar'}
                 </p>
+
+                {typeof user.user_metadata?.access_message === 'string' &&
+                user.user_metadata.access_message.trim() ? (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Mensaje
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {user.user_metadata.access_message}
+                    </p>
+                  </div>
+                ) : null}
                 {approvalsEnabled && user.email_confirmed_at ? (
                   <ApprovalForm
                     authUserId={user.id}

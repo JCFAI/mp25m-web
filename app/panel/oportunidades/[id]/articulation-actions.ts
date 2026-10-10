@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { assertElevatedPanelAccess } from '../../../../lib/auth/require-elevated-panel-access'
 import {
   addOpportunityArticulationParticipant,
   createOpportunityArticulation,
@@ -25,7 +26,9 @@ async function getCurrentAccess() {
   const access = await getInternalAccess(data.claims.sub)
   if (access.length === 0) redirect('/sin-acceso')
 
-  return access
+
+  assertElevatedPanelAccess(access)
+return access
 }
 
 export async function createOpportunityArticulationAction(opportunityId: string, _state: ArticulationActionState, formData: FormData): Promise<ArticulationActionState> {

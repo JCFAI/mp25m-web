@@ -13,8 +13,14 @@ test('contextual MP25M_S tour only highlights available panel surfaces', () => {
   const tour = source('components/panel-tour.tsx')
 
   assert.match(tour, /Ver recorrido/)
-  assert.match(tour, /prefers-reduced-motion/)
+  assert.match(tour, /motion-reduce:transition-none/)
   assert.match(tour, /Novedades y seguimiento/)
+  assert.match(tour, /ResizeObserver/)
+  assert.match(tour, /data-active-tour-target/)
+  assert.match(tour, /paddingBottom/)
+  assert.match(tour, /paddingTop/)
+  assert.doesNotMatch(tour, /setFloatingPosition/)
+  assert.doesNotMatch(tour, /dragDialog/)
   assert.doesNotMatch(tour, /Vincular oportunidad/)
   assert.doesNotMatch(tour, /Economía operativa/)
 

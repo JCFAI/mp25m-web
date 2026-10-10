@@ -15,6 +15,7 @@ import {
   listNeedOfferStatusHistory,
   listNeedOfferUserOptions,
 } from '../../../../lib/needs-offers/needs-offers'
+import { canReadNeedOffer } from '../../../../lib/needs-offers/authorize'
 import { createClient } from '../../../../lib/supabase/server'
 import {
   NeedOfferEditForm,
@@ -77,21 +78,28 @@ export default async function NeedOfferDetailPage({
     redirect('/sin-acceso')
   }
 
+  const needOffer =
+    await getNeedOffer(id)
+
+  if (
+    !needOffer ||
+    !canReadNeedOffer(
+      access,
+      needOffer
+    )
+  ) {
+    notFound()
+  }
+
   const [
-    needOffer,
     followups,
     history,
   ] = await Promise.all([
-    getNeedOffer(id),
     listNeedOfferFollowups(id),
     listNeedOfferStatusHistory(
       id
     ),
   ])
-
-  if (!needOffer) {
-    notFound()
-  }
 
   const canGovern =
     canGovernNeedsOffers(access)

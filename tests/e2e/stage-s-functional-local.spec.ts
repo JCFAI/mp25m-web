@@ -152,6 +152,19 @@ test.describe('MP25M_S: piloto funcional exclusivamente local', () => {
       })
   }
 
+  test('Participante básico no accede a módulos de coordinación por URL',
+    async ({ page }) => {
+      await signIn(page, participantEmail)
+      for (const route of ['/panel/articulaciones', '/panel/proyectos', '/panel/temas']) {
+        await page.goto(route)
+        await expect(page.locator(
+          '[data-tour="articulations-intro"], ' +
+          '[data-tour="s-projects-intro"], ' +
+          '[data-tour="s-themes-intro"]',
+        )).toHaveCount(0)
+      }
+    })
+
   test('Participante básico no abre la ficha de Articulación por URL',
     async ({ page }) => {
       await signIn(page, participantEmail)

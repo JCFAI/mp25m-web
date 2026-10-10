@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getInternalAccess } from '../../../../../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../../../../../lib/auth/basic-participant'
 import {
   canOperateOpportunityRequirementEvaluation,
   getMatchFoundationEvidenceSearchContext,
@@ -73,6 +74,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const access = await getInternalAccess(authUserId)
   if (access.length === 0) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  if (isBasicParticipantAccess(access)) {
+    return NextResponse.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    )
   }
 
   const opportunity = await getOpportunityDetail(opportunityId)

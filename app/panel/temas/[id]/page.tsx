@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../lib/auth/basic-participant'
 import { createClient } from '../../../../lib/supabase/server'
 import {
   canFollowupTheme,
@@ -29,6 +30,7 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
   if (!data?.claims?.sub) redirect('/login')
   const access = await getInternalAccess(data.claims.sub)
   if (!access.length) redirect('/sin-acceso')
+  if (isBasicParticipantAccess(access)) notFound()
 
   const [theme, responsibilities, followups, history] = await Promise.all([
     getTheme(id), listThemeResponsibilities(id), listThemeFollowups(id), listThemeStatusHistory(id),

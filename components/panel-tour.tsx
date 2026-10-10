@@ -209,12 +209,12 @@ export function PanelTour({
       if (pathname === '/panel' && activeStep?.key === 'modules') {
         // Present the module overview below the guide, like the approved screenshot.
         const sectionTop = element.getBoundingClientRect().top + window.scrollY
-        window.scrollTo({ top: Math.max(0, sectionTop - 340), behavior: 'auto' })
+        window.scrollTo({ top: Math.max(0, sectionTop - 225), behavior: 'auto' })
       } else if (pathname === '/panel/articulaciones') {
         if (activeStep?.key === 'articulation-directory') {
           // Bring the directory directly below the compact guide.
           const top = element.getBoundingClientRect().top + window.scrollY
-          window.scrollTo({ top: Math.max(0, top - 430), behavior: 'auto' })
+          window.scrollTo({ top: Math.max(0, top - 285), behavior: 'auto' })
         } else {
           window.scrollTo({ top: 0, behavior: 'auto' })
         }
@@ -222,7 +222,7 @@ export function PanelTour({
         // Reserve a clear area above the highlighted section for the guide.
         const pageTop = element.getBoundingClientRect().top + window.scrollY
         window.scrollTo({
-          top: Math.max(0, pageTop - 430),
+          top: Math.max(0, pageTop - 285),
           behavior: 'auto',
         })
       } else {
@@ -329,7 +329,7 @@ export function PanelTour({
   const margin = 16
   const gap = 18
   const panelWidth = Math.min(viewportWidth >= 1000 ? 780 : viewportWidth >= 720 ? 600 : 360, viewportWidth - margin * 2)
-  const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 250 : 350, viewportHeight - margin * 2)
+  const estimatedPanelHeight = Math.min(viewportWidth >= 720 ? 175 : 220, viewportHeight - margin * 2)
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(value, max))
 
@@ -381,7 +381,7 @@ export function PanelTour({
             return {
               left: margin + horizontalRoom * preferred.horizontal,
               top: Math.min(
-                Math.max(margin, viewportHeight - 300),
+                Math.max(margin, viewportHeight - 230),
                 margin + viewportHeight * preferred.vertical,
               ),
             }
@@ -396,7 +396,7 @@ export function PanelTour({
           // Most targets are scrolled below this fixed guide. For the
           // first section near the page top, place it just below instead.
           const top = targetRect.top < 325 &&
-            targetRect.bottom + 310 + gap < viewportHeight
+            targetRect.bottom + 225 + gap < viewportHeight
               ? targetRect.bottom + gap
               : margin
           return { left, top }
@@ -474,8 +474,8 @@ export function PanelTour({
             style={{ ...popoverStyle, ...floatingPosition }}
             className={
               targetRect
-                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none'
-                : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-5 text-slate-950 shadow-2xl outline-none'
+                ? 'fixed z-10 w-[min(780px,calc(100vw-2rem))] flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-3 sm:p-4 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none'
+                : 'fixed inset-x-4 bottom-5 z-10 mx-auto max-w-md flex max-h-[calc(100dvh-2rem)] flex-col rounded-2xl bg-white p-3 sm:p-4 text-slate-950 shadow-2xl outline-none'
             }
           >
             <div
@@ -483,38 +483,37 @@ export function PanelTour({
               onPointerMove={dragDialog}
               onPointerUp={stopDragging}
               onPointerCancel={stopDragging}
-              className="mb-3 flex cursor-grab touch-none select-none items-center justify-between gap-3 border-b border-slate-100 pb-3 active:cursor-grabbing"
+              className="mb-2 flex cursor-grab touch-none select-none items-center justify-between gap-2 border-b border-slate-100 pb-2 active:cursor-grabbing"
               title="Arrastrá esta barra para mover la explicación"
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2F5D8C]">
                 Recorrido MP25M_S
               </p>
-              <span className="text-xs text-slate-500">↕ Arrastrar</span>
+              <span className="text-[11px] text-slate-500">↕ Arrastrar</span>
             </div>
             <div className="min-h-0 overflow-y-auto">
-            <h2 className="mt-2 text-lg font-semibold">
-              {activeStep.title}
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {activeStep.description}
-            </p>
-
-            <p className="mt-4 text-xs font-medium text-slate-500">
-              Paso {stepIndex + 1} de {availableSteps.length}
-            </p>
-
+              <h2 className="text-base font-semibold leading-5 sm:text-lg sm:leading-6">
+                {activeStep.title}
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-slate-600 sm:text-sm">
+                {activeStep.description}
+              </p>
             </div>
-            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
-              <button
-                type="button"
-                onClick={closeTour}
-                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none"
-              >
-                Salir
-              </button>
 
-              <div className="flex items-center gap-2">
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 pt-2">
+              <p className="shrink-0 text-[11px] font-medium text-slate-500 sm:text-xs">
+                Paso {stepIndex + 1} de {availableSteps.length}
+              </p>
+
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={closeTour}
+                  className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
+                >
+                  Salir
+                </button>
+
                 {stepIndex > 0 && (
                   <button
                     type="button"
@@ -522,7 +521,7 @@ export function PanelTour({
                       setFloatingPosition(null)
                       setStepIndex((index) => index - 1)
                     }}
-                    className="rounded-xl px-3 py-2 text-sm font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none"
+                    className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                   >
                     Anterior
                   </button>
@@ -538,7 +537,7 @@ export function PanelTour({
                     setFloatingPosition(null)
                     setStepIndex((index) => index + 1)
                   }}
-                  className="rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none"
+                  className="min-h-8 rounded-lg bg-[#1E3A5F] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none sm:text-sm"
                 >
                   {stepIndex + 1 >= availableSteps.length
                     ? 'Finalizar'

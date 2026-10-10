@@ -56,7 +56,13 @@ export async function GET(request: NextRequest) {
   // The canonical directory is shared, but cross-node aggregate counts are not.
   const visibleResults = isGlobalReviewer
     ? results
-    : results.map(({ confirmed_node_count: _nodes, capability_count: _capabilities, ...item }) => item)
+    : results.map(item => ({
+        id: item.id,
+        display_name: item.display_name,
+        organization_type_code: item.organization_type_code,
+        organization_type_name: item.organization_type_name,
+        record_status: item.record_status,
+      }))
 
   return NextResponse.json(visibleResults, {
     headers: {

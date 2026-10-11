@@ -11,6 +11,7 @@ import {
 import { usePathname } from 'next/navigation'
 import {
   getFloatingTourLayout,
+  getHomeIntroFloatingLayout,
   type FloatingTourLayout,
 } from '../lib/tour/placement'
 import {
@@ -255,6 +256,7 @@ export function PanelTour({
     [availableSteps, stepIndex],
   )
   const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
+  const isHomeIntro = pathname === '/panel' && activeStep?.key === 'modules'
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -329,36 +331,47 @@ export function PanelTour({
 
       if (focus && initial) {
         const rect = focus.getBoundingClientRect()
-        const desiredTop = viewport.width < 640 ? 100 : 132
-        // Reframe *this screen's actual control* near the beginning of
-        // the viewport. Do not scroll an entire directory into its middle.
-        if (rect.top < 60 || rect.top > viewport.height * 0.38 ||
-            rect.bottom < 60 || rect.bottom > viewport.height - 20) {
-          focus.scrollIntoView({ behavior: 'instant', block: 'start' })
-          window.scrollBy({ top: -desiredTop, behavior: 'instant' })
+        if (isHomeIntro) {
+          // Show the explanation at the TOP of the screen and bring the
+          // module heading plus first complete card immediately BELOW it.
+          const desiredTop = dialogHeight + 48
+          const delta = rect.top - desiredTop
+          if (Math.abs(delta) > 6) {
+            window.scrollBy({ top: delta, behavior: 'instant' })
+          }
+        } else {
+          const desiredTop = viewport.width < 640 ? 100 : 132
+          if (rect.top < 60 || rect.top > viewport.height * 0.38 ||
+              rect.bottom < 60 || rect.bottom > viewport.height - 20) {
+            focus.scrollIntoView({ behavior: 'instant', block: 'start' })
+            window.scrollBy({ top: -desiredTop, behavior: 'instant' })
+          }
         }
       }
 
       const rect = focus?.getBoundingClientRect()
-      // Long forms and directories are not single tutorial targets.
-      // Illuminate their heading and first actionable controls only.
+      const firstCard = isHomeIntro
+        ? target?.querySelector<HTMLElement>('[data-tour="module-people"]')
+        : null
+      const firstCardRect = firstCard?.getBoundingClientRect()
       const focusHeight = viewport.width < 640 ? 190 : 252
       const focusedRect = rect
         ? {
             top: rect.top,
-            bottom: Math.min(rect.bottom, rect.top + focusHeight),
+            bottom: isHomeIntro && firstCardRect
+              ? Math.min(rect.bottom, firstCardRect.bottom)
+              : Math.min(rect.bottom, rect.top + focusHeight),
             left: rect.left,
             right: rect.right,
           }
         : null
-      const result = getFloatingTourLayout(
-        focusedRect,
-        viewport,
-        {
-          width: guide.getBoundingClientRect().width,
-          height: dialogHeight,
-        },
-      )
+      const guideSize = {
+        width: guide.getBoundingClientRect().width,
+        height: dialogHeight,
+      }
+      const result = isHomeIntro
+        ? getHomeIntroFloatingLayout(focusedRect, viewport, guideSize)
+        : getFloatingTourLayout(focusedRect, viewport, guideSize)
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -394,6 +407,10 @@ export function PanelTour({
     observer.observe(guide)
     if (target) observer.observe(target)
     if (focus && focus !== target) observer.observe(focus)
+    if (isHomeIntro) {
+      const first = target?.querySelector<HTMLElement>('[data-tour="module-people"]')
+      if (first) observer.observe(first)
+    }
 
     const scroll = () => schedule(false)
     const resize = () => schedule(true)
@@ -407,7 +424,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep])
+  }, [open, stepId, activeStep, isHomeIntro])
 
   useEffect(() => {
     if (!isReady) return
@@ -538,6 +555,7 @@ export function PanelTour({
             ref={dialogRef}
             data-tour-ready={isReady ? 'true' : 'false'}
             data-tour-floating="true"
+            data-tour-home-intro={isHomeIntro ? "true" : "false"}
             data-tour-placement={isReady ? layoutState.layout.placement : 'pending'}
             data-tour-empty-state={isEmpty ? 'true' : 'false'}
             data-tour-step-key={activeStep.key}
@@ -546,7 +564,7 @@ export function PanelTour({
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
             aria-hidden={!isReady}
-            className="pointer-events-auto fixed z-10 flex w-[min(780px,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.33)] ring-1 ring-white/90 outline-none sm:px-6 sm:py-4"
+            className={`pointer-events-auto fixed z-10 flex ${isHomeIntro ? 'w-[min(900px,calc(100vw-1.5rem))]' : 'w-[min(780px,calc(100vw-1.5rem))]'} max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.33)] ring-1 ring-white/90 outline-none sm:px-6 sm:py-4`}
             style={{
               left: floatingPosition.left,
               top: floatingPosition.top,

@@ -322,9 +322,12 @@ export function PanelTour({
       : null
     // Each screen may identify the exact search/form control instead of
     // highlighting an entire, potentially thousand-pixel-tall directory.
-    const focus = target?.querySelector<HTMLElement>(
+    const focusTarget = target?.querySelector<HTMLElement>(
       '[data-tour-focus="' + activeStep.key + '"]',
     ) ?? target
+    // Personas / paso 2 needs the complete lower interaction block:
+    // search input + "Ver lista" + helper copy, not only the input itself.
+    const focus = isPeopleSearch ? target : focusTarget
 
     if (!guide) return
     let frame = 0

@@ -119,6 +119,7 @@ export function PersonSearch() {
       </p>
 
       <div
+        data-tour-focus="people-search"
         className="relative mt-4"
         onFocusCapture={() =>
           setInputFocused(true)

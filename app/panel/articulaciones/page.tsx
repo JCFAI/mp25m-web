@@ -58,7 +58,7 @@ export default async function ArticulationsPage() {
         assigneeOptions={assigneeOptions}
       />
 
-      <section data-tour="articulation-directory" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="articulation-directory" data-tour-empty={articulations.length === 0 ? 'true' : 'false'} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">
             Articulaciones registradas

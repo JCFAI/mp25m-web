@@ -308,7 +308,7 @@ export function SkillSearch({
         categoría o a quién aplica.
       </p>
 
-      <div className="mt-3 grid gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_minmax(180px,240px)] lg:gap-4">
+      <div data-tour-focus="skills-search" className="mt-3 grid gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_minmax(180px,240px)] lg:gap-4">
         <div>
           <label
             htmlFor={inputId}

@@ -57,6 +57,7 @@ export function ArticulationCreationForm({
 
       <form
         action={formAction}
+        data-tour-focus="articulation-create"
         className="border-t border-slate-200 p-5"
       >
         <p className="text-sm leading-6 text-slate-600">
@@ -67,6 +68,7 @@ export function ArticulationCreationForm({
         </p>
 
         <input
+          data-tour="articulation-title"
           name="title"
           required
           minLength={3}
@@ -76,6 +78,7 @@ export function ArticulationCreationForm({
         />
 
         <textarea
+          data-tour="articulation-objective"
           name="objective"
           required
           minLength={3}
@@ -86,6 +89,7 @@ export function ArticulationCreationForm({
         />
 
         <select
+          data-tour="articulation-responsible"
           name="responsible_internal_user_id"
           className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
         >

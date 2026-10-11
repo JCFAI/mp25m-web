@@ -25,7 +25,7 @@ function LoginSubmitButton({ submittingRef }: { submittingRef: RefObject<boolean
   )
 }
 
-export function LoginForm() {
+export function LoginForm({ startTour = false }: { startTour?: boolean }) {
   const submittingRef = useRef(false)
 
   return (
@@ -41,6 +41,7 @@ export function LoginForm() {
       }}
       className="space-y-5"
     >
+      {startTour ? <input type="hidden" name="tour" value="1" /> : null}
       <div>
         <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">Email</label>
         <input

@@ -32,8 +32,8 @@ export function ThemeDirectory() {
 
   useEffect(() => { openDirectory() }, [openDirectory])
 
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-end lg:justify-between">
+  return <section data-tour-empty={directory.status === 'empty' ? 'true' : 'false'} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div data-tour-focus="themes-directory" className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-end lg:justify-between">
       <div><h2 className="text-lg font-semibold text-slate-950">Directorio de temas</h2><p className="mt-1 text-sm text-slate-500">Buscá por nombre, descripción o propósito. La lista carga por páginas.</p></div>
       <div className="grid gap-3 sm:grid-cols-3 lg:w-[46rem]">
         <label className="text-sm font-medium text-slate-700">Buscar<input value={directory.query} onChange={(event) => directory.setQuery(event.target.value)} placeholder="Ej.: logística, exportación..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></label>

@@ -1,4 +1,9 @@
 import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+
+import { getInternalAccess } from '../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../lib/auth/basic-participant'
+import { createClient } from '../../../lib/supabase/server'
 
 import { listOpportunityAssigneeOptions } from '../../../lib/opportunities/detail'
 import { listProjects } from '../../../lib/projects/projects'
@@ -15,6 +20,12 @@ const statusLabels = {
 }
 
 export default async function ProjectsPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (!data?.claims?.sub) redirect('/login')
+  const access = await getInternalAccess(data.claims.sub)
+  if (isBasicParticipantAccess(access)) notFound()
+
   const [projects, assigneeOptions] =
     await Promise.all([
       listProjects(),
@@ -23,7 +34,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <section>
+      <section data-tour="s-projects-intro">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D8C]">
           Proyectos
         </p>
@@ -40,11 +51,13 @@ export default async function ProjectsPage() {
         </p>
       </section>
 
-      <ProjectCreationForm
-        assigneeOptions={assigneeOptions}
-      />
+      <div data-tour="s-projects-create">
+        <ProjectCreationForm
+          assigneeOptions={assigneeOptions}
+        />
+      </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-tour="s-projects-list" data-tour-empty={projects.length === 0 ? 'true' : 'false'} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">
             Proyectos registrados

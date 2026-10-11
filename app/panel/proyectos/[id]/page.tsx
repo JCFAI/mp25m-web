@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 import { getInternalAccess } from '../../../../lib/auth/internal-access'
+import { isBasicParticipantAccess } from '../../../../lib/auth/basic-participant'
 import {
   canManageEconomicSource,
   getEconomicProfileCurrent,
@@ -54,6 +55,13 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  // Authorize the profile before fetching any project data.
+  const authClient = await createClient()
+  const { data: initialClaims } = await authClient.auth.getClaims()
+  if (!initialClaims?.claims?.sub) redirect('/login')
+  const initialAccess = await getInternalAccess(initialClaims.claims.sub)
+  if (isBasicParticipantAccess(initialAccess)) notFound()
+
   const project = await getProject(id)
 
   if (!project) {

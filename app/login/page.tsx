@@ -4,6 +4,7 @@ type LoginPageProps = {
   searchParams: Promise<{
     error?: string
     reset?: string
+    tour?: string
   }>
 }
 
@@ -54,7 +55,7 @@ export default async function LoginPage({
             </div>
           ) : null}
 
-          <LoginForm />
+          <LoginForm startTour={params.tour === '1'} />
 
           <div className="mt-6 space-y-4 text-center">
             <a

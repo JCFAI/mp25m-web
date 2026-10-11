@@ -11,6 +11,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'npm run dev:local',

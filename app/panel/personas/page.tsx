@@ -32,7 +32,7 @@ export default async function PeoplePage() {
 
   return (
     <div className="space-y-7">
-      <section className="rounded-3xl bg-gradient-to-br from-[#12648d] via-[#124f75] to-[#14263D] px-7 py-7 text-white shadow-sm">
+      <section data-tour="s-people-intro" className="rounded-3xl bg-gradient-to-br from-[#12648d] via-[#124f75] to-[#14263D] px-7 py-7 text-white shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
           Personas
         </p>
@@ -50,7 +50,7 @@ export default async function PeoplePage() {
 
       {canManagePeople(access) ? <Link href="/panel/personas/nueva" className="ux-button inline-flex min-h-11 items-center rounded-xl bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#14263D]">Nueva persona</Link> : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section data-tour="s-people-search" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <PersonSearch />
       </section>
     </div>

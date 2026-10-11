@@ -272,3 +272,60 @@ export function getHomeIntroFloatingLayout(
     visibleHeight: spotlight?.height ?? 0,
   }
 }
+
+
+/**
+ * Inicio / tarjeta individual: keep the complete card illuminated and place
+ * the explanation immediately below it, horizontally centered on the card.
+ */
+export function getHomeModuleBelowLayout(
+  target: TourRect | null,
+  viewport: { width: number; height: number },
+  dialog: { width: number; height: number },
+): FloatingTourLayout {
+  const inset = 12
+  const gap = 28
+  const width = Math.min(dialog.width, viewport.width - inset * 2)
+  const height = Math.min(dialog.height, viewport.height - inset * 2)
+  const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, value))
+  const maxX = Math.max(inset, viewport.width - width - inset)
+  const maxY = Math.max(inset, viewport.height - height - inset)
+
+  if (!target) {
+    return {
+      placement: 'center',
+      left: clamp((viewport.width - width) / 2, inset, maxX),
+      top: clamp((viewport.height - height) / 2, inset, maxY),
+      spotlight: null,
+      visibleHeight: 0,
+    }
+  }
+
+  const left = clamp(
+    (target.left + target.right - width) / 2,
+    inset,
+    maxX,
+  )
+  const top = clamp(target.bottom + gap, inset, maxY)
+  const clipLeft = Math.max(inset, target.left)
+  const clipRight = Math.min(viewport.width - inset, target.right)
+  const clipTop = Math.max(inset, target.top)
+  const clipBottom = Math.min(viewport.height - inset, target.bottom)
+  const litHeight = Math.max(0, clipBottom - clipTop)
+
+  return {
+    placement: 'below',
+    left,
+    top,
+    spotlight: litHeight >= 30 && clipRight > clipLeft
+      ? {
+          top: clipTop,
+          left: clipLeft,
+          width: clipRight - clipLeft,
+          height: litHeight,
+        }
+      : null,
+    visibleHeight: litHeight,
+  }
+}

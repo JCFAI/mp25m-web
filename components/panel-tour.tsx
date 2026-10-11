@@ -303,7 +303,7 @@ export function PanelTour({
 
       const rect = target?.getBoundingClientRect()
       const result = getFloatingTourLayout(
-        rect,
+        rect ?? null,
         viewport,
         {
           width: guide.getBoundingClientRect().width,

@@ -72,8 +72,9 @@ test('tour focuses the first module and uses explicit empty-directory guidance',
   const tour = source('components/panel-tour.tsx')
   const steps = source('lib/tour/stage-s-steps.ts')
 
-  assert.match(tour, /activeStep\.key === 'modules'/)
-  assert.match(tour, /focusModules/)
+  assert.match(tour, /data-tour-focus/)
+  assert.match(tour, /focusHeight/)
+  assert.match(tour, /const focus = target/)
   assert.match(tour, /MutationObserver/)
   assert.match(tour, /data-tour-empty-state/)
   assert.match(tour, /Articulaciones: todavía sin registros/)
@@ -91,4 +92,44 @@ test('tour focuses the first module and uses explicit empty-directory guidance',
   assert.match(source('app/panel/proyectos/page.tsx'), /data-tour-empty=/)
   assert.match(source('app/panel/temas/theme-directory.tsx'), /data-tour-empty=/)
   assert.match(steps, /Identidad en el panel/)
+})
+
+test('every individual S screen aims at real controls rather than huge containers', () => {
+  const screens = [
+    ['app/panel/personas/person-search.tsx', 'people-search'],
+    ['app/panel/nodos/node-search.tsx', 'nodes-search'],
+    ['app/panel/organizaciones/organization-search.tsx', 'organizations-search'],
+    ['app/panel/habilidades/skill-search.tsx', 'skills-search'],
+    ['app/panel/articulaciones/articulation-forms.tsx', 'articulation-create'],
+    ['app/panel/articulaciones/articulation-controls.tsx', 'articulation-management'],
+    ['app/panel/proyectos/project-forms.tsx', 'projects-create'],
+    ['app/panel/temas/theme-directory.tsx', 'themes-directory'],
+    ['app/panel/perfil/page.tsx', 'profile-details'],
+    ['app/panel/comentarios-piloto/pilot-feedback-form.tsx', 'feedback-form'],
+  ]
+  for (const [path, focusKey] of screens) {
+    assert.match(source(path), /data-tour-focus/, path)
+    if (focusKey !== 'articulation-management') {
+      assert.ok(source(path).includes(focusKey), path)
+    }
+  }
+  const articulations = source('app/panel/articulaciones/articulation-forms.tsx')
+  const projects = source('app/panel/proyectos/project-forms.tsx')
+  const feedback = source('app/panel/comentarios-piloto/pilot-feedback-form.tsx')
+  for (const name of ['articulation-title','articulation-objective','articulation-responsible']) {
+    assert.ok(articulations.includes(name))
+    assert.ok(source('components/panel-tour.tsx').includes("key: '" + name + "'"))
+  }
+  for (const name of ['projects-title','projects-objective','projects-responsible']) {
+    assert.ok(projects.includes(name))
+    assert.ok(source('lib/tour/stage-s-steps.ts').includes("key: '" + name + "'"))
+  }
+  for (const name of ['feedback-type','feedback-detail','feedback-context']) {
+    assert.ok(feedback.includes(name))
+    assert.ok(source('lib/tour/stage-s-steps.ts').includes("key: '" + name + "'"))
+  }
+  const tour = source('components/panel-tour.tsx')
+  assert.match(tour, /min\(780px,calc\(100vw-1\.5rem\)\)/)
+  assert.doesNotMatch(tour, /max-h-\[min\(48dvh,360px\)\]/)
+  assert.doesNotMatch(tour, /overflow-y-auto overscroll-contain/)
 })

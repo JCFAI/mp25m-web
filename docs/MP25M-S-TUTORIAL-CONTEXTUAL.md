@@ -11,9 +11,10 @@ qué opciones son visibles según los permisos y dónde pedir ayuda.
 ## Recorrido de Inicio
 
 Al ingresar por primera vez, el recorrido presenta «Módulos del sistema».
-La explicación se ubica arriba o abajo según el espacio realmente visible,
-sin tapar la zona resaltada ni crear grandes franjas vacías. Se puede abrir
-nuevamente con «Ver recorrido».
+Cada explicación se presenta en una **ventana flotante**, anclada al área
+que explica (a un lado, arriba o abajo según el espacio), sin tapar la zona
+resaltada ni crear grandes franjas vacías. La ventana puede arrastrarse desde
+su encabezado «↔ Mover ventana». Se puede abrir nuevamente con «Ver recorrido».
 
 El orden del recorrido refleja el uso de MP25M_S:
 
@@ -68,14 +69,23 @@ un módulo y vuelve a iniciar «Ver recorrido» allí.
 
 - Botones «Anterior», «Siguiente», «Finalizar» y «Salir».
 - «Escape» cierra el cuadro.
-- El cuadro se acopla arriba o abajo, según cuál posición deja visible
-  el elemento señalado; no requiere arrastre manual.
+- **Todas** las descripciones aparecen en ventanas flotantes independientes
+  de la página, ubicadas al lado del objetivo cuando el ancho lo permite,
+  o por encima/debajo cuando no lo permite (incluido el móvil).
+- La persona puede arrastrar cualquier descripción desde «↔ Mover ventana»,
+  conservando a la vista el elemento señalado. La ventana no sale de pantalla.
+- Los pasos sin área objetivo muestran una ventana flotante centrada.
+- El acceso `/login?tour=1` conserva la petición al iniciar sesión y abre
+  automáticamente la primera descripción flotante al llegar al panel. La
+  variante `/panel?tour=1` funciona para sesiones ya iniciadas. Nunca omiten
+  la autenticación.
 - Cada paso mide la altura real de la guía y calcula el área visible antes
   de presentar el cuadro y el resaltado juntos.
 - No se modifica el `padding` ni el alto artificialmente del documento.
   Se desplaza sólo lo necesario cuando un destino no entra en el área libre.
 - Para secciones muy grandes se ilumina únicamente la parte visible que no
-  está cubierta por el cuadro; se procura conservar su encabezado a la vista.
+  está cubierta por la ventana flotante; se procura conservar su encabezado y
+  el primer control a la vista.
 - Si la explicación es larga, el texto del cuadro puede desplazarse dentro
   de un alto máximo, sin deformar el resto de la página.
 - Las áreas resaltadas se muestran para observación, pero no se interactúa
@@ -169,3 +179,14 @@ Este test requiere credenciales del entorno de pruebas
 (`MP25M_E2E_EMAIL` y `MP25M_E2E_PASSWORD`). Si no están disponibles,
 se omite. Un deploy en estado READY no reemplaza la ejecución real de esta
 prueba ni la aprobación visual del piloto.
+
+## Ventanas flotantes del tutorial — revisión final del piloto
+
+El renderizador es único para todas las rutas del panel: Inicio, Personas,
+Nodos, Organizaciones, Habilidades, Articulaciones, Proyectos, Temas, Mi perfil,
+Sugerencias y las fichas habilitadas por el perfil. La misma ventana flotante
+se reutiliza en cada paso y no se acopla a los márgenes superior/inferior.
+El botón «Ver recorrido» permite reiniciar, y el enlace `?tour=1` fuerza su
+apertura para revisar la experiencia, incluso si ya se completó anteriormente.
+La ventana no realiza acciones de escritura y la experiencia sólo es visible
+tras ingresar con una cuenta autorizada.

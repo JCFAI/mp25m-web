@@ -22,7 +22,7 @@ type Action = (state: ArticulationActionState, data: FormData) => Promise<Articu
 
 function ActionForm({ action, label, children, tourId }: { action: Action; label: string; children: ReactNode; tourId?: string }) {
   const [state, submit, pending] = useActionState(action, initialState)
-  return <form data-tour={tourId} action={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
+  return <form data-tour={tourId} data-tour-focus={tourId === "articulation-status" ? "articulation-management" : tourId} action={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
     <fieldset disabled={pending} className="space-y-3">
       <legend className="mb-3 font-semibold text-slate-900">{label}</legend>
       {children}

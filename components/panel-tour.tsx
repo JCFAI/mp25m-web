@@ -425,12 +425,18 @@ export function PanelTour({
               : isProjectsList
                 ? (() => {
                     const base = getFloatingTourLayout(focusedRect, viewport, guideSize)
-                    // Raise only the Projects step 6 guide.
-                    // The spotlight remains anchored to s-projects-list.
-                    const shift = Math.min(120, Math.max(0, base.top - 12))
+                    // Keep the complete Projects directory illuminated below
+                    // and place the explanation above it, matching the approved
+                    // visual composition for this final step.
+                    const spotlightTop = base.spotlight?.top ?? base.top
+                    const top = Math.max(
+                      12,
+                      spotlightTop - guideSize.height - 120
+                    )
                     return {
                       ...base,
-                      top: base.top - shift,
+                      placement: 'above' as const,
+                      top,
                     }
                   })()
                 : getFloatingTourLayout(focusedRect, viewport, guideSize)

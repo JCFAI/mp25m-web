@@ -406,7 +406,9 @@ export function PanelTour({
                   // Keep the feedback card illuminated while placing the guide
                   // above it, matching the approved composition for this step.
                   const top = Math.max(12, (base.spotlight?.top ?? base.top) - guideSize.height - 32)
-                  return { ...base, placement: 'above' as const, top }
+                  const maxLeft = Math.max(12, viewport.width - guideSize.width - 12)
+                  const left = Math.min(maxLeft, Math.max(12, base.left + 120))
+                  return { ...base, placement: 'above' as const, top, left }
                 })()
               : getFloatingTourLayout(focusedRect, viewport, guideSize)
 

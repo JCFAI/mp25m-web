@@ -229,15 +229,19 @@ export function PanelTour({
     // A review link with ?tour=1 opens the floating explanation on ANY
     // supported panel route, even if this visitor already saw the tutorial.
     // It does not bypass authentication: /panel still requires a valid login.
-    const forceOpen = new URLSearchParams(window.location.search)
-      .get('tour') === '1'
+    const params = new URLSearchParams(window.location.search)
+    const forceOpen = params.get('tour') === '1'
+    const requestedStep = Number.parseInt(params.get('tourStep') ?? '1', 10)
+    const requestedIndex = Number.isFinite(requestedStep)
+      ? Math.max(0, requestedStep - 1)
+      : 0
     if (!forceOpen && (pathname !== '/panel' ||
         window.localStorage.getItem(storageKey) === 'true')) return
 
     autoOpenTimerRef.current = window.setTimeout(() => {
       autoOpenTimerRef.current = null
       if (!forceOpen && window.localStorage.getItem(storageKey) === 'true') return
-      setStepIndex(0)
+      setStepIndex(requestedIndex)
       setDraggedPosition(null)
       setLayoutState(null)
       setOpen(true)

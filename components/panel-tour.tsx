@@ -263,6 +263,7 @@ export function PanelTour({
   const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
   const isHomeIntro = pathname === '/panel' && activeStep?.key === 'modules'
   const isHomeNodes = pathname === '/panel' && activeStep?.key === 'nodes'
+  const isHomeProfile = pathname === '/panel' && activeStep?.key === 'profile'
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -378,7 +379,19 @@ export function PanelTour({
         ? getHomeIntroFloatingLayout(focusedRect, viewport, guideSize)
         : isHomeNodes
           ? getHomeModuleBelowLayout(focusedRect, viewport, guideSize)
-          : getFloatingTourLayout(focusedRect, viewport, guideSize)
+          : isHomeProfile
+            ? (() => {
+                const base = getFloatingTourLayout(focusedRect, viewport, guideSize)
+                const shift = Math.min(150, Math.max(0, base.top - 12))
+                return {
+                  ...base,
+                  top: base.top - shift,
+                  spotlight: base.spotlight
+                    ? { ...base.spotlight, top: Math.max(12, base.spotlight.top - shift) }
+                    : null,
+                }
+              })()
+            : getFloatingTourLayout(focusedRect, viewport, guideSize)
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -426,7 +439,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile])
 
   useEffect(() => {
     if (!isReady) return

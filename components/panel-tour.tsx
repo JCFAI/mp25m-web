@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation'
 import {
   getFloatingTourLayout,
   getHomeIntroFloatingLayout,
+  getHomeModuleBelowLayout,
   type FloatingTourLayout,
 } from '../lib/tour/placement'
 import {
@@ -261,6 +262,7 @@ export function PanelTour({
   )
   const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
   const isHomeIntro = pathname === '/panel' && activeStep?.key === 'modules'
+  const isHomeNodes = pathname === '/panel' && activeStep?.key === 'nodes'
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -374,7 +376,9 @@ export function PanelTour({
       }
       const result = isHomeIntro
         ? getHomeIntroFloatingLayout(focusedRect, viewport, guideSize)
-        : getFloatingTourLayout(focusedRect, viewport, guideSize)
+        : isHomeNodes
+          ? getHomeModuleBelowLayout(focusedRect, viewport, guideSize)
+          : getFloatingTourLayout(focusedRect, viewport, guideSize)
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -422,7 +426,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes])
 
   useEffect(() => {
     if (!isReady) return

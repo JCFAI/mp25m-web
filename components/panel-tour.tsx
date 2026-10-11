@@ -52,6 +52,27 @@ function stepsForPath(pathname: string, audience: StageTourAudience): TourStep[]
           'Indicá un nombre claro y el objetivo. Si ya hay alguien que coordine, elegí al responsable. El formulario permite guardar la nueva articulación; durante este recorrido solo vamos a conocerlo.',
       },
       {
+        key: 'articulation-title',
+        target: 'articulation-title',
+        title: 'Nombre de la articulación',
+        description:
+          'Elegí un nombre breve para identificar el trabajo que se quiere coordinar. Este campo es obligatorio.',
+      },
+      {
+        key: 'articulation-objective',
+        target: 'articulation-objective',
+        title: 'Objetivo inicial',
+        description:
+          'Explicá qué se quiere lograr y para quién. No hace falta cargar nada en esta demostración.',
+      },
+      {
+        key: 'articulation-responsible',
+        target: 'articulation-responsible',
+        title: 'Responsable de coordinación',
+        description:
+          'Si se conoce a la persona que coordinará, se la puede seleccionar. También se permite comenzar sin responsable.',
+      },
+      {
         key: 'articulation-directory',
         target: 'articulation-directory',
         title: 'Abrí una articulación existente',

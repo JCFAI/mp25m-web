@@ -138,6 +138,8 @@ export function PanelTour({
   const dialogRef = useRef<HTMLDivElement>(null)
   const autoOpenTimerRef = useRef<number | null>(null)
   const [open, setOpen] = useState(false)
+  const openRef = useRef(open)
+  openRef.current = open
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] = useState<TourStep[]>([])
   const [emptyTarget, setEmptyTarget] = useState<{
@@ -162,7 +164,11 @@ export function PanelTour({
   } | null>(null)
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    // Server components may arrive after hydration in a real Vercel preview.
+    // Discover every available target as it renders, then freeze the sequence
+    // once the visitor opens the tutorial (so steps never jump mid-tour).
+    let frame = 0
+    const refresh = () => {
       const steps = stepsForPath(pathname, {
         isBasicParticipant,
         canManageAccess,
@@ -172,11 +178,28 @@ export function PanelTour({
           document.querySelector('[data-tour="' + step.target + '"]'),
         ),
       )
-      setStepIndex(0)
-      setLayoutState(null)
-      setAvailableSteps(steps)
-    })
-    return () => window.cancelAnimationFrame(frame)
+      if (openRef.current) return
+      setAvailableSteps(previous =>
+        previous.length === steps.length &&
+        previous.every((step, i) => step.key === steps[i]?.key)
+          ? previous
+          : steps,
+      )
+    }
+    const schedule = () => {
+      if (openRef.current) return
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(refresh)
+    }
+    setStepIndex(0)
+    setLayoutState(null)
+    schedule()
+    const observer = new MutationObserver(schedule)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      window.cancelAnimationFrame(frame)
+    }
   }, [pathname, isBasicParticipant, canManageAccess, canReviewArticulations])
 
   useEffect(() => {

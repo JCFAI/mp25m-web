@@ -47,7 +47,7 @@ export default async function InternalProfilePage() {
         </p>
       </section>
 
-      <section data-tour="s-profile-details" className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section data-tour="s-profile-details" data-tour-focus="profile-details" className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">
           Identidad en el panel
         </h2>

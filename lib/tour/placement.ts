@@ -227,3 +227,48 @@ export function getFloatingTourLayout(
     visibleHeight: litHeight,
   }
 }
+
+
+/**
+ * Inicio / Módulos: the introduction is the only step that describes a
+ * *collection* of cards. Put the readable window ABOVE the collection,
+ * then illuminate its heading and complete first card below it.
+ * Individual module cards get their own subsequent steps.
+ */
+export function getHomeIntroFloatingLayout(
+  target: TourRect | null,
+  viewport: { width: number; height: number },
+  dialog: { width: number; height: number },
+): FloatingTourLayout {
+  const inset = 12
+  const gap = 24
+  const width = Math.min(dialog.width, viewport.width - inset * 2)
+  const left = Math.max(inset, (viewport.width - width) / 2)
+  const top = inset
+  const bottomOfWindow = top + dialog.height
+  const safeSpotTop = bottomOfWindow + gap
+  if (!target) {
+    return {
+      placement: 'above',
+      left,
+      top,
+      spotlight: null,
+      visibleHeight: 0,
+    }
+  }
+  const clipTop = Math.max(target.top, safeSpotTop)
+  const clipBottom = Math.min(target.bottom, viewport.height - inset)
+  const clipLeft = Math.max(target.left, inset)
+  const clipRight = Math.min(target.right, viewport.width - inset)
+  const height = Math.max(0, clipBottom - clipTop)
+  const spotlight = height >= 30 && clipRight - clipLeft >= 30
+    ? { top: clipTop, left: clipLeft, width: clipRight - clipLeft, height }
+    : null
+  return {
+    placement: 'above',
+    left,
+    top,
+    spotlight,
+    visibleHeight: spotlight?.height ?? 0,
+  }
+}

@@ -266,6 +266,8 @@ export function PanelTour({
   const isHomeProfile = pathname === '/panel' && activeStep?.key === 'profile'
   const isHomeFeedback = pathname === '/panel' && activeStep?.key === 'feedback'
   const isPeopleSearch = pathname === '/panel/personas' && activeStep?.key === 'people-search'
+  const isNodesSearch = pathname === '/panel/nodos' && activeStep?.key === 'nodes-search'
+  const isDirectorySearch = isPeopleSearch || isNodesSearch
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -327,7 +329,7 @@ export function PanelTour({
     ) ?? target
     // Personas / paso 2 needs the complete lower interaction block:
     // search input + "Ver lista" + helper copy, not only the input itself.
-    const focus = isPeopleSearch ? target : focusTarget
+    const focus = isDirectorySearch ? target : focusTarget
 
     if (!guide) return
     let frame = 0
@@ -377,7 +379,7 @@ export function PanelTour({
             // Inicio introduces the complete module directory. Personas step
             // 2 deliberately includes the search field, list button and its
             // helper text so the whole interaction is visible at once.
-            bottom: isHomeIntro || isPeopleSearch
+            bottom: isHomeIntro || isDirectorySearch
               ? rect.bottom
               : Math.min(rect.bottom, rect.top + focusHeight),
             left: rect.left,
@@ -465,7 +467,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch, isNodesSearch, isDirectorySearch])
 
   useEffect(() => {
     if (!isReady) return
@@ -598,6 +600,7 @@ export function PanelTour({
             data-tour-floating="true"
             data-tour-home-intro={isHomeIntro ? "true" : "false"}
             data-tour-people-search={isPeopleSearch ? "true" : "false"}
+            data-tour-nodes-search={isNodesSearch ? "true" : "false"}
             data-tour-placement={isReady ? layoutState.layout.placement : 'pending'}
             data-tour-empty-state={isEmpty ? 'true' : 'false'}
             data-tour-step-key={activeStep.key}
@@ -606,7 +609,7 @@ export function PanelTour({
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
             aria-hidden={!isReady}
-            className={`pointer-events-auto fixed z-10 flex ${isHomeIntro ? 'w-[min(900px,calc(100vw-1.5rem))]' : isPeopleSearch ? 'w-[min(860px,calc(100vw-1.5rem))]' : 'w-[min(780px,calc(100vw-1.5rem))]'} max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.33)] ring-1 ring-white/90 outline-none sm:px-6 sm:py-4`}
+            className={`pointer-events-auto fixed z-10 flex ${isHomeIntro ? 'w-[min(900px,calc(100vw-1.5rem))]' : isDirectorySearch ? 'w-[min(860px,calc(100vw-1.5rem))]' : 'w-[min(780px,calc(100vw-1.5rem))]'} max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.33)] ring-1 ring-white/90 outline-none sm:px-6 sm:py-4`}
             style={{
               left: floatingPosition.left,
               top: floatingPosition.top,

@@ -241,4 +241,30 @@ test.describe('MP25M_S: el cuadro nunca cubre la zona explicada', () => {
       }
     })
   }
+
+  test('las descripciones flotantes se pueden mover con el mouse', async ({ page }) => {
+    test.setTimeout(60_000)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await signIn(page)
+    await page.goto('/panel?tour=1')
+    const guide = page.getByRole('dialog', { name: 'Recorrido guiado de MP25M' })
+    await expect(guide).toHaveAttribute('data-tour-floating', 'true')
+    await expect(guide).toHaveAttribute('data-tour-ready', 'true')
+    const handle = guide.locator('[data-tour-drag-handle]')
+    const before = await guide.boundingBox()
+    const grip = await handle.boundingBox()
+    expect(before).toBeTruthy()
+    expect(grip).toBeTruthy()
+    const x = grip!.x + grip!.width / 2
+    const y = grip!.y + grip!.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 32, y + 32, { steps: 8 })
+    await page.mouse.up()
+    const after = await guide.boundingBox()
+    expect(after).toBeTruthy()
+    expect(after!.x).toBeGreaterThan(before!.x + 18)
+    expect(after!.y).toBeGreaterThan(before!.y + 18)
+    await expect(page.locator('[data-tour-spotlight]')).toHaveCount(1)
+  })
 })

@@ -142,6 +142,8 @@ export function PanelTour({
   openRef.current = open
   const [stepIndex, setStepIndex] = useState(0)
   const [availableSteps, setAvailableSteps] = useState<TourStep[]>([])
+  const availableStepsRef = useRef(availableSteps)
+  availableStepsRef.current = availableSteps
   const [emptyTarget, setEmptyTarget] = useState<{
     stepId: string
     isEmpty: boolean
@@ -178,7 +180,7 @@ export function PanelTour({
           document.querySelector('[data-tour="' + step.target + '"]'),
         ),
       )
-      if (openRef.current) return
+      if (openRef.current && availableStepsRef.current.length > 0) return
       setAvailableSteps(previous =>
         previous.length === steps.length &&
         previous.every((step, i) => step.key === steps[i]?.key)
@@ -187,7 +189,7 @@ export function PanelTour({
       )
     }
     const schedule = () => {
-      if (openRef.current) return
+      if (openRef.current && availableStepsRef.current.length > 0) return
       window.cancelAnimationFrame(frame)
       frame = window.requestAnimationFrame(refresh)
     }

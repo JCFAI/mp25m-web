@@ -46,6 +46,7 @@ export function ProjectCreationForm({
         </p>
 
         <input
+          data-tour="projects-title"
           name="title"
           required
           minLength={3}
@@ -55,6 +56,7 @@ export function ProjectCreationForm({
         />
 
         <textarea
+          data-tour="projects-objective"
           name="objective"
           required
           minLength={3}
@@ -65,6 +67,7 @@ export function ProjectCreationForm({
         />
 
         <select
+          data-tour="projects-responsible"
           name="responsible_internal_user_id"
           className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
         >

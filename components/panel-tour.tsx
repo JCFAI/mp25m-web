@@ -11,7 +11,6 @@ import {
 import { usePathname } from 'next/navigation'
 import {
   getFloatingTourLayout,
-  getTourScrollAdjustment,
   type FloatingTourLayout,
 } from '../lib/tour/placement'
 import {
@@ -289,6 +288,11 @@ export function PanelTour({
           '[data-tour="' + activeStep.target + '"]',
         )
       : null
+    // Each screen may identify the exact search/form control instead of
+    // highlighting an entire, potentially thousand-pixel-tall directory.
+    const focus = target?.querySelector<HTMLElement>(
+      '[data-tour-focus="' + activeStep.key + '"]',
+    ) ?? target
 
     if (!guide) return
     let frame = 0
@@ -302,37 +306,32 @@ export function PanelTour({
         height: window.innerHeight,
       }
 
-      if (target && initial) {
-        let rect = target.getBoundingClientRect()
-        const available = viewport.height - dialogHeight - 40
-        // The first module directory is tall on mobile and laptops.
-        // Focus its heading and first card, not a mostly empty viewport
-        // where the directory only begins near the bottom of the screen.
-        const focusModules = pathname === '/panel' &&
-          activeStep.key === 'modules' && viewport.width <= 1100
-        if (focusModules ||
-            rect.bottom < 32 || rect.top > viewport.height - 48 ||
-            (rect.height > available && rect.top < 0)) {
-          target.scrollIntoView({
-            behavior: 'instant',
-            block: rect.height > available ? 'start' : 'nearest',
-          })
-          rect = target.getBoundingClientRect()
-        }
-
-        const delta = getTourScrollAdjustment(
-          rect,
-          viewport.height,
-          dialogHeight,
-        )
-        if (delta !== 0) {
-          window.scrollBy({ top: delta, behavior: 'instant' })
+      if (focus && initial) {
+        const rect = focus.getBoundingClientRect()
+        const desiredTop = viewport.width < 640 ? 100 : 132
+        // Reframe *this screen's actual control* near the beginning of
+        // the viewport. Do not scroll an entire directory into its middle.
+        if (rect.top < 60 || rect.top > viewport.height * 0.38 ||
+            rect.bottom < 60 || rect.bottom > viewport.height - 20) {
+          focus.scrollIntoView({ behavior: 'instant', block: 'start' })
+          window.scrollBy({ top: -desiredTop, behavior: 'instant' })
         }
       }
 
-      const rect = target?.getBoundingClientRect()
+      const rect = focus?.getBoundingClientRect()
+      // Long forms and directories are not single tutorial targets.
+      // Illuminate their heading and first actionable controls only.
+      const focusHeight = viewport.width < 640 ? 190 : 252
+      const focusedRect = rect
+        ? {
+            top: rect.top,
+            bottom: Math.min(rect.bottom, rect.top + focusHeight),
+            left: rect.left,
+            right: rect.right,
+          }
+        : null
       const result = getFloatingTourLayout(
-        rect ?? null,
+        focusedRect,
         viewport,
         {
           width: guide.getBoundingClientRect().width,
@@ -373,6 +372,7 @@ export function PanelTour({
     const observer = new ResizeObserver(() => schedule(false))
     observer.observe(guide)
     if (target) observer.observe(target)
+    if (focus && focus !== target) observer.observe(focus)
 
     const scroll = () => schedule(false)
     const resize = () => schedule(true)
@@ -549,7 +549,7 @@ export function PanelTour({
               </span>
             </div>
 
-            <div data-tour-copy="true" className="min-h-0 overflow-y-auto overscroll-contain">
+            <div data-tour-copy="true" className="min-h-0">
               <h2 className="text-lg font-bold leading-6 tracking-tight sm:text-xl sm:leading-7">
                 {isEmpty && activeStep.emptyTitle ? activeStep.emptyTitle : activeStep.title}
               </h2>

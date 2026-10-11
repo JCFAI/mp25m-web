@@ -196,6 +196,7 @@ export function NodeSearch() {
       </p>
 
       <div
+        data-tour-focus="nodes-search"
         className="relative mt-3 sm:mt-4"
         onFocusCapture={() =>
           setInputFocused(true)

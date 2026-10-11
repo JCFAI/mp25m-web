@@ -48,5 +48,6 @@ export async function login(formData: FormData) {
     redirect('/sin-acceso')
   }
 
-  redirect('/panel')
+  // Preserve only the known, explicitly requested tour flag. No arbitrary redirect.
+  redirect(formData.get('tour') === '1' ? '/panel?tour=1' : '/panel')
 }

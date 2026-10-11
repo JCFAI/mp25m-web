@@ -6,12 +6,13 @@ import {
   useMemo,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { usePathname } from 'next/navigation'
 import {
-  getTourLayout,
+  getFloatingTourLayout,
   getTourScrollAdjustment,
-  type TourLayout,
+  type FloatingTourLayout,
 } from '../lib/tour/placement'
 import {
   contextualStageSTourSteps,
@@ -145,7 +146,19 @@ export function PanelTour({
   } | null>(null)
   const [layoutState, setLayoutState] = useState<{
     stepId: string
-    layout: TourLayout
+    layout: FloatingTourLayout
+  } | null>(null)
+  const [draggedPosition, setDraggedPosition] = useState<{
+    stepId: string
+    left: number
+    top: number
+  } | null>(null)
+  const dragRef = useRef<{
+    pointerId: number
+    x: number
+    y: number
+    startLeft: number
+    startTop: number
   } | null>(null)
 
   useEffect(() => {
@@ -195,8 +208,12 @@ export function PanelTour({
   const stepId = `${pathname}:${stepIndex}:${activeStep?.key ?? ''}`
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
-  const side = isReady ? layoutState.layout.side : 'top'
   const spotlight = isReady ? layoutState.layout.spotlight : null
+  const floatingPosition = draggedPosition?.stepId === stepId
+    ? draggedPosition
+    : layoutState?.stepId === stepId
+      ? layoutState.layout
+      : { left: 12, top: 12 }
 
   // Directory counts may change after the page hydrates (e.g. Temas).
   // Match the guidance to what is actually available, without inventing data.
@@ -285,14 +302,14 @@ export function PanelTour({
       }
 
       const rect = target?.getBoundingClientRect()
-      const result = rect
-        ? getTourLayout(rect, viewport, dialogHeight)
-        : {
-            side: 'top' as const,
-            spotlight: null,
-            visibleHeight: 0,
-            freeHeight: viewport.height - dialogHeight - 40,
-          }
+      const result = getFloatingTourLayout(
+        rect,
+        viewport,
+        {
+          width: guide.getBoundingClientRect().width,
+          height: dialogHeight,
+        },
+      )
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -300,7 +317,9 @@ export function PanelTour({
         const b = result.spotlight
         if (
           previous?.stepId === stepId &&
-          previous.layout.side === result.side &&
+          previous.layout.placement === result.placement &&
+          Math.abs(previous.layout.left - result.left) < 0.75 &&
+          Math.abs(previous.layout.top - result.top) < 0.75 &&
           ((!a && !b) || (
             a && b &&
             Math.abs(a.top - b.top) < 0.75 &&
@@ -359,8 +378,54 @@ export function PanelTour({
 
   function closeTour() {
     window.localStorage.setItem(storageKey, 'true')
+    dragRef.current = null
+    setDraggedPosition(null)
     setLayoutState(null)
     setOpen(false)
+  }
+
+  // Drag the explanation by its header. Spotlight remains on the target;
+  // users can move the floating window without changing the page layout.
+  function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!isReady || !event.isPrimary ||
+        (event.pointerType === 'mouse' && event.button !== 0)) return
+    const guide = dialogRef.current
+    if (!guide) return
+    const rect = guide.getBoundingClientRect()
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      startLeft: rect.left,
+      startTop: rect.top,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const guide = dialogRef.current
+    if (!guide) return
+    const inset = 12
+    const left = Math.max(inset, Math.min(
+      window.innerWidth - guide.offsetWidth - inset,
+      drag.startLeft + event.clientX - drag.x,
+    ))
+    const top = Math.max(inset, Math.min(
+      window.innerHeight - guide.offsetHeight - inset,
+      drag.startTop + event.clientY - drag.y,
+    ))
+    setDraggedPosition({ stepId, left, top })
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (dragRef.current?.pointerId !== event.pointerId) return
+    dragRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
   }
 
   function startTour() {
@@ -371,11 +436,14 @@ export function PanelTour({
     }
     window.localStorage.setItem(storageKey, 'true')
     setStepIndex(0)
+    setDraggedPosition(null)
     setLayoutState(null)
     setOpen(true)
   }
 
   function goToStep(index: number) {
+    dragRef.current = null
+    setDraggedPosition(null)
     setLayoutState(null)
     setStepIndex(index)
   }
@@ -419,6 +487,8 @@ export function PanelTour({
           <div
             ref={dialogRef}
             data-tour-ready={isReady ? 'true' : 'false'}
+            data-tour-floating="true"
+            data-tour-placement={isReady ? layoutState.layout.placement : 'pending'}
             data-tour-empty-state={isEmpty ? 'true' : 'false'}
             data-tour-step-key={activeStep.key}
             data-active-tour-target={isReady ? activeStep.target ?? '' : ''}
@@ -426,15 +496,27 @@ export function PanelTour({
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
             aria-hidden={!isReady}
-            style={{ visibility: isReady ? 'visible' : 'hidden' }}
-            className={`fixed inset-x-3 ${side === 'top' ? 'top-3' : 'bottom-3'} z-10 mx-auto flex w-[min(760px,calc(100vw-1.5rem))] max-h-[min(44dvh,340px)] flex-col rounded-2xl bg-white p-3 text-slate-950 shadow-2xl ring-1 ring-slate-200 outline-none sm:p-4`}
+            className="pointer-events-auto fixed z-10 flex w-[min(440px,calc(100vw-1.5rem))] max-h-[min(48dvh,360px)] flex-col rounded-2xl border border-sky-200 bg-white p-3 text-slate-950 shadow-[0_18px_65px_rgba(2,6,23,0.33)] ring-1 ring-sky-100 outline-none sm:p-4"
+            style={{
+              left: floatingPosition.left,
+              top: floatingPosition.top,
+              visibility: isReady ? 'visible' : 'hidden',
+            }}
           >
-            <div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 pb-2">
+            <div
+              data-tour-drag-handle="true"
+              onPointerDown={beginDrag}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              className="mb-2 flex shrink-0 cursor-grab touch-none select-none items-center justify-between gap-2 border-b border-slate-100 pb-2 active:cursor-grabbing"
+              title="Arrastrá para mover la descripción"
+            >
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2F5D8C]">
                 Recorrido MP25M_S
               </p>
               <span className="text-[11px] text-slate-500">
-                Guía contextual
+                ↔ Mover ventana
               </span>
             </div>
 

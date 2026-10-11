@@ -64,6 +64,7 @@ export function PilotFeedbackForm() {
         </span>
 
         <select
+          data-tour="feedback-type"
           name="feedback_type"
           defaultValue="difficulty"
           required
@@ -90,6 +91,7 @@ export function PilotFeedbackForm() {
         </span>
 
         <textarea
+          data-tour="feedback-detail"
           name="detail"
           required
           minLength={3}
@@ -106,6 +108,7 @@ export function PilotFeedbackForm() {
         </span>
 
         <input
+          data-tour="feedback-context"
           name="context_path"
           maxLength={500}
           placeholder="Ej.: Personas, Articulaciones, versión móvil..."

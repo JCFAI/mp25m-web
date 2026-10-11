@@ -350,16 +350,15 @@ export function PanelTour({
       }
 
       const rect = focus?.getBoundingClientRect()
-      const firstCard = isHomeIntro
-        ? target?.querySelector<HTMLElement>('[data-tour="module-people"]')
-        : null
-      const firstCardRect = firstCard?.getBoundingClientRect()
       const focusHeight = viewport.width < 640 ? 190 : 252
       const focusedRect = rect
         ? {
             top: rect.top,
-            bottom: isHomeIntro && firstCardRect
-              ? Math.min(rect.bottom, firstCardRect.bottom)
+            // Inicio introduces the complete module directory. Keep the
+            // spotlight tied to the whole section so every module remains
+            // illuminated as the visitor scrolls through the directory.
+            bottom: isHomeIntro
+              ? rect.bottom
               : Math.min(rect.bottom, rect.top + focusHeight),
             left: rect.left,
             right: rect.right,
@@ -407,11 +406,6 @@ export function PanelTour({
     observer.observe(guide)
     if (target) observer.observe(target)
     if (focus && focus !== target) observer.observe(focus)
-    if (isHomeIntro) {
-      const first = target?.querySelector<HTMLElement>('[data-tour="module-people"]')
-      if (first) observer.observe(first)
-    }
-
     const scroll = () => schedule(false)
     const resize = () => schedule(true)
     window.addEventListener('scroll', scroll, { capture: true, passive: true })

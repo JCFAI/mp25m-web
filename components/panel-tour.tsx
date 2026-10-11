@@ -264,6 +264,7 @@ export function PanelTour({
   const isHomeIntro = pathname === '/panel' && activeStep?.key === 'modules'
   const isHomeNodes = pathname === '/panel' && activeStep?.key === 'nodes'
   const isHomeProfile = pathname === '/panel' && activeStep?.key === 'profile'
+  const isHomeFeedback = pathname === '/panel' && activeStep?.key === 'feedback'
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -391,7 +392,15 @@ export function PanelTour({
                   top: base.top - shift,
                 }
               })()
-            : getFloatingTourLayout(focusedRect, viewport, guideSize)
+            : isHomeFeedback
+              ? (() => {
+                  const base = getFloatingTourLayout(focusedRect, viewport, guideSize)
+                  // Keep the feedback card illuminated while placing the guide
+                  // above it, matching the approved composition for this step.
+                  const top = Math.max(12, (base.spotlight?.top ?? base.top) - guideSize.height - 32)
+                  return { ...base, placement: 'above' as const, top }
+                })()
+              : getFloatingTourLayout(focusedRect, viewport, guideSize)
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -439,7 +448,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback])
 
   useEffect(() => {
     if (!isReady) return

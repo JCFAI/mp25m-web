@@ -57,6 +57,7 @@ export function ArticulationCreationForm({
 
       <form
         action={formAction}
+        data-tour-focus="articulation-create"
         className="border-t border-slate-200 p-5"
       >
         <p className="text-sm leading-6 text-slate-600">

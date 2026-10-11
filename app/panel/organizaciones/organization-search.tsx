@@ -177,7 +177,7 @@ export function OrganizationSearch({
         universidades, sindicatos e instituciones.
       </p>
 
-      <div className="mt-3 grid gap-3 sm:mt-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:gap-4">
+      <div data-tour-focus="organizations-search" className="mt-3 grid gap-3 sm:mt-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:gap-4">
         <div
           className="relative"
           onFocusCapture={() =>

@@ -103,3 +103,127 @@ export function getTourScrollAdjustment(
   const delta = target.top - desiredTop
   return Math.abs(delta) > 14 ? delta : 0
 }
+
+
+/**
+ * A real floating popover: it follows the highlighted element instead of
+ * docking to the viewport edge. A large section is clipped to the part
+ * visible beside the popover, without introducing document padding.
+ */
+export type FloatingTourPlacement = 'right' | 'left' | 'below' | 'above' | 'center'
+
+export type FloatingTourLayout = {
+  placement: FloatingTourPlacement
+  top: number
+  left: number
+  spotlight: TourLayout['spotlight']
+  visibleHeight: number
+}
+
+export function getFloatingTourLayout(
+  target: TourRect | null,
+  viewport: { width: number; height: number },
+  dialog: { width: number; height: number },
+): FloatingTourLayout {
+  const inset = 12
+  const gap = 18
+  const width = Math.min(dialog.width, viewport.width - 2 * inset)
+  const height = Math.min(dialog.height, viewport.height - 2 * inset)
+  const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, value))
+  const maxX = Math.max(inset, viewport.width - width - inset)
+  const maxY = Math.max(inset, viewport.height - height - inset)
+
+  if (!target) {
+    return {
+      placement: 'center',
+      left: clamp((viewport.width - width) / 2, inset, maxX),
+      top: clamp((viewport.height - height) / 2, inset, maxY),
+      spotlight: null,
+      visibleHeight: 0,
+    }
+  }
+
+  const visible = {
+    left: clamp(target.left, inset, viewport.width - inset),
+    right: clamp(target.right, inset, viewport.width - inset),
+    top: clamp(target.top, inset, viewport.height - inset),
+    bottom: clamp(target.bottom, inset, viewport.height - inset),
+  }
+
+  if (visible.right <= visible.left || visible.bottom <= visible.top) {
+    return getFloatingTourLayout(null, viewport, dialog)
+  }
+
+  const visibleHeight = visible.bottom - visible.top
+  const isRoomRight = visible.right + gap + width <= viewport.width - inset
+  const isRoomLeft = visible.left - gap - width >= inset
+
+  let placement: FloatingTourPlacement
+  let left: number
+  let top: number
+  let clipTop = visible.top
+  let clipBottom = visible.bottom
+
+  // On wide screens, show the explanatory window BESIDE the target.
+  if (isRoomRight || isRoomLeft) {
+    placement = isRoomRight ? 'right' : 'left'
+    left = placement === 'right'
+      ? visible.right + gap
+      : visible.left - gap - width
+    top = clamp(visible.top, inset, maxY)
+  } else {
+    // On narrow screens, show the window ABOVE or BELOW its target.
+    // It remains a floating, positioned card rather than a docked bar.
+    left = clamp(visible.left, inset, maxX)
+    const aboveSpace = visible.top - inset - gap
+    const belowSpace = viewport.height - inset - visible.bottom - gap
+
+    if (belowSpace >= height || aboveSpace >= height) {
+      placement = belowSpace >= height ? 'below' : 'above'
+      top = placement === 'below'
+        ? visible.bottom + gap
+        : visible.top - gap - height
+    } else {
+      // An oversize section occupies most of the viewport. Illuminate its
+      // START and place the explanation beside the visible portion.
+      // If the section begins near the bottom, reverse the arrangement.
+      const focusAbove = visible.top <= viewport.height / 2
+      placement = focusAbove ? 'below' : 'above'
+      if (focusAbove) {
+        top = clamp(
+          visible.top + Math.min(visibleHeight, viewport.height * 0.52),
+          inset, maxY,
+        )
+      } else {
+        top = clamp(visible.top - height - gap, inset, maxY)
+      }
+    }
+
+    top = clamp(top, inset, maxY)
+    // Spotlight and window never overlap, including on tall targets.
+    if (placement === 'below') {
+      clipBottom = Math.min(visible.bottom, top - gap)
+    } else {
+      clipTop = Math.max(visible.top, top + height + gap)
+    }
+  }
+
+  const litHeight = Math.max(0, clipBottom - clipTop)
+  const spotlight = litHeight >= 30
+    ? {
+        top: clipTop,
+        left: visible.left,
+        width: visible.right - visible.left,
+        height: litHeight,
+      }
+    : null
+
+  return {
+    placement,
+    left: clamp(left, inset, maxX),
+    top: clamp(top, inset, maxY),
+    spotlight,
+    visibleHeight: litHeight,
+  }
+}

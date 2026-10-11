@@ -64,6 +64,16 @@ async function verifyTour(
     await expect(guide).toHaveAttribute('data-tour-ready', 'true', {
       timeout: 15_000,
     })
+    await expect(guide).toHaveAttribute('data-tour-floating', 'true')
+    await expect(guide.locator('[data-tour-drag-handle]')).toHaveCount(1)
+    await expect.poll(async () => {
+      const rect = await guide.boundingBox()
+      if (!rect) return false
+      const view = page.viewportSize()!
+      return rect.x >= 8 && rect.y >= 8 &&
+        rect.x + rect.width <= view.width - 8 &&
+        rect.y + rect.height <= view.height - 8
+    }, { message: 'El cuadro flotante debe quedar dentro de la pantalla' }).toBe(true)
     const stepKey = await guide.getAttribute('data-tour-step-key')
     expect(stepKey).toBeTruthy()
     expect(visited.has(stepKey!), `Paso duplicado en ${route}: ${stepKey}`).toBe(false)

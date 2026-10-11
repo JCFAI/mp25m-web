@@ -267,7 +267,8 @@ export function PanelTour({
   const isHomeFeedback = pathname === '/panel' && activeStep?.key === 'feedback'
   const isPeopleSearch = pathname === '/panel/personas' && activeStep?.key === 'people-search'
   const isNodesSearch = pathname === '/panel/nodos' && activeStep?.key === 'nodes-search'
-  const isDirectorySearch = isPeopleSearch || isNodesSearch
+  const isOrganizationsSearch = pathname === '/panel/organizaciones' && activeStep?.key === 'organizations-search'
+  const isDirectorySearch = isPeopleSearch || isNodesSearch || isOrganizationsSearch
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
   const spotlight = isReady ? layoutState.layout.spotlight : null
@@ -467,7 +468,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch, isNodesSearch, isDirectorySearch])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch, isNodesSearch, isOrganizationsSearch, isDirectorySearch])
 
   useEffect(() => {
     if (!isReady) return
@@ -601,6 +602,7 @@ export function PanelTour({
             data-tour-home-intro={isHomeIntro ? "true" : "false"}
             data-tour-people-search={isPeopleSearch ? "true" : "false"}
             data-tour-nodes-search={isNodesSearch ? "true" : "false"}
+            data-tour-organizations-search={isOrganizationsSearch ? "true" : "false"}
             data-tour-placement={isReady ? layoutState.layout.placement : 'pending'}
             data-tour-empty-state={isEmpty ? 'true' : 'false'}
             data-tour-step-key={activeStep.key}

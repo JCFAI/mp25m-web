@@ -269,6 +269,7 @@ export function PanelTour({
   const isNodesSearch = pathname === '/panel/nodos' && activeStep?.key === 'nodes-search'
   const isOrganizationsSearch = pathname === '/panel/organizaciones' && activeStep?.key === 'organizations-search'
   const isSkillsSearch = pathname === '/panel/habilidades' && activeStep?.key === 'skills-search'
+  const isProjectsList = pathname === '/panel/proyectos' && activeStep?.key === 'projects-list'
   const isDirectorySearch = isPeopleSearch || isNodesSearch || isOrganizationsSearch || isSkillsSearch
   const isReady = open && layoutState?.stepId === stepId
   const isEmpty = emptyTarget?.stepId === stepId && emptyTarget.isEmpty
@@ -421,7 +422,18 @@ export function PanelTour({
                   const left = maxLeft
                   return { ...base, placement: 'above' as const, top, left }
                 })()
-              : getFloatingTourLayout(focusedRect, viewport, guideSize)
+              : isProjectsList
+                ? (() => {
+                    const base = getFloatingTourLayout(focusedRect, viewport, guideSize)
+                    // Raise only the Projects step 6 guide.
+                    // The spotlight remains anchored to s-projects-list.
+                    const shift = Math.min(120, Math.max(0, base.top - 12))
+                    return {
+                      ...base,
+                      top: base.top - shift,
+                    }
+                  })()
+                : getFloatingTourLayout(focusedRect, viewport, guideSize)
 
       setLayoutState(previous => {
         const next = { stepId, layout: result }
@@ -469,7 +481,7 @@ export function PanelTour({
       window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', resize)
     }
-  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch, isNodesSearch, isOrganizationsSearch, isSkillsSearch, isDirectorySearch])
+  }, [open, stepId, activeStep, isHomeIntro, isHomeNodes, isHomeProfile, isHomeFeedback, isPeopleSearch, isNodesSearch, isOrganizationsSearch, isSkillsSearch, isProjectsList, isDirectorySearch])
 
   useEffect(() => {
     if (!isReady) return

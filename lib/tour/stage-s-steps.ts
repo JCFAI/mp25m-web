@@ -196,6 +196,24 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         description: 'Revisá los campos para proponer un proyecto y los datos de su responsable. Durante el recorrido no lo guardes.',
       },
       {
+        key: 'projects-title',
+        target: 'projects-title',
+        title: 'Poné un nombre al proyecto',
+        description: 'Identificá la iniciativa con un nombre breve y reconocible. Es el primer dato del formulario; no escribas nada durante la guía.',
+      },
+      {
+        key: 'projects-objective',
+        target: 'projects-objective',
+        title: 'Describí el objetivo',
+        description: 'En este campo se explica qué se quiere alcanzar. La información puede completarse cuando exista un proyecto real.',
+      },
+      {
+        key: 'projects-responsible',
+        target: 'projects-responsible',
+        title: 'Elegí quién coordina',
+        description: 'El responsable organiza el seguimiento. Si todavía no está definido, se puede iniciar sin asignarlo.',
+      },
+      {
         key: 'projects-list',
         target: 's-projects-list',
         title: 'Proyectos registrados',
@@ -240,6 +258,24 @@ export function contextualStageSTourSteps(pathname: string): StageTourStep[] {
         target: 's-feedback-intro',
         title: 'Tu opinión mejora el programa',
         description: 'Podés registrar dificultades, sugerencias o errores encontrados durante el uso real de MP25M.',
+      },
+      {
+        key: 'feedback-type',
+        target: 'feedback-type',
+        title: 'Clasificá la sugerencia',
+        description: 'Elegí si es una dificultad, sugerencia o error. No hace falta completar el formulario durante este recorrido.',
+      },
+      {
+        key: 'feedback-detail',
+        target: 'feedback-detail',
+        title: 'Explicá lo que ocurrió',
+        description: 'Contá qué pasó y qué esperabas que sucediera. Un ejemplo concreto ayuda a revisar el problema.',
+      },
+      {
+        key: 'feedback-context',
+        target: 'feedback-context',
+        title: 'Indicá dónde pasó',
+        description: 'Podés señalar la pantalla o función relacionada, por ejemplo Personas, Articulaciones o la versión móvil.',
       },
       {
         key: 'feedback-form',

@@ -36,6 +36,7 @@ export function PilotFeedbackForm() {
     <form
       ref={formRef}
       action={formAction}
+      data-tour-focus="feedback-form"
       className="mt-6 space-y-5"
     >
       {state.status === 'success' ? (

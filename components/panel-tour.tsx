@@ -382,13 +382,13 @@ export function PanelTour({
           : isHomeProfile
             ? (() => {
                 const base = getFloatingTourLayout(focusedRect, viewport, guideSize)
-                const shift = Math.min(150, Math.max(0, base.top - 12))
+                // Raise the explanation only. Keep the spotlight anchored
+                // to the actual "Mi perfil" card instead of drifting upward
+                // into the surrounding "Tu cuenta y ayuda" section.
+                const shift = Math.min(110, Math.max(0, base.top - 12))
                 return {
                   ...base,
                   top: base.top - shift,
-                  spotlight: base.spotlight
-                    ? { ...base.spotlight, top: Math.max(12, base.spotlight.top - shift) }
-                    : null,
                 }
               })()
             : getFloatingTourLayout(focusedRect, viewport, guideSize)

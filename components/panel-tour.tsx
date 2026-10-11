@@ -364,6 +364,16 @@ export function PanelTour({
           if (Math.abs(delta) > 6) {
             window.scrollBy({ top: delta, behavior: 'instant' })
           }
+        } else if (isProjectsList) {
+          // Frame Projects step 6 as one composition: guide above and the
+          // complete "Proyectos registrados" block visible directly below.
+          const desiredTop = viewport.width < 640
+            ? Math.max(dialogHeight + 48, viewport.height * 0.58)
+            : Math.max(dialogHeight + 72, viewport.height * 0.60)
+          const delta = rect.top - desiredTop
+          if (Math.abs(delta) > 6) {
+            window.scrollBy({ top: delta, behavior: 'instant' })
+          }
         } else {
           const desiredTop = viewport.width < 640 ? 100 : 132
           if (rect.top < 60 || rect.top > viewport.height * 0.38 ||
@@ -431,7 +441,7 @@ export function PanelTour({
                     const spotlightTop = base.spotlight?.top ?? base.top
                     const top = Math.max(
                       12,
-                      spotlightTop - guideSize.height - 120
+                      spotlightTop - guideSize.height - 32
                     )
                     return {
                       ...base,

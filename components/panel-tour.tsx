@@ -347,6 +347,14 @@ export function PanelTour({
           if (Math.abs(delta) > 6) {
             window.scrollBy({ top: delta, behavior: 'instant' })
           }
+        } else if (isHomeFeedback) {
+          // Match the approved composition: bring the complete Suggestions
+          // card a little higher, directly beneath the floating explanation.
+          const desiredTop = Math.max(dialogHeight + 64, viewport.height * 0.64)
+          const delta = rect.top - desiredTop
+          if (Math.abs(delta) > 6) {
+            window.scrollBy({ top: delta, behavior: 'instant' })
+          }
         } else {
           const desiredTop = viewport.width < 640 ? 100 : 132
           if (rect.top < 60 || rect.top > viewport.height * 0.38 ||

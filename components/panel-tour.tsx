@@ -525,7 +525,7 @@ export function PanelTour({
             aria-label="Recorrido guiado de MP25M"
             tabIndex={-1}
             aria-hidden={!isReady}
-            className="pointer-events-auto fixed z-10 flex w-[min(440px,calc(100vw-1.5rem))] max-h-[min(48dvh,360px)] flex-col rounded-2xl border border-sky-200 bg-white p-3 text-slate-950 shadow-[0_18px_65px_rgba(2,6,23,0.33)] ring-1 ring-sky-100 outline-none sm:p-4"
+            className="pointer-events-auto fixed z-10 flex w-[min(780px,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.33)] ring-1 ring-white/90 outline-none sm:px-6 sm:py-4"
             style={{
               left: floatingPosition.left,
               top: floatingPosition.top,
@@ -538,36 +538,36 @@ export function PanelTour({
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
-              className="mb-2 flex shrink-0 cursor-grab touch-none select-none items-center justify-between gap-2 border-b border-slate-100 pb-2 active:cursor-grabbing"
+              className="mb-3 flex shrink-0 cursor-grab touch-none select-none items-center justify-between gap-2 border-b border-slate-100 pb-2.5 active:cursor-grabbing"
               title="Arrastrá para mover la descripción"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2F5D8C]">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#2F5D8C]">
                 Recorrido MP25M_S
               </p>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-xs font-medium text-slate-500">
                 ↔ Mover ventana
               </span>
             </div>
 
-            <div className="min-h-0 overflow-y-auto">
-              <h2 className="text-base font-semibold leading-5 sm:text-lg sm:leading-6">
+            <div data-tour-copy="true" className="min-h-0 overflow-y-auto overscroll-contain">
+              <h2 className="text-lg font-bold leading-6 tracking-tight sm:text-xl sm:leading-7">
                 {isEmpty && activeStep.emptyTitle ? activeStep.emptyTitle : activeStep.title}
               </h2>
-              <p className="mt-1.5 text-[13px] leading-5 text-slate-600 sm:text-sm">
+              <p className="mt-2 text-[15px] leading-[1.55] text-slate-700 sm:text-base sm:leading-6">
                 {isEmpty && activeStep.emptyDescription ? activeStep.emptyDescription : activeStep.description}
               </p>
             </div>
 
-            <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-1 border-t border-slate-200 pt-2 sm:flex-nowrap sm:gap-2">
-              <p className="shrink-0 text-[11px] font-medium text-slate-500 sm:text-xs">
+            <div className="mt-3 flex shrink-0 flex-nowrap items-center justify-between gap-1 border-t border-slate-200 pt-3 sm:gap-3">
+              <p className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-500 sm:text-sm">
                 Paso {stepIndex + 1} de {availableSteps.length}
               </p>
-              <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+              <div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-2">
                 <button
                   type="button"
                   disabled={!isReady}
                   onClick={closeTour}
-                  className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
+                  className="min-h-9 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                 >
                   Salir
                 </button>
@@ -576,7 +576,7 @@ export function PanelTour({
                     type="button"
                     disabled={!isReady}
                     onClick={() => goToStep(stepIndex - 1)}
-                    className="min-h-8 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
+                    className="min-h-9 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#1E3A5F] transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] motion-reduce:transition-none sm:text-sm"
                   >
                     Anterior
                   </button>
@@ -589,7 +589,7 @@ export function PanelTour({
                       ? closeTour()
                       : goToStep(stepIndex + 1)
                   }
-                  className="min-h-8 rounded-lg bg-[#1E3A5F] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none sm:text-sm"
+                  className="min-h-9 rounded-lg bg-[#1E3A5F] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#14263D] focus:outline-none focus:ring-2 focus:ring-[#2F5D8C] focus:ring-offset-2 motion-reduce:transition-none sm:text-sm"
                 >
                   {stepIndex + 1 >= availableSteps.length
                     ? 'Finalizar'

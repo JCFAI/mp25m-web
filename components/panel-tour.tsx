@@ -42,21 +42,21 @@ function stepsForPath(pathname: string, audience: StageTourAudience): TourStep[]
         target: 'articulations-intro',
         title: '¿Para qué sirve una articulación?',
         description:
-          'Una articulación es un trabajo coordinado entre personas u organizaciones para conseguir un objetivo concreto. Por ejemplo, reunir recursos y responsables para organizar una entrega. No necesitás registrar primero una Oportunidad: podés iniciar la Articulación por sí misma y vincular luego personas, organizaciones, proyectos u otros recursos. El primer paso es reconocer qué se quiere lograr y quiénes podrían participar.',
+          'Una articulación coordina personas y organizaciones para lograr un objetivo común. Puede comenzar sola: después se vinculan oportunidades, proyectos y otros recursos. Revisá su propósito antes de crearla.',
       },
       {
         key: 'articulation-create',
         target: 'articulation-create',
         title: 'Cómo registrar una articulación',
         description:
-          'En «Nombre de la articulación», escribí una frase breve que permita identificarla; por ejemplo, «Entrega de materiales a una escuela». En «Objetivo o propósito inicial», explicá qué se quiere conseguir y para quién. En el desplegable podés elegir a la persona responsable de coordinarla, si ya está definida, o mantener «Sin responsable inicial». El botón «Crear articulación» guarda el registro para completarlo y seguir su evolución más adelante. Durante este recorrido no lo pulses: solo estamos conociendo el formulario.',
+          'Indicá un nombre claro y el objetivo. Si ya hay alguien que coordine, elegí al responsable. El formulario permite guardar la nueva articulación; durante este recorrido solo vamos a conocerlo.',
       },
       {
         key: 'articulation-directory',
         target: 'articulation-directory',
         title: 'Abrí una articulación existente',
         description:
-          'En «Articulaciones registradas» aparecen las propuestas ya cargadas. Cada tarjeta identifica la articulación e informa su estado actual, responsable y cantidad de participantes. Para conocer el trabajo realizado, pulsá «Finalizar» y después abrí una tarjeta existente. En esa ficha seleccioná «Ver recorrido»: te mostrará dónde consultar los cambios de estado, las personas vinculadas y las novedades de seguimiento. No hace falta editar ni guardar nada para hacer esta prueba.',
+          'Aquí aparecen las articulaciones con su estado, responsable y participantes. Al terminar, abrí una ficha existente para explorar su historial, novedades y vínculos.',
         emptyTitle: 'Articulaciones: todavía sin registros',
         emptyDescription:
           'Este es el directorio donde aparecerán las articulaciones cuando se registren. Ahora está vacío, por lo que no hay una ficha para abrir. En cuanto existan propuestas, podrás entrar a una y consultar sus estados, participantes e historial desde su propio recorrido. No crees ninguna articulación ficticia.',
@@ -71,56 +71,56 @@ function stepsForPath(pathname: string, audience: StageTourAudience): TourStep[]
         target: 'articulation-summary',
         title: 'Ésta es la ficha de trabajo',
         description:
-          'En la parte superior se identifica la articulación, su objetivo y el estado actual. Revisá primero estos datos para saber qué se busca lograr, quién coordina el trabajo y en qué situación se encuentra.',
+          'Esta ficha muestra el objetivo, el responsable y el estado actual. Empezá por estos datos para entender qué se busca lograr y quién coordina el trabajo.',
       },
       {
         key: 'articulation-history',
         target: 'articulation-history',
         title: 'El historial conserva las decisiones',
         description:
-          'El historial permite reconstruir las decisiones: cuándo cambió el estado, quién registró el cambio y por qué. Consultalo antes de tomar una nueva decisión para no perder el contexto del trabajo.',
+          'Este historial conserva cada cambio de estado, su fecha, quién lo registró y el motivo. Consultalo antes de tomar una nueva decisión.',
       },
       {
         key: 'articulation-management',
         target: 'articulation-management',
         title: 'Gestioná la articulación',
         description:
-          'Este sector reúne las acciones de gestión. Según los permisos de tu usuario, podés cambiar el estado, reasignar a la persona responsable, agregar participantes y registrar novedades. En este recorrido solo vamos a identificar las opciones, sin guardar cambios.',
+          'Desde este bloque se gestiona la articulación: estado, responsable, participantes y novedades. Fijate en el primer formulario; los siguientes pasos explican cada acción por separado.',
       },
       {
         key: 'articulation-status',
         target: 'articulation-status',
         title: 'Estado y responsable',
         description:
-          'El campo «Estado» describe la situación actual de la articulación. «Responsable» indica quién coordina el próximo paso. Al registrar un cambio, completá el motivo para que otras personas entiendan la decisión. El resumen de cierre corresponde cuando se finaliza el trabajo. No guardes cambios durante esta práctica.',
+          'Seleccioná el estado y la persona responsable. Escribí el motivo del cambio; el resumen de cierre se completa al finalizar. No guardes nada durante esta guía.',
       },
       {
         key: 'articulation-followup',
         target: 'articulation-followup',
         title: 'Registrá el seguimiento',
         description:
-          'Usá el seguimiento para registrar lo que ocurrió: por ejemplo, una llamada, una reunión o un compromiso. Elegí el tipo de novedad, describí el hecho y luego guardalo cuando estés operando realmente. Durante este tutorial no registres nada.',
+          'Registrá reuniones, contactos o compromisos indicando tipo y detalle. En este recorrido solo identificamos dónde hacerlo, sin guardar.',
       },
       {
         key: 'articulation-participant-action',
         target: 'articulation-participant-action',
         title: 'Sumá participantes sin duplicarlos',
         description:
-          'Para sumar a alguien, pulsá «Elegir persona u organización» y buscá un registro existente. Así vinculás a la misma persona u organización sin crear duplicados. Podés explicar en «Motivo» por qué participa. No confirmes ningún agregado durante esta guía.',
+          'Buscá una persona u organización existente antes de agregarla. Explicá en «Motivo» por qué participa; así evitamos duplicaciones. No confirmes cambios durante la guía.',
       },
       {
         key: 'articulation-participants',
         target: 'articulation-participants',
         title: 'Participantes vinculados',
         description:
-          'En «Participantes» consultás las personas u organizaciones que intervienen y por qué fueron vinculadas. Este listado ayuda a saber con quién coordinar y a reconocer responsabilidades sin duplicar contactos.',
+          'Aquí se ven las personas y organizaciones vinculadas y el motivo de su participación. Consultalas para saber con quién coordinar.',
       },
       {
         key: 'articulation-followups',
         target: 'articulation-followups',
         title: 'Novedades y seguimiento',
         description:
-          'En «Novedades y seguimiento» aparece la secuencia de acciones registradas, con su contenido y fecha. Leé esas entradas para retomar el trabajo, identificar compromisos pendientes y comprender cómo avanzó la articulación.',
+          'Aquí se muestra la secuencia de novedades, fechas y compromisos. Revisala para comprender qué ocurrió y qué queda pendiente.',
       },
     ]
   }

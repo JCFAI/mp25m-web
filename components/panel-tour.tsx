@@ -180,15 +180,19 @@ export function PanelTour({
   }, [pathname, isBasicParticipant, canManageAccess, canReviewArticulations])
 
   useEffect(() => {
-    if (pathname !== '/panel' ||
-        window.localStorage.getItem(storageKey) === 'true') return
+    // A review link with ?tour=1 opens the floating explanation on ANY
+    // supported panel route, even if this visitor already saw the tutorial.
+    // It does not bypass authentication: /panel still requires a valid login.
+    const forceOpen = new URLSearchParams(window.location.search)
+      .get('tour') === '1'
+    if (!forceOpen && (pathname !== '/panel' ||
+        window.localStorage.getItem(storageKey) === 'true')) return
 
     autoOpenTimerRef.current = window.setTimeout(() => {
       autoOpenTimerRef.current = null
-      // The user may have pressed "Ver recorrido" before this timeout.
-      // In that case, never rewind the active walkthrough to step one.
-      if (window.localStorage.getItem(storageKey) === 'true') return
+      if (!forceOpen && window.localStorage.getItem(storageKey) === 'true') return
       setStepIndex(0)
+      setDraggedPosition(null)
       setLayoutState(null)
       setOpen(true)
     }, 300)
